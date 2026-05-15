@@ -4,7 +4,7 @@ export type DeliverableStatus = 'not_started' | 'in_progress' | 'delivered';
 export type LeadStage = 'new' | 'contacted' | 'discovery' | 'proposal' | 'negotiating' | 'won' | 'lost';
 export type LeadSource = 'referral' | 'website' | 'outbound' | 'other';
 export type ExpenseCategory = 'servers' | 'software' | 'contractor' | 'marketing' | 'other';
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid';
 
 export interface Client {
   id: number;
@@ -83,5 +83,42 @@ export interface LeadNote {
   id: number;
   lead_id: number;
   content: string;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: number;
+  client_id: number;
+  invoice_number: string;
+  status: InvoiceStatus;
+  due_date: string;
+  sent_at: string | null;
+  paid_at: string | null;
+  stripe_payment_link: string | null;
+  stripe_payment_id: string | null;
+  is_recurring: number;
+  recurrence_day: number | null;
+  total_amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceItem {
+  id: number;
+  invoice_id: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+}
+
+export interface Expense {
+  id: number;
+  client_id: number | null;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  expense_date: string;
   created_at: string;
 }

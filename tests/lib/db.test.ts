@@ -30,6 +30,9 @@ describe('initDb', () => {
     expect(tables).toContain('leads');
     expect(tables).toContain('lead_stage_history');
     expect(tables).toContain('lead_notes');
+    expect(tables).toContain('invoices');
+    expect(tables).toContain('invoice_items');
+    expect(tables).toContain('expenses');
 
     db.close();
   });
