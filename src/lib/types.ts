@@ -52,3 +52,36 @@ export interface ActivityLog {
   content: string;
   created_at: string;
 }
+
+export type LostReason = 'too_expensive' | 'competitor' | 'timing' | 'ghosted' | 'other';
+
+export interface Lead {
+  id: number;
+  business_name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  source: LeadSource;
+  estimated_value: number | null;
+  stage: LeadStage;
+  lost_reason: LostReason | null;
+  follow_up_date: string | null;
+  created_at: string;
+  updated_at: string;
+  converted_client_id: number | null;
+}
+
+export interface LeadStageHistory {
+  id: number;
+  lead_id: number;
+  stage: LeadStage;
+  entered_at: string;
+}
+
+export interface LeadNote {
+  id: number;
+  lead_id: number;
+  content: string;
+  created_at: string;
+}

@@ -27,6 +27,9 @@ describe('initDb', () => {
     expect(tables).toContain('projects');
     expect(tables).toContain('deliverables');
     expect(tables).toContain('activity_logs');
+    expect(tables).toContain('leads');
+    expect(tables).toContain('lead_stage_history');
+    expect(tables).toContain('lead_notes');
 
     db.close();
   });
