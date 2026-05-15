@@ -1,0 +1,54 @@
+export type ClientStatus = 'active' | 'paused' | 'completed';
+export type ProjectStatus = 'active' | 'on-hold' | 'completed';
+export type DeliverableStatus = 'not_started' | 'in_progress' | 'delivered';
+export type LeadStage = 'new' | 'contacted' | 'discovery' | 'proposal' | 'negotiating' | 'won' | 'lost';
+export type LeadSource = 'referral' | 'website' | 'outbound' | 'other';
+export type ExpenseCategory = 'servers' | 'software' | 'contractor' | 'marketing' | 'other';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
+
+export interface Client {
+  id: number;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  source: string | null;
+  status: ClientStatus;
+  monthly_value: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Project {
+  id: number;
+  client_id: number;
+  name: string;
+  status: ProjectStatus;
+  start_date: string | null;
+  server_ip: string | null;
+  repo_url: string | null;
+  deploy_command: string | null;
+  stack_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Deliverable {
+  id: number;
+  project_id: number;
+  title: string;
+  status: DeliverableStatus;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: number;
+  client_id: number;
+  project_id: number | null;
+  content: string;
+  created_at: string;
+}
