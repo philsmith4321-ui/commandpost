@@ -40,4 +40,15 @@ describe('dashboard queries', () => {
     expect(overdueItems).toHaveLength(1);
     expect(overdueItems[0].title).toContain('Overdue item');
   });
+
+  it('includes missed follow-ups in action items', async () => {
+    const { getActionItems } = await import('@/lib/queries/dashboard-queries');
+
+    db.prepare("INSERT INTO leads (business_name, source, stage, follow_up_date) VALUES (?, ?, ?, ?)").run('Stale Lead', 'referral', 'contacted', '2025-01-01');
+
+    const items = getActionItems(db);
+    const followUps = items.filter(i => i.type === 'missed_follow_up');
+    expect(followUps).toHaveLength(1);
+    expect(followUps[0].title).toContain('Stale Lead');
+  });
 });

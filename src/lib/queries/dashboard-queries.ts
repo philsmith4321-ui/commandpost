@@ -4,10 +4,13 @@ export interface DashboardSummary {
   activeClients: number;
   overdueDeliverables: number;
   monthlyRevenue: number;
+  pipelineLeads: number;
+  pipelineValue: number;
+  needsFollowUp: number;
 }
 
 export interface ActionItem {
-  type: 'overdue_deliverable' | 'due_soon_deliverable';
+  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up';
   title: string;
   link: string;
   urgency: 'red' | 'yellow';
@@ -28,7 +31,12 @@ export function getDashboardSummary(db: Database.Database): DashboardSummary {
     WHERE d.status != 'delivered' AND d.due_date < date('now') AND c.deleted_at IS NULL
   `).get() as any).count;
   const monthlyRevenue = (db.prepare("SELECT COALESCE(SUM(monthly_value), 0) as total FROM clients WHERE status = 'active' AND deleted_at IS NULL").get() as any).total;
-  return { activeClients, overdueDeliverables, monthlyRevenue };
+
+  const pipelineLeads = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost')").get() as any).count;
+  const pipelineValue = (db.prepare("SELECT COALESCE(SUM(estimated_value), 0) as total FROM leads WHERE stage NOT IN ('won','lost')").get() as any).total;
+  const needsFollowUp = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')").get() as any).count;
+
+  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp };
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {
@@ -62,6 +70,23 @@ export function getActionItems(db: Database.Database): ActionItem[] {
       type: 'due_soon_deliverable',
       title: `Due soon: ${d.title} (${d.client_name} / ${d.project_name}) — ${d.due_date}`,
       link: `/clients/${d.client_id}/projects/${d.project_id}`,
+      urgency: 'yellow',
+    });
+  }
+
+  // Missed lead follow-ups
+  const missedFollowUps = db.prepare(`
+    SELECT id, business_name, contact_person, follow_up_date
+    FROM leads
+    WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')
+    ORDER BY follow_up_date ASC
+  `).all() as any[];
+
+  for (const lead of missedFollowUps) {
+    items.push({
+      type: 'missed_follow_up',
+      title: `Follow up: ${lead.business_name}${lead.contact_person ? ` (${lead.contact_person})` : ''} — was due ${lead.follow_up_date}`,
+      link: `/pipeline/${lead.id}`,
       urgency: 'yellow',
     });
   }

@@ -41,8 +41,8 @@ export default function DashboardPage() {
         </div>
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Pipeline</p>
-          <p className="text-2xl font-bold text-gray-500">&mdash;</p>
-          <p className="text-xs text-gray-600">Coming in Phase 2</p>
+          <p className="text-2xl font-bold text-white">{summary.pipelineLeads}</p>
+          <p className="text-xs text-gray-500">${summary.pipelineValue.toLocaleString()} value</p>
         </div>
       </div>
 
@@ -57,7 +57,7 @@ export default function DashboardPage() {
                   item.urgency === 'red' ? 'border-red-900 bg-red-900/10 hover:bg-red-900/20' : 'border-yellow-900 bg-yellow-900/10 hover:bg-yellow-900/20'
                 }`}>
                 <span className={`text-xs font-medium uppercase ${item.urgency === 'red' ? 'text-red-400' : 'text-yellow-400'}`}>
-                  {item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
+                  {item.type === 'missed_follow_up' ? 'FOLLOW UP' : item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
                 </span>
                 <span className="text-sm text-white">{item.title}</span>
               </Link>
