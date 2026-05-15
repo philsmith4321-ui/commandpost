@@ -4,12 +4,7 @@ import { useActionState } from 'react';
 import { loginAction } from '@/lib/actions/auth-actions';
 
 export default function LoginPage() {
-  const [state, formAction, pending] = useActionState(
-    async (_prev: { error: string } | null, formData: FormData) => {
-      return await loginAction(formData);
-    },
-    null
-  );
+  const [state, formAction, pending] = useActionState(loginAction, null);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
