@@ -5,6 +5,7 @@ import { getActionItems, getDashboardSummary } from '../src/lib/queries/dashboar
 import { getCriticalDiskReports } from '../src/lib/queries/disk-report-queries';
 import { isClaudeConfigured, askClaude } from '../src/lib/claude';
 import { getRevenueByClient } from '../src/lib/queries/finance-queries';
+import { getClientHealthSummary } from '../src/lib/queries/client-queries';
 
 function getLastMonthStats(db: ReturnType<typeof initDb>): { revenue: number; expenses: number; profit: number; outstanding: number } {
   const now = new Date();
@@ -124,6 +125,17 @@ async function morningBriefing() {
       if (insights) {
         parts.push(`Insights: ${insights}`);
       }
+    }
+
+    // Client health summary
+    const clientHealth = getClientHealthSummary(db);
+    const needsAttention = clientHealth.filter(h => h.status === 'needs_attention').length;
+    const atRisk = clientHealth.filter(h => h.status === 'at_risk').length;
+    if (needsAttention > 0 || atRisk > 0) {
+      const healthParts: string[] = [];
+      if (needsAttention > 0) healthParts.push(`${needsAttention} need${needsAttention === 1 ? 's' : ''} attention`);
+      if (atRisk > 0) healthParts.push(`${atRisk} at risk`);
+      parts.push(`Client health: ${healthParts.join(', ')}`);
     }
   }
 
