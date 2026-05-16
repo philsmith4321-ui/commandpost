@@ -7,10 +7,12 @@ export interface DashboardSummary {
   pipelineLeads: number;
   pipelineValue: number;
   needsFollowUp: number;
+  outstandingInvoices: number;
+  overdueInvoiceAmount: number;
 }
 
 export interface ActionItem {
-  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up';
+  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice';
   title: string;
   link: string;
   urgency: 'red' | 'yellow';
@@ -36,7 +38,10 @@ export function getDashboardSummary(db: Database.Database): DashboardSummary {
   const pipelineValue = (db.prepare("SELECT COALESCE(SUM(estimated_value), 0) as total FROM leads WHERE stage NOT IN ('won','lost')").get() as any).total;
   const needsFollowUp = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')").get() as any).count;
 
-  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp };
+  const outstandingInvoices = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as any).total;
+  const overdueInvoiceAmount = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as any).total;
+
+  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount };
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {
@@ -88,6 +93,23 @@ export function getActionItems(db: Database.Database): ActionItem[] {
       title: `Follow up: ${lead.business_name}${lead.contact_person ? ` (${lead.contact_person})` : ''} — was due ${lead.follow_up_date}`,
       link: `/pipeline/${lead.id}`,
       urgency: 'yellow',
+    });
+  }
+
+  // Overdue invoices
+  const overdueInvoices = db.prepare(`
+    SELECT i.id, i.invoice_number, i.total_amount, i.due_date, c.name as client_name
+    FROM invoices i JOIN clients c ON i.client_id = c.id
+    WHERE i.status = 'sent' AND i.due_date < date('now')
+    ORDER BY i.due_date ASC
+  `).all() as any[];
+
+  for (const inv of overdueInvoices) {
+    items.push({
+      type: 'overdue_invoice',
+      title: `Overdue invoice: ${inv.invoice_number} for ${inv.client_name} — $${inv.total_amount.toLocaleString()} due ${inv.due_date}`,
+      link: `/finances/invoices/${inv.id}`,
+      urgency: 'red',
     });
   }
 

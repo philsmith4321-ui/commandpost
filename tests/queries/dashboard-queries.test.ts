@@ -51,4 +51,15 @@ describe('dashboard queries', () => {
     expect(followUps).toHaveLength(1);
     expect(followUps[0].title).toContain('Stale Lead');
   });
+
+  it('includes overdue invoices in action items', async () => {
+    const { getActionItems } = await import('@/lib/queries/dashboard-queries');
+    const clientId = Number(db.prepare("INSERT INTO clients (name, status) VALUES (?, ?)").run('Invoice Client', 'active').lastInsertRowid);
+    db.prepare("INSERT INTO invoices (client_id, invoice_number, status, due_date, total_amount) VALUES (?, ?, ?, ?, ?)").run(clientId, 'INV-0001', 'sent', '2025-01-01', 5000);
+    const items = getActionItems(db);
+    const invoiceItems = items.filter(i => i.type === 'overdue_invoice');
+    expect(invoiceItems).toHaveLength(1);
+    expect(invoiceItems[0].title).toContain('INV-0001');
+    expect(invoiceItems[0].urgency).toBe('red');
+  });
 });

@@ -34,10 +34,13 @@ export default function DashboardPage() {
           <p className="text-2xl font-bold text-white">${summary.monthlyRevenue.toLocaleString()}</p>
         </div>
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-          <p className="text-xs text-gray-500 uppercase mb-1">Overdue Items</p>
-          <p className={`text-2xl font-bold ${summary.overdueDeliverables > 0 ? 'text-red-400' : 'text-white'}`}>
-            {summary.overdueDeliverables}
+          <p className="text-xs text-gray-500 uppercase mb-1">Outstanding</p>
+          <p className={`text-2xl font-bold ${summary.overdueInvoiceAmount > 0 ? 'text-red-400' : 'text-white'}`}>
+            ${summary.outstandingInvoices.toLocaleString()}
           </p>
+          {summary.overdueInvoiceAmount > 0 && (
+            <p className="text-xs text-red-400">${summary.overdueInvoiceAmount.toLocaleString()} overdue</p>
+          )}
         </div>
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Pipeline</p>
@@ -57,7 +60,7 @@ export default function DashboardPage() {
                   item.urgency === 'red' ? 'border-red-900 bg-red-900/10 hover:bg-red-900/20' : 'border-yellow-900 bg-yellow-900/10 hover:bg-yellow-900/20'
                 }`}>
                 <span className={`text-xs font-medium uppercase ${item.urgency === 'red' ? 'text-red-400' : 'text-yellow-400'}`}>
-                  {item.type === 'missed_follow_up' ? 'FOLLOW UP' : item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
+                  {item.type === 'overdue_invoice' ? 'OVERDUE' : item.type === 'missed_follow_up' ? 'FOLLOW UP' : item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
                 </span>
                 <span className="text-sm text-white">{item.title}</span>
               </Link>
