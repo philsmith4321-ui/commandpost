@@ -51,7 +51,9 @@ export function KanbanBoard({ leadsByStage, stageEnteredDates }: KanbanBoardProp
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '70vh' }}>
+    <div className="relative">
+      <div className="sm:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-950 to-transparent pointer-events-none z-10" />
+      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '70vh' }}>
       {COLUMNS.map(({ stage, label }) => {
         const leads = leadsByStage[stage] || [];
         return (
@@ -82,6 +84,7 @@ export function KanbanBoard({ leadsByStage, stageEnteredDates }: KanbanBoardProp
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
