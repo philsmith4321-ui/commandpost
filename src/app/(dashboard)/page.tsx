@@ -29,7 +29,7 @@ export default function DashboardPage() {
       <AlertBar items={actionItems} />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-8">
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Active Clients</p>
           <p className="text-2xl font-bold text-white">{summary.activeClients}</p>
@@ -53,6 +53,10 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-500">${summary.pipelineValue.toLocaleString()} value</p>
         </div>
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">MRR</p>
+          <p className="text-2xl font-bold text-white">${summary.mrr.toLocaleString()}</p>
+        </div>
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Servers</p>
           <p className={`text-2xl font-bold ${summary.serversDown > 0 ? 'text-red-400' : 'text-green-400'}`}>
             {summary.serversDown > 0 ? `${summary.serversDown} down` : 'All OK'}
@@ -71,7 +75,7 @@ export default function DashboardPage() {
                   item.urgency === 'red' ? 'border-red-900 bg-red-900/10 hover:bg-red-900/20' : 'border-yellow-900 bg-yellow-900/10 hover:bg-yellow-900/20'
                 }`}>
                 <span className={`text-xs font-medium uppercase ${item.urgency === 'red' ? 'text-red-400' : 'text-yellow-400'}`}>
-                  {item.type === 'overdue_invoice' ? 'OVERDUE' : item.type === 'missed_follow_up' ? 'FOLLOW UP' : item.type === 'server_down' ? 'DOWN' : item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
+                  {item.type === 'overdue_invoice' ? 'OVERDUE' : item.type === 'missed_follow_up' ? 'FOLLOW UP' : item.type === 'server_down' ? 'DOWN' : item.type === 'client_needs_attention' ? 'CLIENT' : item.type === 'client_at_risk' ? 'CLIENT' : item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
                 </span>
                 <span className="text-sm text-white">{item.title}</span>
               </Link>

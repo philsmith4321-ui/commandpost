@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { getMrr } from '@/lib/queries/invoice-queries';
+import { getClientHealthSummary } from '@/lib/queries/client-queries';
 
 export interface DashboardSummary {
   activeClients: number;
@@ -10,10 +12,11 @@ export interface DashboardSummary {
   outstandingInvoices: number;
   overdueInvoiceAmount: number;
   serversDown: number;
+  mrr: number;
 }
 
 export interface ActionItem {
-  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice' | 'server_down';
+  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice' | 'server_down' | 'client_needs_attention' | 'client_at_risk';
   title: string;
   link: string;
   urgency: 'red' | 'yellow';
@@ -44,7 +47,9 @@ export function getDashboardSummary(db: Database.Database): DashboardSummary {
 
   const serversDown = (db.prepare("SELECT COUNT(*) as count FROM incidents WHERE resolved_at IS NULL").get() as any).count;
 
-  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, serversDown };
+  const mrr = getMrr(db);
+
+  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, serversDown, mrr };
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {
@@ -131,6 +136,26 @@ export function getActionItems(db: Database.Database): ActionItem[] {
       link: `/ops/${srv.endpoint_id}`,
       urgency: 'red',
     });
+  }
+
+  // Client health
+  const clientHealth = getClientHealthSummary(db);
+  for (const h of clientHealth) {
+    if (h.status === 'needs_attention') {
+      items.push({
+        type: 'client_needs_attention',
+        title: `${h.clientName} — health ${h.score}/100`,
+        link: `/clients/${h.clientId}`,
+        urgency: 'red',
+      });
+    } else if (h.status === 'at_risk') {
+      items.push({
+        type: 'client_at_risk',
+        title: `${h.clientName} — health ${h.score}/100`,
+        link: `/clients/${h.clientId}`,
+        urgency: 'yellow',
+      });
+    }
   }
 
   return items;
