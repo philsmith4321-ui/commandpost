@@ -3,7 +3,8 @@ import { listActiveEndpoints } from '../src/lib/queries/endpoint-queries';
 import { recordHealthCheck, getLastHealthCheck, getLastNHealthChecks, deleteOldHealthChecks } from '../src/lib/queries/health-check-queries';
 import { getOpenIncident, createIncident, resolveIncident } from '../src/lib/queries/incident-queries';
 import { isTwilioConfigured, sendSms } from '../src/lib/twilio';
-import { recordAlert, hasAlertBeenSent } from '../src/lib/queries/alert-queries';
+import { recordAlert, hasAlertBeenSent, hasAlertBeenSentInLastDays } from '../src/lib/queries/alert-queries';
+import { getClientHealthSummary } from '../src/lib/queries/client-queries';
 
 const TIMEOUT_MS = 10_000;
 
@@ -98,6 +99,24 @@ async function main() {
   const deleted = deleteOldHealthChecks(db);
   if (deleted > 0) {
     console.log(`Cleaned up ${deleted} old health checks.`);
+  }
+
+  // Client health alerts
+  const clientHealth = getClientHealthSummary(db);
+  for (const h of clientHealth) {
+    if (h.status === 'needs_attention') {
+      if (!hasAlertBeenSentInLastDays(db, 'client_health_warning', h.clientId, 7)) {
+        const message = `ALERT: ${h.clientName} needs attention — health score ${h.score}/100`;
+        console.log(`Client health alert: ${message}`);
+        if (isTwilioConfigured()) {
+          const sent = await sendSms(message);
+          if (sent) {
+            recordAlert(db, { alert_type: 'client_health_warning', reference_id: h.clientId, message });
+            console.log(`  SMS SENT: ${message}`);
+          }
+        }
+      }
+    }
   }
 
   db.close();
