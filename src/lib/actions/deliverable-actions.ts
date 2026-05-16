@@ -29,12 +29,15 @@ export async function updateDeliverableStatusAction(formData: FormData) {
   const db = getDb();
   const id = Number(formData.get('id'));
   const status = formData.get('status') as DeliverableStatus;
-  const clientId = Number(formData.get('client_id'));
-  const projectId = Number(formData.get('project_id'));
+  const clientId = formData.get('client_id') as string | null;
+  const projectId = formData.get('project_id') as string | null;
 
   updateDeliverableStatus(db, id, status);
 
-  revalidatePath(`/clients/${clientId}/projects/${projectId}`);
+  if (clientId && projectId) {
+    revalidatePath(`/clients/${clientId}/projects/${projectId}`);
+  }
+  revalidatePath('/board');
 }
 
 export async function deleteDeliverableAction(formData: FormData) {
