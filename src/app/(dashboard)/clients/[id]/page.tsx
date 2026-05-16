@@ -11,6 +11,8 @@ import { DeleteClientButton } from '@/components/delete-client-button';
 import { RecurringInvoiceForm } from '@/components/recurring-invoice-form';
 import { PortalLinkCard } from '@/components/portal-link-card';
 import { togglePinClientAction } from '@/lib/actions/dashboard-actions';
+import { getClientTags, listTags } from '@/lib/queries/tag-queries';
+import { addTagToClientAction, removeTagFromClientAction } from '@/lib/actions/tag-actions';
 import type { Project, ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ClientDetailPage({
@@ -36,6 +38,9 @@ export default async function ClientDetailPage({
 
   const health = getClientHealth(db, Number(id));
   const recurringInvoices = getClientRecurringInvoices(db, Number(id));
+  const clientTags = getClientTags(db, Number(id));
+  const allTags = listTags(db);
+  const availableTags = allTags.filter(t => !clientTags.find(ct => ct.id === t.id));
 
   return (
     <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
@@ -62,6 +67,28 @@ export default async function ClientDetailPage({
         >
           Edit
         </Link>
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        {clientTags.map(tag => (
+          <form key={tag.id} action={removeTagFromClientAction} className="inline">
+            <input type="hidden" name="client_id" value={client.id} />
+            <input type="hidden" name="tag_id" value={tag.id} />
+            <button type="submit" className="inline-flex items-center gap-1 px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded hover:bg-red-900/30 hover:text-red-400 transition-colors" title="Remove tag">
+              {tag.name} ×
+            </button>
+          </form>
+        ))}
+        {availableTags.length > 0 && (
+          <form action={addTagToClientAction} className="inline-flex gap-1">
+            <input type="hidden" name="client_id" value={client.id} />
+            <select name="tag_id" className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-white">
+              {availableTags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <button type="submit" className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-xs text-white rounded">+ Tag</button>
+          </form>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">

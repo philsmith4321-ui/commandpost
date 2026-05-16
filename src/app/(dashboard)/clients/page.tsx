@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { listClients, getClientHealth } from '@/lib/queries/client-queries';
+import { listTags, getClientTags } from '@/lib/queries/tag-queries';
+import { createTagAction, deleteTagAction } from '@/lib/actions/tag-actions';
 import { StatusBadge } from '@/components/status-badge';
 import { HealthDot } from '@/components/client-health-badge';
 import type { ClientStatus } from '@/lib/types';
@@ -23,10 +25,12 @@ export default async function ClientsPage({
   }
 
   const clients = listClients(db, filter);
+  const tags = listTags(db);
 
   const clientsWithHealth = clients.map(client => ({
     ...client,
     health: getClientHealth(db, client.id),
+    tags: getClientTags(db, client.id),
   }));
 
   const tabs = [
@@ -72,6 +76,22 @@ export default async function ClientsPage({
         })}
       </div>
 
+      {/* Tags */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        {tags.map(t => (
+          <form key={t.id} action={deleteTagAction} className="inline">
+            <input type="hidden" name="tag_id" value={t.id} />
+            <button type="submit" className="text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors" title="Delete tag">
+              {t.name} ×
+            </button>
+          </form>
+        ))}
+        <form action={createTagAction} className="inline-flex gap-1">
+          <input type="text" name="name" placeholder="New tag..." className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-white w-24" />
+          <button type="submit" className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-xs text-white rounded">+</button>
+        </form>
+      </div>
+
       {clients.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">No clients found.</p>
@@ -98,6 +118,9 @@ export default async function ClientsPage({
                     {client.contact_person}
                   </span>
                 )}
+                {client.tags.map(t => (
+                  <span key={t.id} className="text-xs px-1.5 py-0.5 bg-blue-900/30 text-blue-400 rounded">{t.name}</span>
+                ))}
               </div>
               <div className="flex items-center gap-4">
                 {client.monthly_value != null && (

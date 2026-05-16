@@ -271,6 +271,20 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_portal_token ON clients(portal_token) WHERE portal_token IS NOT NULL");
   }
 
+  // Migration: create tags tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      color TEXT NOT NULL DEFAULT 'gray'
+    );
+    CREATE TABLE IF NOT EXISTS client_tags (
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (client_id, tag_id)
+    );
+  `);
+
   // Migration: add is_pinned to clients
   const hasPinned = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'is_pinned'").get() as any;
   if (hasPinned.count === 0) {
