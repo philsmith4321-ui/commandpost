@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
+import { logAudit } from '@/lib/audit';
 import {
   createInvoice,
   updateInvoice,
@@ -71,6 +72,7 @@ export async function markInvoiceSentAction(formData: FormData) {
   const db = getDb();
   const id = Number(formData.get('id'));
   markInvoiceSent(db, id);
+  logAudit(db, 'invoice', id, 'sent');
   revalidatePath('/finances');
   revalidatePath(`/finances/invoices/${id}`);
   redirect(`/finances/invoices/${id}`);
@@ -80,6 +82,7 @@ export async function markInvoicePaidAction(formData: FormData) {
   const db = getDb();
   const id = Number(formData.get('id'));
   markInvoicePaid(db, id);
+  logAudit(db, 'invoice', id, 'paid');
 
   const invoice = getInvoiceById(db, id);
   if (invoice) {

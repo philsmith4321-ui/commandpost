@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
+import { logAudit } from '@/lib/audit';
 import {
   createLead,
   updateLead,
@@ -67,6 +68,7 @@ export async function updateLeadStageAction(formData: FormData) {
   const stage = formData.get('stage') as LeadStage;
 
   updateLeadStage(db, id, stage);
+  logAudit(db, 'lead', id, `stage_changed`, stage);
 
   const lead = getLeadById(db, id);
   if (lead) {
