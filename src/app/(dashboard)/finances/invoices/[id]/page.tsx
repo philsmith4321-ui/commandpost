@@ -8,6 +8,8 @@ import {
   deleteInvoiceAction,
   generateStripeLink,
   syncStripePaymentAction,
+  toggleRecurringAction,
+  updateRecurrenceDayAction,
 } from '@/lib/actions/invoice-actions';
 import { isStripeConfigured } from '@/lib/stripe';
 import { StatusBadge } from '@/components/status-badge';
@@ -60,9 +62,41 @@ export default async function InvoiceDetailPage({
         </div>
       </div>
 
-      {invoice.is_recurring === 1 && (
-        <p className="text-sm text-gray-400 mb-4">Recurring on day {invoice.recurrence_day} of each month</p>
-      )}
+      <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500 uppercase mb-1">Recurring</p>
+            <p className="text-sm text-white">
+              {invoice.is_recurring === 1
+                ? `Active — Day ${invoice.recurrence_day} of each month`
+                : 'Not recurring'}
+            </p>
+          </div>
+          <form action={toggleRecurringAction}>
+            <input type="hidden" name="id" value={invoice.id} />
+            <button type="submit"
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                invoice.is_recurring === 1
+                  ? 'text-red-400 border border-red-900 hover:bg-red-900/20'
+                  : 'text-green-400 border border-green-900 hover:bg-green-900/20'
+              }`}>
+              {invoice.is_recurring === 1 ? 'Deactivate' : 'Activate'}
+            </button>
+          </form>
+        </div>
+        {invoice.is_recurring === 1 && (
+          <form action={updateRecurrenceDayAction} className="mt-3 flex items-center gap-2">
+            <input type="hidden" name="id" value={invoice.id} />
+            <label className="text-xs text-gray-500">Change day:</label>
+            <input type="number" name="day" min={1} max={28} defaultValue={invoice.recurrence_day ?? 1}
+              className="w-16 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white text-sm" />
+            <button type="submit"
+              className="px-3 py-1 text-xs text-blue-400 border border-blue-800 rounded hover:bg-blue-900/20 transition-colors">
+              Update
+            </button>
+          </form>
+        )}
+      </div>
 
       {invoice.notes && (
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg mb-6">
