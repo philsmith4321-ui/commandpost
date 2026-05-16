@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/status-badge';
 import { LeadNotes } from '@/components/lead-notes';
 import { StageHistory } from '@/components/stage-history';
 import { ConvertToClient } from '@/components/convert-to-client';
+import { isClaudeConfigured } from '@/lib/claude';
+import { FollowUpDraft } from '@/components/follow-up-draft';
 
 const stageLabels: Record<string, string> = {
   new: 'New', contacted: 'Contacted', discovery: 'Discovery Call',
@@ -25,6 +27,7 @@ export default async function LeadDetailPage({
 
   const notes = listLeadNotes(db, lead.id);
   const history = getStageHistory(db, lead.id);
+  const claudeEnabled = isClaudeConfigured();
 
   return (
     <div className="p-4 sm:p-6">
@@ -103,6 +106,10 @@ export default async function LeadDetailPage({
             </form>
           </details>
         </div>
+      )}
+
+      {lead.stage !== 'won' && lead.stage !== 'lost' && (
+        <FollowUpDraft leadId={lead.id} isConfigured={claudeEnabled} />
       )}
 
       {/* Won/Lost info */}
