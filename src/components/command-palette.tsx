@@ -40,6 +40,7 @@ export function CommandPalette() {
     { id: 'act-use-template', label: 'Create Project from Template', section: 'Actions', action: () => router.push('/templates/use') },
     { id: 'act-new-endpoint', label: 'New Endpoint', section: 'Actions', action: () => router.push('/ops/new') },
     { id: 'act-log-time', label: 'Log Time', section: 'Actions', action: () => router.push('/finances/time') },
+    { id: 'act-export', label: 'Export Data', section: 'Actions', action: () => router.push('/export') },
   ];
 
   const filtered = query
