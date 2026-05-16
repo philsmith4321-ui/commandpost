@@ -164,6 +164,16 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       message TEXT NOT NULL,
       sent_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS disk_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint_id INTEGER NOT NULL REFERENCES endpoints(id) ON DELETE CASCADE,
+      mount_point TEXT NOT NULL,
+      total_gb REAL NOT NULL,
+      used_gb REAL NOT NULL,
+      percent_used REAL NOT NULL,
+      reported_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   return db;

@@ -150,7 +150,7 @@ export interface Incident {
   duration_seconds: number | null;
 }
 
-export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing';
+export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing' | 'disk_warning';
 
 export interface AlertSent {
   id: number;
@@ -158,4 +158,14 @@ export interface AlertSent {
   reference_id: number | null;
   message: string;
   sent_at: string;
+}
+
+export interface DiskReport {
+  id: number;
+  endpoint_id: number;
+  mount_point: string;
+  total_gb: number;
+  used_gb: number;
+  percent_used: number;
+  reported_at: string;
 }
