@@ -12,6 +12,7 @@ const navItems = [
   { href: '/finances', label: 'Finances', icon: '◇' },
   { href: '/ops', label: 'Ops', icon: '◆' },
   { href: '/reports', label: 'Reports', icon: '◫' },
+  { href: '/templates', label: 'Templates', icon: '⊞' },
   { href: '/notifications', label: 'Notifications', icon: '⊛' },
 ];
 

@@ -240,6 +240,22 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','expired','renewed')),
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS project_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      stack_notes TEXT,
+      hourly_rate REAL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS template_deliverables (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_id INTEGER NOT NULL REFERENCES project_templates(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      days_offset INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   // Migration: add hourly_rate to projects
