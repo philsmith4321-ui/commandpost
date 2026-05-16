@@ -9,10 +9,11 @@ export interface DashboardSummary {
   needsFollowUp: number;
   outstandingInvoices: number;
   overdueInvoiceAmount: number;
+  serversDown: number;
 }
 
 export interface ActionItem {
-  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice';
+  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice' | 'server_down';
   title: string;
   link: string;
   urgency: 'red' | 'yellow';
@@ -41,7 +42,9 @@ export function getDashboardSummary(db: Database.Database): DashboardSummary {
   const outstandingInvoices = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as any).total;
   const overdueInvoiceAmount = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as any).total;
 
-  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount };
+  const serversDown = (db.prepare("SELECT COUNT(*) as count FROM incidents WHERE resolved_at IS NULL").get() as any).count;
+
+  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, serversDown };
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {
@@ -109,6 +112,23 @@ export function getActionItems(db: Database.Database): ActionItem[] {
       type: 'overdue_invoice',
       title: `Overdue invoice: ${inv.invoice_number} for ${inv.client_name} — $${inv.total_amount.toLocaleString()} due ${inv.due_date}`,
       link: `/finances/invoices/${inv.id}`,
+      urgency: 'red',
+    });
+  }
+
+  // Down servers
+  const downServers = db.prepare(`
+    SELECT i.id as incident_id, i.started_at, e.id as endpoint_id, e.name as endpoint_name
+    FROM incidents i JOIN endpoints e ON i.endpoint_id = e.id
+    WHERE i.resolved_at IS NULL
+    ORDER BY i.started_at ASC
+  `).all() as any[];
+
+  for (const srv of downServers) {
+    items.push({
+      type: 'server_down',
+      title: `DOWN: ${srv.endpoint_name} since ${srv.started_at}`,
+      link: `/ops/${srv.endpoint_id}`,
       urgency: 'red',
     });
   }

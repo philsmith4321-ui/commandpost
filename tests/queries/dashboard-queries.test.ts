@@ -62,4 +62,19 @@ describe('dashboard queries', () => {
     expect(invoiceItems[0].title).toContain('INV-0001');
     expect(invoiceItems[0].urgency).toBe('red');
   });
+
+  it('includes down servers in action items', async () => {
+    const { getActionItems, getDashboardSummary } = await import('@/lib/queries/dashboard-queries');
+    const epId = Number(db.prepare("INSERT INTO endpoints (name, url) VALUES (?, ?)").run('Test Server', 'http://test.com').lastInsertRowid);
+    db.prepare("INSERT INTO incidents (endpoint_id) VALUES (?)").run(epId);
+
+    const items = getActionItems(db);
+    const serverItems = items.filter(i => i.type === 'server_down');
+    expect(serverItems).toHaveLength(1);
+    expect(serverItems[0].title).toContain('Test Server');
+    expect(serverItems[0].urgency).toBe('red');
+
+    const summary = getDashboardSummary(db);
+    expect(summary.serversDown).toBe(1);
+  });
 });
