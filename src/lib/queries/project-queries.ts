@@ -110,3 +110,46 @@ export function updateDeliverableStatus(db: Database.Database, id: number, statu
 export function deleteDeliverable(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM deliverables WHERE id = ?').run(id);
 }
+
+// Project progress tracking
+
+export interface ProjectWithProgress {
+  id: number;
+  client_id: number;
+  client_name: string;
+  name: string;
+  status: string;
+  start_date: string | null;
+  hourly_rate: number | null;
+  total_deliverables: number;
+  completed_deliverables: number;
+  progress_percent: number;
+  total_hours: number;
+  total_revenue: number;
+}
+
+export function getProjectsWithProgress(db: Database.Database): ProjectWithProgress[] {
+  const projects = db.prepare(`
+    SELECT p.id, p.client_id, c.name as client_name, p.name, p.status,
+           p.start_date, p.hourly_rate
+    FROM projects p JOIN clients c ON p.client_id = c.id
+    WHERE c.deleted_at IS NULL
+    ORDER BY p.status ASC, p.updated_at DESC
+  `).all() as any[];
+
+  return projects.map(p => {
+    const total = (db.prepare('SELECT COUNT(*) as count FROM deliverables WHERE project_id = ?').get(p.id) as any).count;
+    const completed = (db.prepare("SELECT COUNT(*) as count FROM deliverables WHERE project_id = ? AND status = 'delivered'").get(p.id) as any).count;
+    const hours = (db.prepare('SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE project_id = ?').get(p.id) as any).total / 60;
+    const revenue = (db.prepare('SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE project_id = ?').get(p.id) as any).total;
+
+    return {
+      ...p,
+      total_deliverables: total,
+      completed_deliverables: completed,
+      progress_percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+      total_hours: Math.round(hours * 10) / 10,
+      total_revenue: Math.round(revenue),
+    };
+  });
+}
