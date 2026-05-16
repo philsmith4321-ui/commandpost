@@ -54,6 +54,7 @@ export function CommandPalette() {
     { id: 'nav-shortcuts', label: 'Keyboard Shortcuts', section: 'Navigation', action: () => router.push('/shortcuts') },
     { id: 'nav-onboarding', label: 'Onboarding Templates', section: 'Navigation', action: () => router.push('/onboarding') },
     { id: 'nav-lead-scores', label: 'Lead Scores', section: 'Navigation', action: () => router.push('/pipeline/scores') },
+    { id: 'nav-snapshots', label: 'Metric Snapshots', section: 'Navigation', action: () => router.push('/reports/snapshots') },
   ];
 
   const filtered = query

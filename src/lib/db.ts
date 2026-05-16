@@ -363,6 +363,18 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create metric_snapshots table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS metric_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      metric_name TEXT NOT NULL,
+      metric_value REAL NOT NULL,
+      snapshot_date TEXT NOT NULL DEFAULT (date('now')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_metric_snapshots_date ON metric_snapshots(snapshot_date, metric_name);
+  `);
+
   // Migration: create onboarding_checklists tables
   db.exec(`
     CREATE TABLE IF NOT EXISTS onboarding_templates (
