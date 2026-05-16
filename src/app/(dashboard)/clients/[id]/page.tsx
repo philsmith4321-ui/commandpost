@@ -16,6 +16,8 @@ import { getClientTags, listTags } from '@/lib/queries/tag-queries';
 import { addTagToClientAction, removeTagFromClientAction } from '@/lib/actions/tag-actions';
 import { listClientDocuments } from '@/lib/queries/document-queries';
 import { ClientDocuments } from '@/components/client-documents';
+import { getClientChecklists, listOnboardingTemplates } from '@/lib/queries/onboarding-queries';
+import { ClientOnboarding } from '@/components/client-onboarding';
 import type { Project, ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ClientDetailPage({
@@ -46,6 +48,8 @@ export default async function ClientDetailPage({
   const availableTags = allTags.filter(t => !clientTags.find(ct => ct.id === t.id));
   const documents = listClientDocuments(db, Number(id));
   const revenueHistory = getClientRevenueHistory(db, Number(id));
+  const checklists = getClientChecklists(db, Number(id));
+  const onboardingTemplates = listOnboardingTemplates(db);
 
   return (
     <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
@@ -168,6 +172,10 @@ export default async function ClientDetailPage({
 
       <div className="mb-8">
         <ProjectsList clientId={client.id} projects={projects} />
+      </div>
+
+      <div className="mb-8">
+        <ClientOnboarding clientId={client.id} checklists={checklists} templates={onboardingTemplates} />
       </div>
 
       <div className="mb-8">

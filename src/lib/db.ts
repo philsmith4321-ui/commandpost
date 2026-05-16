@@ -363,6 +363,35 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create onboarding_checklists tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS onboarding_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS onboarding_template_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_id INTEGER NOT NULL REFERENCES onboarding_templates(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS onboarding_checklists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      template_name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS onboarding_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      checklist_id INTEGER NOT NULL REFERENCES onboarding_checklists(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      is_done INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+
   // Migration: create email_log table
   db.exec(`
     CREATE TABLE IF NOT EXISTS email_log (
