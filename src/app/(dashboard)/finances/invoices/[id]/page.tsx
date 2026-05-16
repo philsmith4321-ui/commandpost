@@ -43,6 +43,22 @@ export default async function InvoiceDetailPage({
         <StatusBadge status={displayStatus} />
       </div>
 
+      <div className="flex gap-2 mb-6">
+        <a
+          href={`/api/invoices/${invoice.id}/pdf`}
+          target="_blank"
+          className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+        >
+          View / Print
+        </a>
+        <Link
+          href={`/finances/invoices/${invoice.id}/edit`}
+          className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+        >
+          Edit
+        </Link>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Total</p>
