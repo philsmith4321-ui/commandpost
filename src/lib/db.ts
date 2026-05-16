@@ -156,6 +156,14 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       resolved_at TEXT,
       duration_seconds INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS alerts_sent (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alert_type TEXT NOT NULL,
+      reference_id INTEGER,
+      message TEXT NOT NULL,
+      sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   return db;

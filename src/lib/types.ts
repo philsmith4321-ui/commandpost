@@ -149,3 +149,13 @@ export interface Incident {
   resolved_at: string | null;
   duration_seconds: number | null;
 }
+
+export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing';
+
+export interface AlertSent {
+  id: number;
+  alert_type: AlertType;
+  reference_id: number | null;
+  message: string;
+  sent_at: string;
+}

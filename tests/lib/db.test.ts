@@ -36,6 +36,7 @@ describe('initDb', () => {
     expect(tables).toContain('endpoints');
     expect(tables).toContain('health_checks');
     expect(tables).toContain('incidents');
+    expect(tables).toContain('alerts_sent');
 
     db.close();
   });
