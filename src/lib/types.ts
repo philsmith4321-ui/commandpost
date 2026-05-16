@@ -150,7 +150,7 @@ export interface Incident {
   duration_seconds: number | null;
 }
 
-export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing' | 'disk_warning';
+export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing' | 'disk_warning' | 'client_health_warning';
 
 export interface AlertSent {
   id: number;
@@ -168,4 +168,16 @@ export interface DiskReport {
   used_gb: number;
   percent_used: number;
   reported_at: string;
+}
+
+export type ClientHealthStatus = 'healthy' | 'at_risk' | 'needs_attention';
+
+export interface ClientHealth {
+  clientId: number;
+  clientName: string;
+  score: number;
+  status: ClientHealthStatus;
+  payment: number;
+  balance: number;
+  engagement: number;
 }
