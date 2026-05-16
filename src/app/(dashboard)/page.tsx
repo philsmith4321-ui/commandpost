@@ -24,7 +24,7 @@ export default function DashboardPage() {
       <AlertBar items={actionItems} />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Active Clients</p>
           <p className="text-2xl font-bold text-white">{summary.activeClients}</p>

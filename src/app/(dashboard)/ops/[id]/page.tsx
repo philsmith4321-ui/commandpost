@@ -39,10 +39,10 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
         &larr; Back to Ops
       </Link>
 
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <StatusDot color={color} />
         <h2 className="text-2xl font-bold">{endpoint.name}</h2>
-        <span className="text-sm text-gray-400 font-mono">{endpoint.url}</span>
+        <span className="text-sm text-gray-400 font-mono break-all">{endpoint.url}</span>
       </div>
 
       {/* Actions */}
@@ -59,7 +59,7 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-xs text-gray-500 uppercase mb-1">Uptime (30d)</p>
           <p className="text-2xl font-bold text-white">{uptime.toFixed(1)}%</p>
