@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/db';
-import { getClientById } from '@/lib/queries/client-queries';
+import { getClientById, getClientHealth } from '@/lib/queries/client-queries';
+import { getClientRecurringInvoices } from '@/lib/queries/invoice-queries';
 import { StatusBadge } from '@/components/status-badge';
+import { ClientHealthBadge } from '@/components/client-health-badge';
 import { ProjectsList } from '@/components/projects-list';
 import { ActivityLog } from '@/components/activity-log';
 import { DeleteClientButton } from '@/components/delete-client-button';
@@ -28,6 +30,9 @@ export default async function ClientDetailPage({
   const activities = db
     .prepare('SELECT * FROM activity_logs WHERE client_id = ? ORDER BY created_at DESC LIMIT 50')
     .all(Number(id)) as ActivityLogType[];
+
+  const health = getClientHealth(db, Number(id));
+  const recurringInvoices = getClientRecurringInvoices(db, Number(id));
 
   return (
     <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
@@ -77,6 +82,31 @@ export default async function ClientDetailPage({
           </div>
         )}
       </div>
+
+      {/* Health Score */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-white mb-3">Client Health</h3>
+        <ClientHealthBadge health={health} showBreakdown />
+      </div>
+
+      {/* Recurring Invoices */}
+      {recurringInvoices.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-white mb-3">Recurring Invoices</h3>
+          <div className="space-y-2">
+            {recurringInvoices.map((inv) => (
+              <Link key={inv.id} href={`/finances/invoices/${inv.id}`}
+                className="flex items-center justify-between p-3 bg-gray-900 border border-gray-800 rounded-lg hover:border-gray-700 transition-colors">
+                <div>
+                  <span className="text-white text-sm font-medium">{inv.invoice_number}</span>
+                  <span className="text-gray-500 text-xs ml-2">Day {inv.recurrence_day} of each month</span>
+                </div>
+                <span className="text-white text-sm">${inv.total_amount.toLocaleString()}/mo</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-8">
         <ProjectsList clientId={client.id} projects={projects} />
