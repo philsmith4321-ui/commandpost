@@ -46,6 +46,7 @@ export function CommandPalette() {
     { id: 'act-log-time', label: 'Log Time', section: 'Actions', action: () => router.push('/finances/time') },
     { id: 'act-log-meeting', label: 'Log Meeting', section: 'Actions', action: () => router.push('/meetings/new') },
     { id: 'act-export', label: 'Export Data', section: 'Actions', action: () => router.push('/export') },
+    { id: 'nav-overdue', label: 'Overdue Invoices', section: 'Navigation', action: () => router.push('/finances/overdue') },
   ];
 
   const filtered = query

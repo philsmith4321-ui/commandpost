@@ -13,6 +13,7 @@ import {
   getInvoiceById,
   setStripePaymentLink,
   setStripePaymentId,
+  markReminderSent,
 } from '@/lib/queries/invoice-queries';
 import { createNotification } from '@/lib/notifications';
 import { isStripeConfigured, createStripePaymentLink, checkStripePayment } from '@/lib/stripe';
@@ -202,4 +203,18 @@ export async function createRecurringInvoiceAction(formData: FormData) {
   revalidatePath('/finances');
   revalidatePath(`/clients/${clientId}`);
   redirect(`/finances/invoices/${id}`);
+}
+
+export async function markReminderSentAction(formData: FormData) {
+  const db = getDb();
+  const id = Number(formData.get('id'));
+  const invoice = getInvoiceById(db, id);
+  if (!invoice) return;
+
+  markReminderSent(db, id);
+  logAudit(db, 'invoice', id, 'reminder_sent');
+
+  revalidatePath('/finances');
+  revalidatePath('/finances/overdue');
+  revalidatePath(`/finances/invoices/${id}`);
 }

@@ -350,6 +350,12 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("ALTER TABLE clients ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0");
   }
 
+  // Migration: add last_reminder_sent to invoices
+  const hasReminder = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('invoices') WHERE name = 'last_reminder_sent'").get() as any;
+  if (hasReminder.count === 0) {
+    db.exec("ALTER TABLE invoices ADD COLUMN last_reminder_sent TEXT");
+  }
+
   return db;
 }
 

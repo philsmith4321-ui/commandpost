@@ -198,6 +198,32 @@ export function getMrr(db: Database.Database): number {
   ).get() as any).total;
 }
 
+export interface OverdueInvoice {
+  id: number;
+  invoice_number: string;
+  client_id: number;
+  client_name: string;
+  total_amount: number;
+  due_date: string;
+  days_overdue: number;
+  last_reminder_sent: string | null;
+}
+
+export function getOverdueInvoices(db: Database.Database): OverdueInvoice[] {
+  return db.prepare(`
+    SELECT i.id, i.invoice_number, i.client_id, c.name as client_name,
+           i.total_amount, i.due_date, i.last_reminder_sent,
+           CAST(julianday('now') - julianday(i.due_date) AS INTEGER) as days_overdue
+    FROM invoices i JOIN clients c ON i.client_id = c.id
+    WHERE i.status = 'sent' AND i.due_date < date('now')
+    ORDER BY i.due_date ASC
+  `).all() as OverdueInvoice[];
+}
+
+export function markReminderSent(db: Database.Database, id: number): void {
+  db.prepare("UPDATE invoices SET last_reminder_sent = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(id);
+}
+
 export function getClientRecurringInvoices(db: Database.Database, clientId: number): RecurringInvoiceRow[] {
   return db.prepare(`
     SELECT i.id, i.invoice_number, i.client_id, c.name as client_name,
