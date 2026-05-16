@@ -5,6 +5,7 @@ const TABS = [
   { key: 'expenses', label: 'Expenses' },
   { key: 'revenue', label: 'Revenue' },
   { key: 'profitability', label: 'Profitability' },
+  { key: 'recurring', label: 'Recurring' },
 ];
 
 export function FinanceTabs({ active }: { active: string }) {

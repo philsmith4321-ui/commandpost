@@ -5,6 +5,8 @@ import { listExpenses, getExpenseMonthlyTotal } from '@/lib/queries/expense-quer
 import { getMonthlyRevenue, getProfitabilityByClient, getYtdStats, getRevenueByClient } from '@/lib/queries/finance-queries';
 import { listClients } from '@/lib/queries/client-queries';
 import { deleteExpenseAction } from '@/lib/actions/expense-actions';
+import { getRecurringInvoices, getMrr } from '@/lib/queries/invoice-queries';
+import { toggleRecurringAction } from '@/lib/actions/invoice-actions';
 import { FinanceTabs } from '@/components/finance-tabs';
 import { ExpenseForm } from '@/components/expense-form';
 import { RevenueChart } from '@/components/revenue-chart';
@@ -38,6 +40,7 @@ export default async function FinancesPage({
       {tab === 'expenses' && <ExpensesTab category={category} month={month} />}
       {tab === 'revenue' && <RevenueTab />}
       {tab === 'profitability' && <ProfitabilityTab period={period} />}
+      {tab === 'recurring' && <RecurringTab />}
     </div>
   );
 }
@@ -259,6 +262,87 @@ function ProfitabilityTab({ period }: { period?: string }) {
                   </td>
                   <td className="py-3 text-right text-gray-400">
                     {row.margin !== null ? `${row.margin}%` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+function RecurringTab() {
+  const db = getDb();
+  const recurring = getRecurringInvoices(db);
+  const mrr = getMrr(db);
+  const activeCount = recurring.length;
+
+  // Next generation date: earliest recurrence_day in the future
+  const today = new Date().getDate();
+  const futureDays = recurring.map(r => r.recurrence_day).filter(d => d > today);
+  const nextDay = futureDays.length > 0 ? Math.min(...futureDays) : (recurring.length > 0 ? Math.min(...recurring.map(r => r.recurrence_day)) : null);
+  const now = new Date();
+  let nextDate: string | null = null;
+  if (nextDay !== null) {
+    let m = now.getMonth();
+    let y = now.getFullYear();
+    if (nextDay <= today) { m += 1; if (m > 11) { m = 0; y += 1; } }
+    nextDate = `${y}-${String(m + 1).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`;
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">MRR</p>
+          <p className="text-2xl font-bold text-green-400">${mrr.toLocaleString()}</p>
+        </div>
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">Active Recurring</p>
+          <p className="text-2xl font-bold text-white">{activeCount}</p>
+        </div>
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">Next Generation</p>
+          <p className="text-sm font-medium text-white">{nextDate || '—'}</p>
+        </div>
+      </div>
+
+      {recurring.length === 0 ? (
+        <p className="text-sm text-gray-500">No recurring invoices set up. Mark an invoice as recurring from its detail page, or set one up from a client page.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800 text-left text-gray-500">
+                <th className="pb-3 font-medium">Invoice</th>
+                <th className="pb-3 font-medium">Client</th>
+                <th className="pb-3 font-medium text-right">Amount</th>
+                <th className="pb-3 font-medium">Day</th>
+                <th className="pb-3 font-medium">Status</th>
+                <th className="pb-3 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {recurring.map((inv) => (
+                <tr key={inv.id} className="border-b border-gray-800/50 hover:bg-gray-900/50">
+                  <td className="py-3">
+                    <Link href={`/finances/invoices/${inv.id}`} className="text-blue-400 hover:text-blue-300">
+                      {inv.invoice_number}
+                    </Link>
+                  </td>
+                  <td className="py-3 text-white">{inv.client_name}</td>
+                  <td className="py-3 text-right text-white">${inv.total_amount.toLocaleString()}</td>
+                  <td className="py-3 text-gray-400">{inv.recurrence_day}</td>
+                  <td className="py-3"><StatusBadge status={inv.status} /></td>
+                  <td className="py-3">
+                    <form action={toggleRecurringAction}>
+                      <input type="hidden" name="id" value={inv.id} />
+                      <button type="submit" className="text-xs text-red-400 hover:text-red-300">
+                        Deactivate
+                      </button>
+                    </form>
                   </td>
                 </tr>
               ))}
