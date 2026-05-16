@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
-import { listClients } from '@/lib/queries/client-queries';
+import { listClients, getClientHealth } from '@/lib/queries/client-queries';
 import { StatusBadge } from '@/components/status-badge';
+import { HealthDot } from '@/components/client-health-badge';
 import type { ClientStatus } from '@/lib/types';
 
 export default async function ClientsPage({
@@ -21,6 +22,11 @@ export default async function ClientsPage({
   }
 
   const clients = listClients(db, filter);
+
+  const clientsWithHealth = clients.map(client => ({
+    ...client,
+    health: getClientHealth(db, client.id),
+  }));
 
   const tabs = [
     { label: 'All', value: undefined },
@@ -73,16 +79,17 @@ export default async function ClientsPage({
         </div>
       ) : (
         <div className="space-y-3">
-          {clients.map((client) => (
+          {clientsWithHealth.map((client) => (
             <Link
               key={client.id}
               href={`/clients/${client.id}`}
               className="flex items-center justify-between p-4 bg-gray-900 border border-gray-800 rounded-lg hover:border-gray-700 transition-colors"
             >
-              <div>
+              <div className="flex items-center gap-2">
+                <HealthDot status={client.health.status} />
                 <span className="text-white font-medium">{client.name}</span>
                 {client.contact_person && (
-                  <span className="text-gray-500 text-sm ml-3">
+                  <span className="text-gray-500 text-sm ml-1">
                     {client.contact_person}
                   </span>
                 )}
