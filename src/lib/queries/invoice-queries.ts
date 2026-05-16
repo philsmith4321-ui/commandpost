@@ -224,6 +224,18 @@ export function markReminderSent(db: Database.Database, id: number): void {
   db.prepare("UPDATE invoices SET last_reminder_sent = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(id);
 }
 
+export function getClientRevenueHistory(db: Database.Database, clientId: number): { month: string; amount: number }[] {
+  const rows = db.prepare(`
+    SELECT strftime('%Y-%m', paid_at) as month, SUM(total_amount) as amount
+    FROM invoices
+    WHERE client_id = ? AND status = 'paid' AND paid_at IS NOT NULL
+    GROUP BY strftime('%Y-%m', paid_at)
+    ORDER BY month DESC
+    LIMIT 12
+  `).all(clientId) as { month: string; amount: number }[];
+  return rows.reverse();
+}
+
 export function getClientRecurringInvoices(db: Database.Database, clientId: number): RecurringInvoiceRow[] {
   return db.prepare(`
     SELECT i.id, i.invoice_number, i.client_id, c.name as client_name,

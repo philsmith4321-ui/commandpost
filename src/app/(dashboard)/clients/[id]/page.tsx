@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getClientById, getClientHealth } from '@/lib/queries/client-queries';
-import { getClientRecurringInvoices } from '@/lib/queries/invoice-queries';
+import { getClientRecurringInvoices, getClientRevenueHistory } from '@/lib/queries/invoice-queries';
+import { RevenueChart } from '@/components/revenue-chart';
 import { StatusBadge } from '@/components/status-badge';
 import { ClientHealthBadge } from '@/components/client-health-badge';
 import { ProjectsList } from '@/components/projects-list';
@@ -44,6 +45,7 @@ export default async function ClientDetailPage({
   const allTags = listTags(db);
   const availableTags = allTags.filter(t => !clientTags.find(ct => ct.id === t.id));
   const documents = listClientDocuments(db, Number(id));
+  const revenueHistory = getClientRevenueHistory(db, Number(id));
 
   return (
     <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
@@ -128,6 +130,13 @@ export default async function ClientDetailPage({
         <h3 className="text-lg font-semibold text-white mb-3">Client Health</h3>
         <ClientHealthBadge health={health} showBreakdown />
       </div>
+
+      {/* Revenue History */}
+      {revenueHistory.length > 0 && (
+        <div className="mb-8">
+          <RevenueChart data={revenueHistory} title="Revenue History" />
+        </div>
+      )}
 
       {/* Client Portal */}
       <div className="mb-8">
