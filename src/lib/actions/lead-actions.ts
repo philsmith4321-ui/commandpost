@@ -11,7 +11,11 @@ import {
   markLeadWon,
   addLeadNote,
   deleteLead,
+  getLeadById,
+  listLeadNotes,
+  getStageHistory,
 } from '@/lib/queries/lead-queries';
+import { isClaudeConfigured, askClaude } from '@/lib/claude';
 import { createClient } from '@/lib/queries/client-queries';
 import type { LeadStage, LeadSource, LostReason } from '@/lib/types';
 
@@ -119,4 +123,84 @@ export async function deleteLeadAction(formData: FormData) {
   deleteLead(db, id);
   revalidatePath('/pipeline');
   redirect('/pipeline');
+}
+
+export type FollowUpResult = {
+  email_subject: string;
+  email_body: string;
+  talking_points: string[];
+} | { error: string };
+
+const FOLLOW_UP_SYSTEM_PROMPT = `You are a business development assistant for a web development freelancer. Generate a follow-up for a potential client.
+
+Provide your response in EXACTLY this format:
+EMAIL_SUBJECT: [subject line]
+EMAIL_BODY:
+[email body, 3-5 paragraphs]
+END_EMAIL
+TALKING_POINTS:
+- [point 1]
+- [point 2]
+- [point 3]
+- [point 4]
+
+Base your tone and content on the lead's stage, history, and how long since last contact. Be warm but professional. Reference specific details from the notes when relevant.`;
+
+function parseFollowUpResponse(text: string): FollowUpResult {
+  const subjectMatch = text.match(/EMAIL_SUBJECT:\s*(.+)/);
+  const bodyMatch = text.match(/EMAIL_BODY:\s*\n([\s\S]*?)\nEND_EMAIL/);
+  const pointsMatch = text.match(/TALKING_POINTS:\s*\n([\s\S]*?)$/);
+
+  if (!subjectMatch || !bodyMatch) {
+    return { error: 'Failed to parse AI response. Please try again.' };
+  }
+
+  const talking_points = pointsMatch
+    ? pointsMatch[1].split('\n').map(l => l.replace(/^-\s*/, '').trim()).filter(Boolean)
+    : [];
+
+  return {
+    email_subject: subjectMatch[1].trim(),
+    email_body: bodyMatch[1].trim(),
+    talking_points,
+  };
+}
+
+export async function generateFollowUp(
+  _prevState: FollowUpResult | null,
+  formData: FormData
+): Promise<FollowUpResult> {
+  if (!isClaudeConfigured()) return { error: 'AI features not configured.' };
+
+  const id = Number(formData.get('id'));
+  const db = getDb();
+  const lead = getLeadById(db, id);
+  if (!lead) return { error: 'Lead not found.' };
+
+  const notes = listLeadNotes(db, id);
+  const history = getStageHistory(db, id);
+
+  const lastNoteDate = notes.length > 0 ? notes[0].created_at : null;
+  const daysSinceLastNote = lastNoteDate
+    ? Math.floor((Date.now() - new Date(lastNoteDate + 'Z').getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const context = `Lead: ${lead.business_name}
+Contact: ${lead.contact_person || 'Unknown'}
+Email: ${lead.email || 'Unknown'}
+Stage: ${lead.stage}
+Source: ${lead.source}
+Estimated Value: ${lead.estimated_value ? `$${lead.estimated_value.toLocaleString()}` : 'Unknown'}
+Days since last contact: ${daysSinceLastNote !== null ? daysSinceLastNote : 'No notes yet'}
+
+Stage History:
+${history.map(h => `- ${h.stage} (${h.entered_at})`).join('\n')}
+
+Notes (newest first):
+${notes.length > 0 ? notes.slice(0, 10).map(n => `[${n.created_at}] ${n.content}`).join('\n') : 'No notes recorded.'}`;
+
+  const response = await askClaude(FOLLOW_UP_SYSTEM_PROMPT, context);
+  if (!response) return { error: 'Failed to generate follow-up. Please try again.' };
+
+  return parseFollowUpResponse(response);
 }
