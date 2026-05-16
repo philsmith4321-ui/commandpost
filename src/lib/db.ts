@@ -363,6 +363,19 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create email_log table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS email_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+      recipient_email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      email_type TEXT NOT NULL DEFAULT 'other' CHECK(email_type IN ('invoice','reminder','proposal','follow_up','other')),
+      reference_id INTEGER,
+      sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: add last_reminder_sent to invoices
   const hasReminder = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('invoices') WHERE name = 'last_reminder_sent'").get() as any;
   if (hasReminder.count === 0) {

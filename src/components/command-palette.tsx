@@ -50,6 +50,7 @@ export function CommandPalette() {
     { id: 'nav-timeline', label: 'Activity Timeline', section: 'Navigation', action: () => router.push('/timeline') },
     { id: 'nav-projects', label: 'Go to Projects', section: 'Navigation', action: () => router.push('/projects') },
     { id: 'nav-contacts', label: 'Go to Contacts', section: 'Navigation', action: () => router.push('/contacts') },
+    { id: 'nav-emails', label: 'Email Log', section: 'Navigation', action: () => router.push('/emails') },
   ];
 
   const filtered = query
