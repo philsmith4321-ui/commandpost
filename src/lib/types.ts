@@ -122,3 +122,30 @@ export interface Expense {
   expense_date: string;
   created_at: string;
 }
+
+export interface Endpoint {
+  id: number;
+  name: string;
+  url: string;
+  check_interval_seconds: number;
+  slow_threshold_ms: number;
+  is_active: number;
+  created_at: string;
+}
+
+export interface HealthCheck {
+  id: number;
+  endpoint_id: number;
+  status_code: number | null;
+  response_time_ms: number;
+  is_healthy: number;
+  checked_at: string;
+}
+
+export interface Incident {
+  id: number;
+  endpoint_id: number;
+  started_at: string;
+  resolved_at: string | null;
+  duration_seconds: number | null;
+}

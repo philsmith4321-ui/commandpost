@@ -33,6 +33,9 @@ describe('initDb', () => {
     expect(tables).toContain('invoices');
     expect(tables).toContain('invoice_items');
     expect(tables).toContain('expenses');
+    expect(tables).toContain('endpoints');
+    expect(tables).toContain('health_checks');
+    expect(tables).toContain('incidents');
 
     db.close();
   });

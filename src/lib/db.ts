@@ -129,6 +129,33 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       expense_date TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS endpoints (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      check_interval_seconds INTEGER NOT NULL DEFAULT 300,
+      slow_threshold_ms INTEGER NOT NULL DEFAULT 5000,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS health_checks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint_id INTEGER NOT NULL REFERENCES endpoints(id) ON DELETE CASCADE,
+      status_code INTEGER,
+      response_time_ms INTEGER NOT NULL,
+      is_healthy INTEGER NOT NULL,
+      checked_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS incidents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint_id INTEGER NOT NULL REFERENCES endpoints(id) ON DELETE CASCADE,
+      started_at TEXT NOT NULL DEFAULT (datetime('now')),
+      resolved_at TEXT,
+      duration_seconds INTEGER
+    );
   `);
 
   return db;
