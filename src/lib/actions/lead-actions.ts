@@ -18,6 +18,7 @@ import {
 import { isClaudeConfigured, askClaude } from '@/lib/claude';
 import { createClient } from '@/lib/queries/client-queries';
 import type { LeadStage, LeadSource, LostReason } from '@/lib/types';
+import { createNotification } from '@/lib/notifications';
 
 export async function createLeadAction(formData: FormData) {
   const db = getDb();
@@ -66,6 +67,16 @@ export async function updateLeadStageAction(formData: FormData) {
   const stage = formData.get('stage') as LeadStage;
 
   updateLeadStage(db, id, stage);
+
+  const lead = getLeadById(db, id);
+  if (lead) {
+    await createNotification(db, {
+      type: 'lead_stage_changed',
+      title: `${lead.business_name} → ${stage}`,
+      message: null,
+      link: `/pipeline/${id}`,
+    });
+  }
 
   revalidatePath('/pipeline');
   revalidatePath(`/pipeline/${id}`);

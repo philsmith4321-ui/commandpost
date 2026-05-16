@@ -151,7 +151,7 @@ export interface Incident {
   duration_seconds: number | null;
 }
 
-export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing' | 'disk_warning' | 'client_health_warning';
+export type AlertType = 'server_down' | 'server_recovered' | 'morning_briefing' | 'disk_warning' | 'client_health_warning' | 'invoice_overdue' | 'deliverable_overdue' | 'follow_up_due' | 'client_health_warning';
 
 export interface AlertSent {
   id: number;

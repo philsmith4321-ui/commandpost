@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { createTimeEntry, deleteTimeEntry, getUninvoicedByClient, markEntriesInvoiced } from '@/lib/queries/time-queries';
+import { createNotification } from '@/lib/notifications';
 
 export async function logTimeAction(formData: FormData) {
   const db = getDb();
@@ -96,6 +97,14 @@ export async function generateInvoiceFromTimeAction(formData: FormData) {
 
   // Mark entries as invoiced
   markEntriesInvoiced(db, entries.map(e => e.id), invoiceId);
+
+  const clientName = (db.prepare('SELECT name FROM clients WHERE id = ?').get(clientId) as any)?.name;
+  await createNotification(db, {
+    type: 'time_invoiced',
+    title: `Time invoiced: ${invoiceNumber}`,
+    message: clientName ? `${clientName} — $${totalAmount}` : `$${totalAmount}`,
+    link: `/finances/invoices/${invoiceId}`,
+  });
 
   revalidatePath('/finances');
   redirect(`/finances/invoices/${invoiceId}`);

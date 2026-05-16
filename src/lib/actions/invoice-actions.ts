@@ -13,6 +13,7 @@ import {
   setStripePaymentLink,
   setStripePaymentId,
 } from '@/lib/queries/invoice-queries';
+import { createNotification } from '@/lib/notifications';
 import { isStripeConfigured, createStripePaymentLink, checkStripePayment } from '@/lib/stripe';
 
 export async function createInvoiceAction(formData: FormData) {
@@ -79,6 +80,17 @@ export async function markInvoicePaidAction(formData: FormData) {
   const db = getDb();
   const id = Number(formData.get('id'));
   markInvoicePaid(db, id);
+
+  const invoice = getInvoiceById(db, id);
+  if (invoice) {
+    await createNotification(db, {
+      type: 'invoice_paid',
+      title: `Invoice ${invoice.invoice_number} paid`,
+      message: `$${invoice.total_amount}`,
+      link: `/finances/invoices/${id}`,
+    });
+  }
+
   revalidatePath('/finances');
   revalidatePath(`/finances/invoices/${id}`);
   redirect(`/finances/invoices/${id}`);
