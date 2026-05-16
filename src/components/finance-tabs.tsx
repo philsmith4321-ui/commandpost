@@ -15,7 +15,7 @@ export function FinanceTabs({ active }: { active: string }) {
       {TABS.map((tab) => (
         <Link
           key={tab.key}
-          href={tab.key === 'invoices' ? '/finances' : tab.key === 'time' ? '/finances/time' : `/finances?tab=${tab.key}`}
+          href={tab.key === 'invoices' ? '/finances' : tab.key === 'time' ? '/finances/time' : tab.key === 'expenses' ? '/finances/expenses' : `/finances?tab=${tab.key}`}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             active === tab.key
               ? 'bg-gray-800 text-white'

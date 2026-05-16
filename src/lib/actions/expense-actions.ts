@@ -20,6 +20,7 @@ export async function createExpenseAction(formData: FormData) {
   });
 
   revalidatePath('/finances');
+  revalidatePath('/finances/expenses');
 }
 
 export async function updateExpenseAction(formData: FormData) {
