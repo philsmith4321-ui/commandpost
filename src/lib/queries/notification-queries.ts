@@ -20,6 +20,8 @@ const DEFAULT_PREFERENCES: Record<NotificationType, EmailDelivery> = {
   follow_up_due: 'digest',
   lead_stage_changed: 'digest',
   time_invoiced: 'none',
+  proposal_accepted: 'immediate',
+  contract_expiring: 'digest',
 };
 
 export { FORCED_IMMEDIATE, DEFAULT_PREFERENCES };
