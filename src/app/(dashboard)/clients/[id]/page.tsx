@@ -9,6 +9,7 @@ import { ProjectsList } from '@/components/projects-list';
 import { ActivityLog } from '@/components/activity-log';
 import { DeleteClientButton } from '@/components/delete-client-button';
 import { RecurringInvoiceForm } from '@/components/recurring-invoice-form';
+import { PortalLinkCard } from '@/components/portal-link-card';
 import type { Project, ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ClientDetailPage({
@@ -88,6 +89,11 @@ export default async function ClientDetailPage({
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-white mb-3">Client Health</h3>
         <ClientHealthBadge health={health} showBreakdown />
+      </div>
+
+      {/* Client Portal */}
+      <div className="mb-8">
+        <PortalLinkCard clientId={client.id} token={(client as any).portal_token || null} />
       </div>
 
       {/* Recurring Invoices */}
