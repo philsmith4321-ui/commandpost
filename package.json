@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "cron:recurring": "npx tsx scripts/recurring-invoices.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
