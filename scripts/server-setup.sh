@@ -144,7 +144,7 @@ echo "--- Setting up Nginx ---"
 
 NGINX_CONF="/etc/nginx/sites-available/commandpost"
 cp "${APP_DIR}/deploy/nginx.conf" "${NGINX_CONF}"
-sed -i "s/DOMAIN_PLACEHOLDER/${DOMAIN}/g" "${NGINX_CONF}"
+sed -i "s|DOMAIN_PLACEHOLDER|${DOMAIN}|g" "${NGINX_CONF}"
 
 ln -sf "${NGINX_CONF}" /etc/nginx/sites-enabled/commandpost
 
