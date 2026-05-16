@@ -131,3 +131,41 @@ export function getPipelineSummary(db: Database.Database): PipelineSummary {
 export function deleteLead(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM leads WHERE id = ?').run(id);
 }
+
+export interface ScoredLead extends Lead {
+  score: number;
+  score_breakdown: { value: number; engagement: number; stage: number; recency: number };
+}
+
+export function getLeadScores(db: Database.Database): ScoredLead[] {
+  const leads = db.prepare("SELECT * FROM leads WHERE stage NOT IN ('won','lost') ORDER BY created_at DESC").all() as Lead[];
+
+  const stageScores: Record<string, number> = {
+    new: 10, contacted: 20, discovery: 40, proposal: 60, negotiating: 80,
+  };
+
+  return leads.map(lead => {
+    // Value score (0-25): based on estimated value
+    const value = lead.estimated_value
+      ? Math.min(25, Math.round((lead.estimated_value / 10000) * 25))
+      : 5;
+
+    // Engagement score (0-25): based on notes count
+    const noteCount = (db.prepare('SELECT COUNT(*) as count FROM lead_notes WHERE lead_id = ?').get(lead.id) as any).count;
+    const engagement = Math.min(25, noteCount * 5);
+
+    // Stage score (0-25): further along = higher
+    const stage = Math.round(((stageScores[lead.stage] || 0) / 80) * 25);
+
+    // Recency score (0-25): recent activity = higher
+    const lastNote = db.prepare('SELECT created_at FROM lead_notes WHERE lead_id = ? ORDER BY created_at DESC LIMIT 1').get(lead.id) as any;
+    let recency = 5;
+    if (lastNote) {
+      const daysSince = Math.floor((Date.now() - new Date(lastNote.created_at + 'Z').getTime()) / (1000 * 60 * 60 * 24));
+      recency = daysSince <= 3 ? 25 : daysSince <= 7 ? 20 : daysSince <= 14 ? 15 : daysSince <= 30 ? 10 : 5;
+    }
+
+    const score = value + engagement + stage + recency;
+    return { ...lead, score, score_breakdown: { value, engagement, stage, recency } };
+  }).sort((a, b) => b.score - a.score);
+}

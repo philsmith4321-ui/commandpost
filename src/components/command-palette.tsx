@@ -53,6 +53,7 @@ export function CommandPalette() {
     { id: 'nav-emails', label: 'Email Log', section: 'Navigation', action: () => router.push('/emails') },
     { id: 'nav-shortcuts', label: 'Keyboard Shortcuts', section: 'Navigation', action: () => router.push('/shortcuts') },
     { id: 'nav-onboarding', label: 'Onboarding Templates', section: 'Navigation', action: () => router.push('/onboarding') },
+    { id: 'nav-lead-scores', label: 'Lead Scores', section: 'Navigation', action: () => router.push('/pipeline/scores') },
   ];
 
   const filtered = query
