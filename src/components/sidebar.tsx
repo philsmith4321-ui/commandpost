@@ -10,6 +10,7 @@ const navItems = [
   { href: '/pipeline', label: 'Pipeline', icon: '◈' },
   { href: '/finances', label: 'Finances', icon: '◇' },
   { href: '/ops', label: 'Ops', icon: '◆' },
+  { href: '/reports', label: 'Reports', icon: '◫' },
 ];
 
 export function Sidebar() {
