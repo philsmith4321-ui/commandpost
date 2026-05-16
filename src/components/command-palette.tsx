@@ -49,6 +49,7 @@ export function CommandPalette() {
     { id: 'nav-overdue', label: 'Overdue Invoices', section: 'Navigation', action: () => router.push('/finances/overdue') },
     { id: 'nav-timeline', label: 'Activity Timeline', section: 'Navigation', action: () => router.push('/timeline') },
     { id: 'nav-projects', label: 'Go to Projects', section: 'Navigation', action: () => router.push('/projects') },
+    { id: 'nav-contacts', label: 'Go to Contacts', section: 'Navigation', action: () => router.push('/contacts') },
   ];
 
   const filtered = query
