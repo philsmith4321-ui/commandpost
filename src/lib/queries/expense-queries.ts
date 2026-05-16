@@ -90,3 +90,31 @@ export function deleteExpense(db: Database.Database, id: number): void {
 export function getExpenseMonthlyTotal(db: Database.Database, month: string): number {
   return (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE strftime('%Y-%m', expense_date) = ?").get(month) as any).total;
 }
+
+export interface ExpenseCategoryBreakdown {
+  category: string;
+  total: number;
+  count: number;
+}
+
+export function getExpenseCategoryBreakdown(db: Database.Database, year?: number): ExpenseCategoryBreakdown[] {
+  const y = year || new Date().getFullYear();
+  return db.prepare(`
+    SELECT category, SUM(amount) as total, COUNT(*) as count
+    FROM expenses
+    WHERE strftime('%Y', expense_date) = ?
+    GROUP BY category
+    ORDER BY total DESC
+  `).all(String(y)) as ExpenseCategoryBreakdown[];
+}
+
+export function getExpenseMonthlyBreakdown(db: Database.Database, year?: number): { month: string; amount: number }[] {
+  const y = year || new Date().getFullYear();
+  return db.prepare(`
+    SELECT strftime('%Y-%m', expense_date) as month, SUM(amount) as amount
+    FROM expenses
+    WHERE strftime('%Y', expense_date) = ?
+    GROUP BY strftime('%Y-%m', expense_date)
+    ORDER BY month
+  `).all(String(y)) as { month: string; amount: number }[];
+}

@@ -62,6 +62,32 @@ export default async function ExpensesPage({
         ))}
       </div>
 
+      {/* Category Breakdown Chart */}
+      {categoryTotals.length > 0 && (() => {
+        const grandTotal = categoryTotals.reduce((s: number, c: any) => s + c.total, 0);
+        const colors: Record<string, string> = { servers: 'bg-blue-500', software: 'bg-purple-500', contractor: 'bg-yellow-500', marketing: 'bg-green-500', other: 'bg-gray-500' };
+        return (
+          <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Spending by Category</h3>
+            <div className="h-4 rounded-full overflow-hidden flex mb-3">
+              {categoryTotals.map((ct: any) => (
+                <div key={ct.category} className={`${colors[ct.category] || 'bg-gray-500'}`} style={{ width: `${(ct.total / grandTotal) * 100}%` }} title={`${ct.category}: $${ct.total.toLocaleString()}`} />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {categoryTotals.map((ct: any) => (
+                <div key={ct.category} className="flex items-center gap-2 text-xs">
+                  <div className={`w-3 h-3 rounded ${colors[ct.category] || 'bg-gray-500'}`} />
+                  <span className="text-gray-400">{ct.category}</span>
+                  <span className="text-white">${ct.total.toLocaleString()}</span>
+                  <span className="text-gray-600">({Math.round((ct.total / grandTotal) * 100)}%)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Add Expense Form */}
       <form action={createExpenseAction} className="p-4 bg-gray-900 border border-gray-800 rounded-lg mb-6">
         <h3 className="text-sm font-medium text-gray-400 mb-3">Add Expense</h3>
