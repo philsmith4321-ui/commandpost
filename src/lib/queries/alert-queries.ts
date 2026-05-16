@@ -21,6 +21,13 @@ export function hasAlertBeenSent(db: Database.Database, alertType: AlertType, re
   return !!row;
 }
 
+export function hasAlertBeenSentToday(db: Database.Database, alertType: AlertType, referenceId: number): boolean {
+  const row = db.prepare(
+    "SELECT id FROM alerts_sent WHERE alert_type = ? AND reference_id = ? AND sent_at >= date('now') LIMIT 1"
+  ).get(alertType, referenceId);
+  return !!row;
+}
+
 export function listRecentAlerts(db: Database.Database, limit: number): AlertSent[] {
   return db.prepare(
     'SELECT * FROM alerts_sent ORDER BY sent_at DESC, id DESC LIMIT ?'
