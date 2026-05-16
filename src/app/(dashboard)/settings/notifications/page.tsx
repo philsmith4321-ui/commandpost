@@ -18,6 +18,8 @@ export default function NotificationSettingsPage() {
     follow_up_due: 'Follow-up Due',
     lead_stage_changed: 'Lead Stage Changed',
     time_invoiced: 'Time Invoiced',
+    proposal_accepted: 'Proposal Accepted',
+    contract_expiring: 'Contract Expiring',
   };
 
   return (

@@ -32,6 +32,8 @@ export default async function NotificationsPage({
     follow_up_due: 'Follow-up Due',
     lead_stage_changed: 'Lead Stage',
     time_invoiced: 'Time Invoiced',
+    proposal_accepted: 'Proposal Accepted',
+    contract_expiring: 'Contract Expiring',
   };
 
   const typeColors: Record<string, string> = {
@@ -44,6 +46,8 @@ export default async function NotificationsPage({
     follow_up_due: 'bg-blue-900/30 text-blue-400',
     lead_stage_changed: 'bg-purple-900/30 text-purple-400',
     time_invoiced: 'bg-green-900/30 text-green-400',
+    proposal_accepted: 'bg-green-900/30 text-green-400',
+    contract_expiring: 'bg-yellow-900/30 text-yellow-400',
   };
 
   return (

@@ -85,5 +85,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Contracts expiring soon
+  const { getExpiringContracts } = await import('@/lib/queries/contract-queries');
+  const expiringContracts = getExpiringContracts(db, 30);
+  for (const contract of expiringContracts) {
+    if (!hasAlertBeenSentInLastDays(db, 'contract_expiring', contract.id, 7)) {
+      await createNotification(db, {
+        type: 'contract_expiring',
+        title: `Contract expiring: ${contract.title}`,
+        message: `${contract.client_name} — expires ${contract.expires_at}`,
+        link: `/contracts`,
+      });
+      created++;
+    }
+  }
+
   return NextResponse.json({ ok: true, created });
 }
