@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Client, ClientStatus } from '@/lib/types';
+import type { Client, ClientStatus, ClientHealth, ClientHealthStatus } from '@/lib/types';
 
 interface CreateClientInput {
   name: string;
@@ -98,4 +98,91 @@ export function updateClient(db: Database.Database, id: number, input: UpdateCli
 
 export function softDeleteClient(db: Database.Database, id: number): void {
   db.prepare("UPDATE clients SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(id);
+}
+
+export function getClientHealth(db: Database.Database, clientId: number): ClientHealth {
+  const client = db.prepare("SELECT id, name FROM clients WHERE id = ?").get(clientId) as { id: number; name: string };
+
+  // Payment speed (40 points) — avg days to pay in last 6 months
+  const paymentRow = db.prepare(`
+    SELECT AVG(julianday(paid_at) - julianday(sent_at)) as avg_days
+    FROM invoices
+    WHERE client_id = ? AND status = 'paid' AND sent_at IS NOT NULL
+      AND paid_at >= date('now', '-6 months')
+  `).get(clientId) as { avg_days: number | null };
+
+  let payment: number;
+  if (paymentRow.avg_days === null) {
+    payment = 20;
+  } else if (paymentRow.avg_days <= 7) {
+    payment = 40;
+  } else if (paymentRow.avg_days <= 14) {
+    payment = 30;
+  } else if (paymentRow.avg_days <= 30) {
+    payment = 20;
+  } else {
+    payment = 10;
+  }
+
+  // Outstanding balance (30 points)
+  const outstanding = (db.prepare(
+    "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE client_id = ? AND status = 'sent'"
+  ).get(clientId) as any).total;
+  const overdue = (db.prepare(
+    "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE client_id = ? AND status = 'sent' AND due_date < date('now')"
+  ).get(clientId) as any).total;
+
+  let balance: number;
+  if (outstanding === 0) {
+    balance = 30;
+  } else if (overdue > 0) {
+    balance = 0;
+  } else {
+    balance = 15;
+  }
+
+  // Engagement (30 points) — days since last activity
+  const lastActivity = db.prepare(
+    "SELECT created_at FROM activity_logs WHERE client_id = ? ORDER BY created_at DESC LIMIT 1"
+  ).get(clientId) as { created_at: string } | undefined;
+
+  let engagement: number;
+  if (!lastActivity) {
+    engagement = 0;
+  } else {
+    const daysSince = (db.prepare(
+      "SELECT julianday('now') - julianday(?) as days"
+    ).get(lastActivity.created_at) as any).days;
+    if (daysSince <= 7) {
+      engagement = 30;
+    } else if (daysSince <= 14) {
+      engagement = 25;
+    } else if (daysSince <= 30) {
+      engagement = 15;
+    } else if (daysSince <= 60) {
+      engagement = 5;
+    } else {
+      engagement = 0;
+    }
+  }
+
+  const score = payment + balance + engagement;
+  let status: ClientHealthStatus;
+  if (score >= 70) {
+    status = 'healthy';
+  } else if (score >= 40) {
+    status = 'at_risk';
+  } else {
+    status = 'needs_attention';
+  }
+
+  return { clientId: client.id, clientName: client.name, score, status, payment, balance, engagement };
+}
+
+export function getClientHealthSummary(db: Database.Database): ClientHealth[] {
+  const clients = db.prepare(
+    "SELECT id FROM clients WHERE status = 'active' AND deleted_at IS NULL"
+  ).all() as { id: number }[];
+
+  return clients.map(c => getClientHealth(db, c.id));
 }
