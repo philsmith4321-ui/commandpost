@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { listLeadsByStage, getPipelineSummary } from '@/lib/queries/lead-queries';
 import { KanbanBoard } from '@/components/kanban-board';
+import { ExportButton } from '@/components/export-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +33,15 @@ export default function PipelinePage() {
             )}
           </p>
         </div>
-        <Link
-          href="/pipeline/new"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          + New Lead
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButton href="/api/reports/pipeline" label="Pipeline Report" format="pdf" small />
+          <Link
+            href="/pipeline/new"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            + New Lead
+          </Link>
+        </div>
       </div>
 
       <KanbanBoard leadsByStage={leadsByStage} stageEnteredDates={stageEnteredDates} />

@@ -11,6 +11,7 @@ import { FinanceTabs } from '@/components/finance-tabs';
 import { ExpenseForm } from '@/components/expense-form';
 import { RevenueChart } from '@/components/revenue-chart';
 import { StatusBadge } from '@/components/status-badge';
+import { ExportButton } from '@/components/export-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,10 @@ function InvoicesTab() {
         </div>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        <ExportButton href={`/api/reports/invoices?start=${new Date().getFullYear()}-01-01&end=${new Date().toISOString().split('T')[0]}`} label="Export CSV" format="csv" small />
+      </div>
+
       {invoices.length === 0 ? (
         <p className="text-sm text-gray-500">No invoices yet. Create your first invoice to get started.</p>
       ) : (
@@ -124,6 +129,10 @@ function ExpensesTab({ category, month }: { category?: string; month?: string })
         <p className="text-sm text-gray-400">
           Monthly total ({currentMonth}): <span className="text-white font-medium">${monthlyTotal.toLocaleString()}</span>
         </p>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <ExportButton href={`/api/reports/expenses?start=${currentMonth}-01&end=${currentMonth}-31`} label="Export CSV" format="csv" small />
       </div>
 
       <ExpenseForm clients={clients} />
@@ -192,6 +201,11 @@ function RevenueTab() {
             ${ytd.profit.toLocaleString()}
           </p>
         </div>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <ExportButton href={`/api/reports/pnl?start=${new Date().getFullYear()}-01-01&end=${new Date().toISOString().split('T')[0]}`} label="P&L PDF" format="pdf" small />
+        <ExportButton href={`/api/reports/client-revenue?format=csv&start=${new Date().getFullYear()}-01-01&end=${new Date().toISOString().split('T')[0]}`} label="Client Revenue CSV" format="csv" small />
       </div>
 
       <RevenueChart data={monthlyRevenue} />

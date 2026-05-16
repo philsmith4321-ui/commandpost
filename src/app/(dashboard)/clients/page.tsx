@@ -4,6 +4,7 @@ import { listClients, getClientHealth } from '@/lib/queries/client-queries';
 import { StatusBadge } from '@/components/status-badge';
 import { HealthDot } from '@/components/client-health-badge';
 import type { ClientStatus } from '@/lib/types';
+import { ExportButton } from '@/components/export-button';
 
 export default async function ClientsPage({
   searchParams,
@@ -39,12 +40,16 @@ export default async function ClientsPage({
     <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Clients</h1>
-        <Link
-          href="/clients/new"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-        >
-          + New Client
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButton href="/api/reports/client-health" label="Health Report" format="pdf" small />
+          <ExportButton href={`/api/reports/client-revenue?format=csv&start=${new Date().getFullYear()}-01-01&end=${new Date().toISOString().split('T')[0]}`} label="Revenue CSV" format="csv" small />
+          <Link
+            href="/clients/new"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            + New Client
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6">

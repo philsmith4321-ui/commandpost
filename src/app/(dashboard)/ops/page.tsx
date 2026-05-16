@@ -5,6 +5,7 @@ import { getLastHealthCheck, getUptimePercent } from '@/lib/queries/health-check
 import { getOpenIncident } from '@/lib/queries/incident-queries';
 import { StatusDot } from '@/components/status-dot';
 import type { DotColor } from '@/components/status-dot';
+import { ExportButton } from '@/components/export-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,9 +34,12 @@ export default function OpsPage() {
     <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Ops Monitor</h2>
-        <Link href="/ops/new" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-          + Add Endpoint
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButton href="/api/reports/uptime" label="Uptime Report" format="pdf" small />
+          <Link href="/ops/new" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+            + Add Endpoint
+          </Link>
+        </div>
       </div>
 
       {rows.length === 0 ? (
