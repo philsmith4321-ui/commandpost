@@ -171,3 +171,79 @@ export function getRecentActivity(db: Database.Database, limit: number = 20): Re
     WHERE c.deleted_at IS NULL ORDER BY a.created_at DESC LIMIT ?
   `).all(limit) as RecentActivity[];
 }
+
+export interface RevenueTrendPoint {
+  month: string;
+  label: string;
+  amount: number;
+}
+
+export function getRevenueTrend(db: Database.Database): RevenueTrendPoint[] {
+  const rows = db.prepare(`
+    SELECT strftime('%Y-%m', paid_at) as month, SUM(total_amount) as amount
+    FROM invoices
+    WHERE status = 'paid' AND paid_at >= date('now', '-6 months')
+    GROUP BY strftime('%Y-%m', paid_at)
+    ORDER BY month ASC
+  `).all() as { month: string; amount: number }[];
+
+  // Fill in missing months
+  const result: RevenueTrendPoint[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('en-US', { month: 'short' });
+    const found = rows.find(r => r.month === month);
+    result.push({ month, label, amount: found ? found.amount : 0 });
+  }
+  return result;
+}
+
+export interface UpcomingDeadline {
+  type: 'deliverable' | 'follow_up' | 'contract';
+  title: string;
+  date: string;
+  link: string;
+}
+
+export function getUpcomingDeadlines(db: Database.Database): UpcomingDeadline[] {
+  const deadlines: UpcomingDeadline[] = [];
+
+  // Deliverables due in next 7 days
+  const deliverables = db.prepare(`
+    SELECT d.title, d.due_date, p.id as project_id, c.id as client_id
+    FROM deliverables d JOIN projects p ON d.project_id = p.id JOIN clients c ON p.client_id = c.id
+    WHERE d.status != 'delivered' AND d.due_date >= date('now') AND d.due_date <= date('now', '+7 days') AND c.deleted_at IS NULL
+    ORDER BY d.due_date ASC
+  `).all() as any[];
+
+  for (const d of deliverables) {
+    deadlines.push({ type: 'deliverable', title: d.title, date: d.due_date, link: `/clients/${d.client_id}/projects/${d.project_id}` });
+  }
+
+  // Follow-ups in next 7 days
+  const followUps = db.prepare(`
+    SELECT id, business_name, follow_up_date
+    FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date >= date('now') AND follow_up_date <= date('now', '+7 days')
+    ORDER BY follow_up_date ASC
+  `).all() as any[];
+
+  for (const f of followUps) {
+    deadlines.push({ type: 'follow_up', title: f.business_name, date: f.follow_up_date, link: `/pipeline/${f.id}` });
+  }
+
+  // Contracts expiring in next 30 days
+  const contracts = db.prepare(`
+    SELECT id, title, expires_at
+    FROM contracts WHERE expires_at >= date('now') AND expires_at <= date('now', '+30 days')
+    ORDER BY expires_at ASC
+  `).all() as any[];
+
+  for (const c of contracts) {
+    deadlines.push({ type: 'contract', title: c.title, date: c.expires_at, link: `/contracts` });
+  }
+
+  deadlines.sort((a, b) => a.date.localeCompare(b.date));
+  return deadlines;
+}

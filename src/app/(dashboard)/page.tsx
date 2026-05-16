@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
-import { getDashboardSummary, getActionItems, getRecentActivity } from '@/lib/queries/dashboard-queries';
+import { getDashboardSummary, getActionItems, getRecentActivity, getRevenueTrend, getUpcomingDeadlines } from '@/lib/queries/dashboard-queries';
 import { AlertBar } from '@/components/alert-bar';
 import { isClaudeConfigured } from '@/lib/claude';
 import { DashboardQuery } from '@/components/dashboard-query';
+import { RevenueChart } from '@/components/revenue-chart';
+import { QuickActions } from '@/components/quick-actions';
+import { UpcomingDeadlines } from '@/components/upcoming-deadlines';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +15,8 @@ export default function DashboardPage() {
   const summary = getDashboardSummary(db);
   const actionItems = getActionItems(db);
   const recentActivity = getRecentActivity(db);
+  const revenueTrend = getRevenueTrend(db);
+  const upcomingDeadlines = getUpcomingDeadlines(db);
   const claudeEnabled = isClaudeConfigured();
 
   const hour = new Date().getHours();
@@ -23,6 +28,8 @@ export default function DashboardPage() {
       <p className="text-gray-400 mb-6">
         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
+
+      <QuickActions />
 
       {claudeEnabled && <DashboardQuery />}
 
@@ -68,6 +75,12 @@ export default function DashboardPage() {
             <p className="text-2xl font-bold text-yellow-400">${summary.uninvoicedTime.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
           </div>
         )}
+      </div>
+
+      {/* Revenue & Deadlines */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <RevenueChart data={revenueTrend} />
+        <UpcomingDeadlines deadlines={upcomingDeadlines} />
       </div>
 
       {/* Action Items */}

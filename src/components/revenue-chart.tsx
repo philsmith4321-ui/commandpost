@@ -1,28 +1,34 @@
-import type { MonthlyRevenue } from '@/lib/queries/finance-queries';
+interface RevenueDataPoint {
+  month: string;
+  label?: string;
+  amount: number;
+}
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function getLabel(point: RevenueDataPoint): string {
+  if (point.label) return point.label;
+  const [year, mon] = point.month.split('-');
+  const d = new Date(Number(year), Number(mon) - 1);
+  return d.toLocaleDateString('en-US', { month: 'short' });
+}
 
-export function RevenueChart({ data }: { data: MonthlyRevenue[] }) {
-  const maxAmount = Math.max(...data.map((d) => d.amount), 1);
+export function RevenueChart({ data, title }: { data: RevenueDataPoint[]; title?: string }) {
+  const max = Math.max(...data.map(d => d.amount), 1);
 
   return (
-    <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">Monthly Revenue (Last 12 Months)</h3>
-      <div className="flex items-end gap-2 h-48">
-        {data.map((d) => {
-          const height = maxAmount > 0 ? (d.amount / maxAmount) * 100 : 0;
-          const monthIndex = parseInt(d.month.split('-')[1], 10) - 1;
+    <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+      <h3 className="text-sm font-medium text-gray-400 mb-4">{title || 'Revenue (Last 6 Months)'}</h3>
+      <div className="flex items-end gap-2 h-32">
+        {data.map((point) => {
+          const height = Math.max((point.amount / max) * 100, 2);
           return (
-            <div key={d.month} className="flex-1 flex flex-col items-center">
-              <span className="text-xs text-gray-400 mb-1">
-                {d.amount > 0 ? `$${(d.amount / 1000).toFixed(d.amount >= 1000 ? 1 : 0)}k` : ''}
+            <div key={point.month} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs text-gray-500">
+                {point.amount > 0 ? `$${point.amount >= 1000 ? Math.round(point.amount / 1000) + 'k' : point.amount}` : ''}
               </span>
-              <div
-                className="w-full bg-blue-600 rounded-t transition-all"
-                style={{ height: `${Math.max(height, 2)}%` }}
-                title={`${d.month}: $${d.amount.toLocaleString()}`}
-              />
-              <span className="text-xs text-gray-500 mt-1">{MONTH_LABELS[monthIndex]}</span>
+              <div className="w-full flex justify-center flex-1" style={{ height: `${height}%` }}>
+                <div className="w-full max-w-8 bg-blue-600 rounded-t" />
+              </div>
+              <span className="text-xs text-gray-500">{getLabel(point)}</span>
             </div>
           );
         })}
