@@ -44,3 +44,6 @@ data/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+test-*.db
+test-*.db-shm
+test-*.db-wal
