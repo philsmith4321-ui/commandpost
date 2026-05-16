@@ -2,6 +2,8 @@ import { initDb } from '../src/lib/db';
 import { listActiveEndpoints } from '../src/lib/queries/endpoint-queries';
 import { recordHealthCheck, getLastHealthCheck, getLastNHealthChecks, deleteOldHealthChecks } from '../src/lib/queries/health-check-queries';
 import { getOpenIncident, createIncident, resolveIncident } from '../src/lib/queries/incident-queries';
+import { isTwilioConfigured, sendSms } from '../src/lib/twilio';
+import { recordAlert, hasAlertBeenSent } from '../src/lib/queries/alert-queries';
 
 const TIMEOUT_MS = 10_000;
 
@@ -54,8 +56,19 @@ async function main() {
       if (last2.length >= 2 && last2.every(c => c.is_healthy === 0)) {
         const openIncident = getOpenIncident(db, ep.id);
         if (!openIncident) {
-          createIncident(db, ep.id);
+          const incidentId = createIncident(db, ep.id);
           console.log(`  INCIDENT CREATED for ${ep.name}`);
+
+          // Send SMS alert
+          if (isTwilioConfigured() && !hasAlertBeenSent(db, 'server_down', incidentId)) {
+            const lastHealthy = last ? last.checked_at : 'unknown';
+            const message = `ALERT: ${ep.name} is down. Last healthy: ${lastHealthy}`;
+            const sent = await sendSms(message);
+            if (sent) {
+              recordAlert(db, { alert_type: 'server_down', reference_id: incidentId, message });
+              console.log(`  SMS SENT: ${message}`);
+            }
+          }
         }
       }
     }
@@ -66,6 +79,17 @@ async function main() {
       if (openIncident) {
         resolveIncident(db, openIncident.id);
         console.log(`  INCIDENT RESOLVED for ${ep.name}`);
+
+        // Send recovery SMS
+        if (isTwilioConfigured()) {
+          const duration = formatDuration(openIncident);
+          const message = `RECOVERED: ${ep.name} is back up. Downtime: ${duration}`;
+          const sent = await sendSms(message);
+          if (sent) {
+            recordAlert(db, { alert_type: 'server_recovered', reference_id: openIncident.id, message });
+            console.log(`  SMS SENT: ${message}`);
+          }
+        }
       }
     }
   }
@@ -77,6 +101,16 @@ async function main() {
   }
 
   db.close();
+}
+
+function formatDuration(incident: { started_at: string }): string {
+  const startMs = new Date(incident.started_at + 'Z').getTime();
+  const seconds = Math.floor((Date.now() - startMs) / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
 }
 
 main().catch((err) => {
