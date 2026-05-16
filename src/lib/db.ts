@@ -187,6 +187,22 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      link TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      notification_type TEXT NOT NULL UNIQUE,
+      email_delivery TEXT NOT NULL DEFAULT 'digest' CHECK(email_delivery IN ('immediate','digest','none'))
+    );
   `);
 
   // Migration: add hourly_rate to projects

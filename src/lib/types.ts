@@ -195,3 +195,32 @@ export interface ClientHealth {
   balance: number;
   engagement: number;
 }
+
+export type NotificationType =
+  | 'server_down'
+  | 'server_recovered'
+  | 'client_health_critical'
+  | 'invoice_overdue'
+  | 'invoice_paid'
+  | 'deliverable_overdue'
+  | 'follow_up_due'
+  | 'lead_stage_changed'
+  | 'time_invoiced';
+
+export type EmailDelivery = 'immediate' | 'digest' | 'none';
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  message: string | null;
+  link: string | null;
+  is_read: number;
+  created_at: string;
+}
+
+export interface NotificationPreference {
+  id: number;
+  notification_type: NotificationType;
+  email_delivery: EmailDelivery;
+}
