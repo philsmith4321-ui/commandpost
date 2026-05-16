@@ -203,6 +203,43 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       notification_type TEXT NOT NULL UNIQUE,
       email_delivery TEXT NOT NULL DEFAULT 'digest' CHECK(email_delivery IN ('immediate','digest','none'))
     );
+
+    CREATE TABLE IF NOT EXISTS proposals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+      client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      scope TEXT,
+      timeline TEXT,
+      valid_until TEXT,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','sent','accepted','rejected','expired')),
+      token TEXT UNIQUE,
+      accepted_at TEXT,
+      accepted_ip TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS proposal_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      proposal_id INTEGER NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
+      description TEXT NOT NULL,
+      quantity REAL NOT NULL DEFAULT 1,
+      unit_price REAL NOT NULL,
+      amount REAL NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS contracts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      proposal_id INTEGER REFERENCES proposals(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      terms_summary TEXT,
+      signed_at TEXT NOT NULL,
+      expires_at TEXT,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','expired','renewed')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // Migration: add hourly_rate to projects

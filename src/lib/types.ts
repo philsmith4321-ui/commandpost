@@ -205,7 +205,9 @@ export type NotificationType =
   | 'deliverable_overdue'
   | 'follow_up_due'
   | 'lead_stage_changed'
-  | 'time_invoiced';
+  | 'time_invoiced'
+  | 'proposal_accepted'
+  | 'contract_expiring';
 
 export type EmailDelivery = 'immediate' | 'digest' | 'none';
 
