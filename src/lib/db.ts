@@ -174,7 +174,26 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       percent_used REAL NOT NULL,
       reported_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS time_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      deliverable_id INTEGER REFERENCES deliverables(id) ON DELETE SET NULL,
+      description TEXT,
+      duration_minutes INTEGER NOT NULL,
+      entry_date TEXT NOT NULL,
+      hourly_rate REAL NOT NULL,
+      is_invoiced INTEGER NOT NULL DEFAULT 0,
+      invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
+
+  // Migration: add hourly_rate to projects
+  const hasHourlyRate = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'hourly_rate'").get() as any;
+  if (hasHourlyRate.count === 0) {
+    db.exec("ALTER TABLE projects ADD COLUMN hourly_rate REAL");
+  }
 
   return db;
 }

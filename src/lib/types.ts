@@ -31,6 +31,7 @@ export interface Project {
   repo_url: string | null;
   deploy_command: string | null;
   stack_notes: string | null;
+  hourly_rate: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -168,6 +169,19 @@ export interface DiskReport {
   used_gb: number;
   percent_used: number;
   reported_at: string;
+}
+
+export interface TimeEntry {
+  id: number;
+  project_id: number;
+  deliverable_id: number | null;
+  description: string | null;
+  duration_minutes: number;
+  entry_date: string;
+  hourly_rate: number;
+  is_invoiced: number;
+  invoice_id: number | null;
+  created_at: string;
 }
 
 export type ClientHealthStatus = 'healthy' | 'at_risk' | 'needs_attention';
