@@ -271,6 +271,22 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_portal_token ON clients(portal_token) WHERE portal_token IS NOT NULL");
   }
 
+  // Migration: create goals table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      target_value REAL NOT NULL,
+      current_value REAL NOT NULL DEFAULT 0,
+      unit TEXT NOT NULL DEFAULT 'revenue',
+      period TEXT NOT NULL DEFAULT 'monthly' CHECK(period IN ('weekly','monthly','quarterly','yearly')),
+      period_start TEXT NOT NULL,
+      period_end TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: create meetings table
   db.exec(`
     CREATE TABLE IF NOT EXISTS meetings (
