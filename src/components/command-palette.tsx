@@ -29,6 +29,7 @@ export function CommandPalette() {
     { id: 'nav-ops', label: 'Go to Ops', section: 'Navigation', action: () => router.push('/ops') },
     { id: 'nav-reports', label: 'Go to Reports', section: 'Navigation', action: () => router.push('/reports') },
     { id: 'nav-board', label: 'Go to Board', section: 'Navigation', action: () => router.push('/board') },
+    { id: 'nav-recurring', label: 'Go to Recurring Tasks', section: 'Navigation', action: () => router.push('/recurring') },
     { id: 'nav-templates', label: 'Go to Templates', section: 'Navigation', action: () => router.push('/templates') },
     { id: 'nav-notifications', label: 'Go to Notifications', section: 'Navigation', action: () => router.push('/notifications') },
     { id: 'nav-settings', label: 'Notification Settings', section: 'Navigation', action: () => router.push('/settings/notifications') },
