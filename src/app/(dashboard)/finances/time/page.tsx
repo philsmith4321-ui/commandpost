@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/db';
 import { getTimeStats, getTimeEntriesFiltered } from '@/lib/queries/time-queries';
 import { FinanceTabs } from '@/components/finance-tabs';
-import { generateInvoiceFromTimeAction } from '@/lib/actions/time-actions';
+import { BulkTimeTable } from '@/components/bulk-time-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,61 +70,7 @@ export default async function FinancesTimePage({
         </button>
       </form>
 
-      {/* Entries Table */}
-      {entries.length === 0 ? (
-        <p className="text-gray-500 text-sm">No time entries found.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-left">
-                <th className="pb-2 pr-4">Date</th>
-                <th className="pb-2 pr-4">Client</th>
-                <th className="pb-2 pr-4">Project</th>
-                <th className="pb-2 pr-4">Deliverable</th>
-                <th className="pb-2 pr-4 text-right">Duration</th>
-                <th className="pb-2 pr-4 text-right">Rate</th>
-                <th className="pb-2 pr-4 text-right">Amount</th>
-                <th className="pb-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => {
-                const hours = entry.duration_minutes / 60;
-                const amount = hours * entry.hourly_rate;
-                return (
-                  <tr key={entry.id} className="border-b border-gray-800/50">
-                    <td className="py-2 pr-4 text-white">{entry.entry_date}</td>
-                    <td className="py-2 pr-4 text-gray-300">{entry.client_name}</td>
-                    <td className="py-2 pr-4 text-gray-300">{entry.project_name}</td>
-                    <td className="py-2 pr-4 text-gray-300">{entry.deliverable_title || '—'}</td>
-                    <td className="py-2 pr-4 text-right text-white">{hours.toFixed(2)}h</td>
-                    <td className="py-2 pr-4 text-right text-gray-300">${entry.hourly_rate}</td>
-                    <td className="py-2 pr-4 text-right text-white">${amount.toFixed(2)}</td>
-                    <td className="py-2">
-                      <span className={`text-xs px-2 py-0.5 rounded ${entry.is_invoiced ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
-                        {entry.is_invoiced ? 'Invoiced' : 'Uninvoiced'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Generate Invoice button */}
-      {sp.client && entries.some(e => !e.is_invoiced) && (
-        <div className="mt-6">
-          <form action={generateInvoiceFromTimeAction}>
-            <input type="hidden" name="client_id" value={sp.client} />
-            <button type="submit" className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors">
-              Generate Invoice for Selected Client
-            </button>
-          </form>
-        </div>
-      )}
+      <BulkTimeTable entries={entries} clientId={sp.client} />
     </div>
   );
 }
