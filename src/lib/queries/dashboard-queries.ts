@@ -13,6 +13,7 @@ export interface DashboardSummary {
   overdueInvoiceAmount: number;
   serversDown: number;
   mrr: number;
+  uninvoicedTime: number;
 }
 
 export interface ActionItem {
@@ -49,7 +50,9 @@ export function getDashboardSummary(db: Database.Database): DashboardSummary {
 
   const mrr = getMrr(db);
 
-  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, serversDown, mrr };
+  const uninvoicedTime = (db.prepare("SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE is_invoiced = 0").get() as any).total;
+
+  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, serversDown, mrr, uninvoicedTime };
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {

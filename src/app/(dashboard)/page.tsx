@@ -62,6 +62,12 @@ export default function DashboardPage() {
             {summary.serversDown > 0 ? `${summary.serversDown} down` : 'All OK'}
           </p>
         </div>
+        {summary.uninvoicedTime > 0 && (
+          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase mb-1">Uninvoiced Time</p>
+            <p className="text-2xl font-bold text-yellow-400">${summary.uninvoicedTime.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+          </div>
+        )}
       </div>
 
       {/* Action Items */}
