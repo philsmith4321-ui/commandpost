@@ -31,6 +31,17 @@ export interface InvoiceSummary {
   paidThisMonth: number;
 }
 
+export interface RecurringInvoiceRow {
+  id: number;
+  invoice_number: string;
+  client_id: number;
+  client_name: string;
+  total_amount: number;
+  recurrence_day: number;
+  status: InvoiceStatus;
+  is_recurring: number;
+}
+
 function generateInvoiceNumber(db: Database.Database): string {
   const last = db.prepare("SELECT invoice_number FROM invoices ORDER BY id DESC LIMIT 1").get() as { invoice_number: string } | undefined;
   if (!last) return 'INV-0001';
@@ -169,4 +180,30 @@ export function setStripePaymentLink(db: Database.Database, id: number, link: st
 
 export function setStripePaymentId(db: Database.Database, id: number, paymentId: string): void {
   db.prepare("UPDATE invoices SET stripe_payment_id = ?, status = 'paid', paid_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(paymentId, id);
+}
+
+export function getRecurringInvoices(db: Database.Database): RecurringInvoiceRow[] {
+  return db.prepare(`
+    SELECT i.id, i.invoice_number, i.client_id, c.name as client_name,
+           i.total_amount, i.recurrence_day, i.status, i.is_recurring
+    FROM invoices i JOIN clients c ON i.client_id = c.id
+    WHERE i.is_recurring = 1
+    ORDER BY c.name ASC
+  `).all() as RecurringInvoiceRow[];
+}
+
+export function getMrr(db: Database.Database): number {
+  return (db.prepare(
+    "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE is_recurring = 1"
+  ).get() as any).total;
+}
+
+export function getClientRecurringInvoices(db: Database.Database, clientId: number): RecurringInvoiceRow[] {
+  return db.prepare(`
+    SELECT i.id, i.invoice_number, i.client_id, c.name as client_name,
+           i.total_amount, i.recurrence_day, i.status, i.is_recurring
+    FROM invoices i JOIN clients c ON i.client_id = c.id
+    WHERE i.is_recurring = 1 AND i.client_id = ?
+    ORDER BY i.recurrence_day ASC
+  `).all(clientId) as RecurringInvoiceRow[];
 }
