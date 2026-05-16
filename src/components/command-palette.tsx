@@ -55,6 +55,7 @@ export function CommandPalette() {
     { id: 'nav-onboarding', label: 'Onboarding Templates', section: 'Navigation', action: () => router.push('/onboarding') },
     { id: 'nav-lead-scores', label: 'Lead Scores', section: 'Navigation', action: () => router.push('/pipeline/scores') },
     { id: 'nav-snapshots', label: 'Metric Snapshots', section: 'Navigation', action: () => router.push('/reports/snapshots') },
+    { id: 'nav-notes', label: 'Scratchpad / Notes', section: 'Navigation', action: () => router.push('/notes') },
   ];
 
   const filtered = query

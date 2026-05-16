@@ -363,6 +363,18 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create scratchpad table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scratchpad (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      is_pinned INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: create metric_snapshots table
   db.exec(`
     CREATE TABLE IF NOT EXISTS metric_snapshots (
