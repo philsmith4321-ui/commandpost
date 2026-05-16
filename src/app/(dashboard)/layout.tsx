@@ -2,6 +2,7 @@ import { Sidebar } from '@/components/sidebar';
 import { MobileNav } from '@/components/mobile-nav';
 import { NotificationBellServer } from '@/components/notification-bell-server';
 import { GlobalSearch } from '@/components/global-search';
+import { CommandPalette } from '@/components/command-palette';
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
         {children}
       </main>
       <MobileNav />
+      <CommandPalette />
     </div>
   );
 }
