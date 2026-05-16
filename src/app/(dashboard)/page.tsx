@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { getDashboardSummary, getActionItems, getRecentActivity } from '@/lib/queries/dashboard-queries';
 import { AlertBar } from '@/components/alert-bar';
+import { isClaudeConfigured } from '@/lib/claude';
+import { DashboardQuery } from '@/components/dashboard-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +12,7 @@ export default function DashboardPage() {
   const summary = getDashboardSummary(db);
   const actionItems = getActionItems(db);
   const recentActivity = getRecentActivity(db);
+  const claudeEnabled = isClaudeConfigured();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -20,6 +23,8 @@ export default function DashboardPage() {
       <p className="text-gray-400 mb-6">
         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
+
+      {claudeEnabled && <DashboardQuery />}
 
       <AlertBar items={actionItems} />
 
