@@ -8,6 +8,7 @@ interface DeliverableListProps {
   clientId: number;
   projectId: number;
   deliverables: Deliverable[];
+  deliverableHours?: Record<number, number>;
 }
 
 const statusCycle: Record<DeliverableStatus, DeliverableStatus> = {
@@ -41,7 +42,7 @@ function isDueSoon(dueDate: string | null, status: DeliverableStatus): boolean {
   return due >= now && due <= threeDays;
 }
 
-export function DeliverableList({ clientId, projectId, deliverables }: DeliverableListProps) {
+export function DeliverableList({ clientId, projectId, deliverables, deliverableHours }: DeliverableListProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleAdd(formData: FormData) {
@@ -100,6 +101,11 @@ export function DeliverableList({ clientId, projectId, deliverables }: Deliverab
                   {d.due_date && (
                     <span className="ml-2 text-xs text-gray-500">
                       Due {d.due_date}
+                    </span>
+                  )}
+                  {deliverableHours?.[d.id] && (
+                    <span className="ml-2 text-xs text-blue-400">
+                      {deliverableHours[d.id].toFixed(1)}h
                     </span>
                   )}
                 </div>

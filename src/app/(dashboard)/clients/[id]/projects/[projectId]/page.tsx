@@ -3,10 +3,15 @@ import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getClientById } from '@/lib/queries/client-queries';
 import { getProjectById, listDeliverables } from '@/lib/queries/project-queries';
+import { getTimeEntriesByProject, getProjectTimeSummary, getDeliverableHours } from '@/lib/queries/time-queries';
 import { StatusBadge } from '@/components/status-badge';
 import { DeliverableList } from '@/components/deliverable-list';
 import { ActivityLog } from '@/components/activity-log';
 import { DeleteProjectButton } from '@/components/delete-project-button';
+import { TimeEntryForm } from '@/components/time-entry-form';
+import { TimeSummaryCard } from '@/components/time-summary-card';
+import { TimeEntriesTable } from '@/components/time-entries-table';
+import { generateInvoiceFromTimeAction } from '@/lib/actions/time-actions';
 import type { ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ProjectDetailPage({
@@ -24,6 +29,9 @@ export default async function ProjectDetailPage({
   }
 
   const deliverables = listDeliverables(db, project.id);
+  const timeEntries = getTimeEntriesByProject(db, project.id);
+  const timeSummary = getProjectTimeSummary(db, project.id);
+  const deliverableHours = getDeliverableHours(db, project.id);
 
   const activities = db
     .prepare('SELECT * FROM activity_logs WHERE project_id = ? ORDER BY created_at DESC LIMIT 50')
@@ -55,7 +63,10 @@ export default async function ProjectDetailPage({
           Edit
         </Link>
       </div>
-      <p className="text-gray-500 text-sm mb-6">{client.name}</p>
+      <p className="text-gray-500 text-sm mb-6">
+        {client.name}
+        {project.hourly_rate && <span className="ml-2">&middot; ${project.hourly_rate}/hr</span>}
+      </p>
 
       {techDetails.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -83,13 +94,58 @@ export default async function ProjectDetailPage({
         </div>
       )}
 
+      {/* Time Summary */}
+      {timeSummary.totalHours > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Time Summary</h3>
+            {timeSummary.uninvoicedCost > 0 && (
+              <form action={generateInvoiceFromTimeAction}>
+                <input type="hidden" name="client_id" value={client.id} />
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                >
+                  Generate Invoice
+                </button>
+              </form>
+            )}
+          </div>
+          <TimeSummaryCard summary={timeSummary} />
+        </div>
+      )}
+
       <div className="mb-8">
         <DeliverableList
           clientId={client.id}
           projectId={project.id}
           deliverables={deliverables}
+          deliverableHours={deliverableHours}
         />
       </div>
+
+      {/* Log Time */}
+      <div className="mb-8 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+        <TimeEntryForm
+          clientId={client.id}
+          projectId={project.id}
+          deliverables={deliverables}
+          defaultRate={project.hourly_rate}
+        />
+      </div>
+
+      {/* Recent Time Entries */}
+      {timeEntries.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-white mb-4">Recent Time Entries</h3>
+          <TimeEntriesTable
+            entries={timeEntries}
+            deliverables={deliverables}
+            clientId={client.id}
+            projectId={project.id}
+          />
+        </div>
+      )}
 
       <div className="mb-8">
         <ActivityLog
