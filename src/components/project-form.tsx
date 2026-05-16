@@ -58,6 +58,21 @@ export function ProjectForm({ action, clientId, project, submitLabel }: ProjectF
         </div>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-400 mb-1">
+          Hourly Rate ($)
+        </label>
+        <input
+          type="number"
+          name="hourly_rate"
+          step="0.01"
+          min="0"
+          defaultValue={project?.hourly_rate ?? ''}
+          placeholder="e.g. 150.00"
+          className={inputClass}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1">

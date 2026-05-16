@@ -14,6 +14,9 @@ export async function createProjectAction(formData: FormData) {
   const db = getDb();
   const clientId = Number(formData.get('client_id'));
 
+  const hourlyRateStr = formData.get('hourly_rate') as string;
+  const hourly_rate = hourlyRateStr ? Number(hourlyRateStr) : null;
+
   const id = createProject(db, {
     client_id: clientId,
     name: formData.get('name') as string,
@@ -23,6 +26,7 @@ export async function createProjectAction(formData: FormData) {
     repo_url: (formData.get('repo_url') as string) || null,
     deploy_command: (formData.get('deploy_command') as string) || null,
     stack_notes: (formData.get('stack_notes') as string) || null,
+    hourly_rate,
   });
 
   revalidatePath(`/clients/${clientId}`);
@@ -34,6 +38,9 @@ export async function updateProjectAction(formData: FormData) {
   const id = Number(formData.get('id'));
   const clientId = Number(formData.get('client_id'));
 
+  const hourlyRateStr = formData.get('hourly_rate') as string;
+  const hourly_rate = hourlyRateStr ? Number(hourlyRateStr) : null;
+
   updateProject(db, id, {
     name: formData.get('name') as string,
     status: (formData.get('status') as ProjectStatus) || 'active',
@@ -42,6 +49,7 @@ export async function updateProjectAction(formData: FormData) {
     repo_url: (formData.get('repo_url') as string) || null,
     deploy_command: (formData.get('deploy_command') as string) || null,
     stack_notes: (formData.get('stack_notes') as string) || null,
+    hourly_rate,
   });
 
   revalidatePath(`/clients/${clientId}`);

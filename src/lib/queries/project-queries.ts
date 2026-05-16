@@ -10,6 +10,7 @@ interface CreateProjectInput {
   repo_url?: string | null;
   deploy_command?: string | null;
   stack_notes?: string | null;
+  hourly_rate?: number | null;
 }
 
 interface UpdateProjectInput {
@@ -20,6 +21,7 @@ interface UpdateProjectInput {
   repo_url?: string | null;
   deploy_command?: string | null;
   stack_notes?: string | null;
+  hourly_rate?: number | null;
 }
 
 interface CreateDeliverableInput {
@@ -30,8 +32,8 @@ interface CreateDeliverableInput {
 
 export function createProject(db: Database.Database, input: CreateProjectInput): number {
   const stmt = db.prepare(`
-    INSERT INTO projects (client_id, name, status, start_date, server_ip, repo_url, deploy_command, stack_notes)
-    VALUES (@client_id, @name, @status, @start_date, @server_ip, @repo_url, @deploy_command, @stack_notes)
+    INSERT INTO projects (client_id, name, status, start_date, server_ip, repo_url, deploy_command, stack_notes, hourly_rate)
+    VALUES (@client_id, @name, @status, @start_date, @server_ip, @repo_url, @deploy_command, @stack_notes, @hourly_rate)
   `);
 
   const result = stmt.run({
@@ -43,6 +45,7 @@ export function createProject(db: Database.Database, input: CreateProjectInput):
     repo_url: input.repo_url ?? null,
     deploy_command: input.deploy_command ?? null,
     stack_notes: input.stack_notes ?? null,
+    hourly_rate: input.hourly_rate ?? null,
   });
 
   return Number(result.lastInsertRowid);
