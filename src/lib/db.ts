@@ -211,6 +211,13 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("ALTER TABLE projects ADD COLUMN hourly_rate REAL");
   }
 
+  // Migration: add portal_token to clients
+  const hasPortalToken = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'portal_token'").get() as any;
+  if (hasPortalToken.count === 0) {
+    db.exec("ALTER TABLE clients ADD COLUMN portal_token TEXT");
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_portal_token ON clients(portal_token) WHERE portal_token IS NOT NULL");
+  }
+
   return db;
 }
 
