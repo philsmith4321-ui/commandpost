@@ -8,6 +8,7 @@ import { ClientHealthBadge } from '@/components/client-health-badge';
 import { ProjectsList } from '@/components/projects-list';
 import { ActivityLog } from '@/components/activity-log';
 import { DeleteClientButton } from '@/components/delete-client-button';
+import { RecurringInvoiceForm } from '@/components/recurring-invoice-form';
 import type { Project, ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ClientDetailPage({
@@ -90,10 +91,10 @@ export default async function ClientDetailPage({
       </div>
 
       {/* Recurring Invoices */}
-      {recurringInvoices.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-white mb-3">Recurring Invoices</h3>
-          <div className="space-y-2">
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-white mb-3">Recurring Invoices</h3>
+        {recurringInvoices.length > 0 && (
+          <div className="space-y-2 mb-4">
             {recurringInvoices.map((inv) => (
               <Link key={inv.id} href={`/finances/invoices/${inv.id}`}
                 className="flex items-center justify-between p-3 bg-gray-900 border border-gray-800 rounded-lg hover:border-gray-700 transition-colors">
@@ -105,8 +106,12 @@ export default async function ClientDetailPage({
               </Link>
             ))}
           </div>
-        </div>
-      )}
+        )}
+        {recurringInvoices.length === 0 && (
+          <p className="text-sm text-gray-500 mb-4">No recurring invoices for this client.</p>
+        )}
+        <RecurringInvoiceForm clientId={client.id} />
+      </div>
 
       <div className="mb-8">
         <ProjectsList clientId={client.id} projects={projects} />
