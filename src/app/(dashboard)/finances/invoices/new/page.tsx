@@ -9,7 +9,7 @@ export default function NewInvoicePage() {
   const clients = listClients(db);
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <Link href="/finances" className="text-sm text-gray-400 hover:text-white mb-4 inline-block">
         &larr; Back to Finances
       </Link>

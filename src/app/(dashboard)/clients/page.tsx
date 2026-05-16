@@ -30,7 +30,7 @@ export default async function ClientsPage({
   ];
 
   return (
-    <div className="p-6 bg-gray-950 min-h-screen">
+    <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Clients</h1>
         <Link

@@ -19,7 +19,7 @@ export default async function NewProjectPage({
   }
 
   return (
-    <div className="p-6 bg-gray-950 min-h-screen">
+    <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
       <Link
         href={`/clients/${client.id}`}
         className="text-gray-400 hover:text-white text-sm transition-colors"

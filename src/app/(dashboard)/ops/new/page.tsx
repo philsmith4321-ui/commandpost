@@ -3,7 +3,7 @@ import { createEndpointAction } from '@/lib/actions/endpoint-actions';
 
 export default function NewEndpointPage() {
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <Link href="/ops" className="text-sm text-gray-400 hover:text-white mb-4 inline-block">
         &larr; Back to Ops
       </Link>

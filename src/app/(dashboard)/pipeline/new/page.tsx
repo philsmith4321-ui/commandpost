@@ -4,7 +4,7 @@ import { createLeadAction } from '@/lib/actions/lead-actions';
 
 export default function NewLeadPage() {
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <Link href="/pipeline" className="text-sm text-gray-400 hover:text-white mb-4 inline-block">
         &larr; Back to Pipeline
       </Link>

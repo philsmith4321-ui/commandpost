@@ -30,7 +30,7 @@ export default async function ClientDetailPage({
     .all(Number(id)) as ActivityLogType[];
 
   return (
-    <div className="p-6 bg-gray-950 min-h-screen">
+    <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
       <Link
         href="/clients"
         className="text-gray-400 hover:text-white text-sm transition-colors"
