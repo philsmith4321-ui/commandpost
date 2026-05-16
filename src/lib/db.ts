@@ -350,6 +350,19 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("ALTER TABLE clients ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0");
   }
 
+  // Migration: create client_documents table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS client_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      doc_type TEXT NOT NULL DEFAULT 'note' CHECK(doc_type IN ('note','link','file')),
+      content TEXT,
+      url TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: add last_reminder_sent to invoices
   const hasReminder = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('invoices') WHERE name = 'last_reminder_sent'").get() as any;
   if (hasReminder.count === 0) {
