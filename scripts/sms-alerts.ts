@@ -2,6 +2,7 @@ import { initDb } from '../src/lib/db';
 import { isTwilioConfigured, sendSms } from '../src/lib/twilio';
 import { recordAlert } from '../src/lib/queries/alert-queries';
 import { getActionItems, getDashboardSummary } from '../src/lib/queries/dashboard-queries';
+import { getCriticalDiskReports } from '../src/lib/queries/disk-report-queries';
 
 function getLastMonthStats(db: ReturnType<typeof initDb>): { revenue: number; expenses: number; profit: number; outstanding: number } {
   const now = new Date();
@@ -59,6 +60,13 @@ async function morningBriefing() {
   if (isFirstOfMonth) {
     const lastMonth = getLastMonthStats(db);
     parts.push(`Last month: $${lastMonth.revenue.toLocaleString()} revenue, $${lastMonth.expenses.toLocaleString()} expenses, $${lastMonth.profit.toLocaleString()} profit. $${lastMonth.outstanding.toLocaleString()} outstanding`);
+  }
+
+  // Disk warnings
+  const criticalDisks = getCriticalDiskReports(db);
+  if (criticalDisks.length > 0) {
+    const diskLines = criticalDisks.map(d => `${d.endpoint_name} ${d.mount_point} at ${d.percent_used.toFixed(0)}%`);
+    parts.push(`Disk warnings: ${diskLines.join(', ')}`);
   }
 
   if (parts.length === 0) {
