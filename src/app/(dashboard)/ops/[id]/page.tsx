@@ -7,6 +7,8 @@ import { getOpenIncident, listIncidents, getTotalIncidentCount } from '@/lib/que
 import { deleteEndpointAction } from '@/lib/actions/endpoint-actions';
 import { StatusDot } from '@/components/status-dot';
 import { ResponseTimeChart } from '@/components/response-time-chart';
+import { getLatestDiskReports } from '@/lib/queries/disk-report-queries';
+import { DiskUsageBar } from '@/components/disk-usage-bar';
 import type { DotColor } from '@/components/status-dot';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +27,7 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
   const totalIncidents = getTotalIncidentCount(db, endpoint.id);
   const checks24h = getHealthChecks24h(db, endpoint.id);
   const incidents = listIncidents(db, endpoint.id);
+  const diskReports = getLatestDiskReports(db, endpoint.id);
 
   let color: DotColor = 'green';
   if (openIncident) {
@@ -76,6 +79,18 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
 
       {/* Response Time Chart */}
       <ResponseTimeChart checks={checks24h} />
+
+      {/* Disk Usage */}
+      {diskReports.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-3">Disk Usage</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {diskReports.map((report) => (
+              <DiskUsageBar key={report.id} report={report} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Incident History */}
       <div>
