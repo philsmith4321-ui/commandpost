@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
-import { getDashboardSummary, getActionItems, getRecentActivity, getRevenueTrend, getUpcomingDeadlines } from '@/lib/queries/dashboard-queries';
+import { getDashboardSummary, getActionItems, getRecentActivity, getRevenueTrend, getUpcomingDeadlines, getPinnedClients } from '@/lib/queries/dashboard-queries';
 import { AlertBar } from '@/components/alert-bar';
 import { isClaudeConfigured } from '@/lib/claude';
 import { DashboardQuery } from '@/components/dashboard-query';
 import { RevenueChart } from '@/components/revenue-chart';
 import { QuickActions } from '@/components/quick-actions';
 import { UpcomingDeadlines } from '@/components/upcoming-deadlines';
+import { QuickNoteForm } from '@/components/quick-note-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,8 @@ export default function DashboardPage() {
   const recentActivity = getRecentActivity(db);
   const revenueTrend = getRevenueTrend(db);
   const upcomingDeadlines = getUpcomingDeadlines(db);
+  const pinnedClients = getPinnedClients(db);
+  const activeClients = db.prepare("SELECT id, name FROM clients WHERE status = 'active' AND deleted_at IS NULL ORDER BY name").all() as { id: number; name: string }[];
   const claudeEnabled = isClaudeConfigured();
 
   const hour = new Date().getHours();
@@ -100,6 +103,28 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Pinned Clients */}
+      {pinnedClients.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-3">Pinned Clients</h3>
+          <div className="flex flex-wrap gap-2">
+            {pinnedClients.map(c => (
+              <Link key={c.id} href={`/clients/${c.id}`} className="px-3 py-2 bg-gray-900 border border-gray-800 hover:border-blue-600 rounded-lg text-sm text-white transition-colors">
+                {c.name}
+                {c.monthly_value ? <span className="ml-2 text-xs text-gray-500">${c.monthly_value.toLocaleString()}/mo</span> : null}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Note */}
+      {activeClients.length > 0 && (
+        <div className="mb-8">
+          <QuickNoteForm clients={activeClients} />
         </div>
       )}
 

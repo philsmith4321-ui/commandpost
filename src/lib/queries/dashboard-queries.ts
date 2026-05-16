@@ -164,6 +164,17 @@ export function getActionItems(db: Database.Database): ActionItem[] {
   return items;
 }
 
+export interface PinnedClient {
+  id: number;
+  name: string;
+  status: string;
+  monthly_value: number | null;
+}
+
+export function getPinnedClients(db: Database.Database): PinnedClient[] {
+  return db.prepare("SELECT id, name, status, monthly_value FROM clients WHERE is_pinned = 1 AND deleted_at IS NULL ORDER BY name").all() as PinnedClient[];
+}
+
 export function getRecentActivity(db: Database.Database, limit: number = 20): RecentActivity[] {
   return db.prepare(`
     SELECT a.content, a.created_at, c.name as client_name

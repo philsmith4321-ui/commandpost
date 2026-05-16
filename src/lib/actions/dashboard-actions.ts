@@ -2,6 +2,7 @@
 
 import { getDb } from '@/lib/db';
 import { isClaudeConfigured, askClaude } from '@/lib/claude';
+import { revalidatePath } from 'next/cache';
 
 const DB_SCHEMA = `Tables:
 - clients (id, name, contact_person, email, phone, notes, source, status ['active','paused','completed'], monthly_value, created_at, updated_at, deleted_at)
@@ -82,4 +83,22 @@ export async function askDashboardQuestion(
   if (!answerResponse) return { error: 'Failed to format answer. Please try again.' };
 
   return { answer: answerResponse };
+}
+
+export async function togglePinClientAction(formData: FormData) {
+  const db = getDb();
+  const clientId = Number(formData.get('client_id'));
+  const currentlyPinned = Number(formData.get('is_pinned'));
+  db.prepare('UPDATE clients SET is_pinned = ? WHERE id = ?').run(currentlyPinned ? 0 : 1, clientId);
+  revalidatePath('/');
+  revalidatePath('/clients');
+}
+
+export async function quickAddNoteAction(formData: FormData) {
+  const db = getDb();
+  const clientId = Number(formData.get('client_id'));
+  const content = formData.get('content') as string;
+  if (!content?.trim()) return;
+  db.prepare('INSERT INTO activity_logs (client_id, content) VALUES (?, ?)').run(clientId, content.trim());
+  revalidatePath('/');
 }

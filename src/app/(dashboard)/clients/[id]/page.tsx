@@ -10,6 +10,7 @@ import { ActivityLog } from '@/components/activity-log';
 import { DeleteClientButton } from '@/components/delete-client-button';
 import { RecurringInvoiceForm } from '@/components/recurring-invoice-form';
 import { PortalLinkCard } from '@/components/portal-link-card';
+import { togglePinClientAction } from '@/lib/actions/dashboard-actions';
 import type { Project, ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ClientDetailPage({
@@ -48,9 +49,16 @@ export default async function ClientDetailPage({
       <div className="flex items-center gap-4 mt-4 mb-6">
         <h1 className="text-2xl font-bold text-white">{client.name}</h1>
         <StatusBadge status={client.status} />
+        <form action={togglePinClientAction} className="ml-auto">
+          <input type="hidden" name="client_id" value={client.id} />
+          <input type="hidden" name="is_pinned" value={(client as any).is_pinned || 0} />
+          <button type="submit" className="px-3 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors" title={(client as any).is_pinned ? 'Unpin from dashboard' : 'Pin to dashboard'}>
+            {(client as any).is_pinned ? '★' : '☆'}
+          </button>
+        </form>
         <Link
           href={`/clients/${client.id}/edit`}
-          className="ml-auto px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
         >
           Edit
         </Link>

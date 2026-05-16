@@ -271,6 +271,12 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_portal_token ON clients(portal_token) WHERE portal_token IS NOT NULL");
   }
 
+  // Migration: add is_pinned to clients
+  const hasPinned = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'is_pinned'").get() as any;
+  if (hasPinned.count === 0) {
+    db.exec("ALTER TABLE clients ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0");
+  }
+
   return db;
 }
 
