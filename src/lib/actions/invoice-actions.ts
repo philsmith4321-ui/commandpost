@@ -227,6 +227,57 @@ export async function bulkInvoiceAction(formData: FormData) {
   revalidatePath('/finances');
 }
 
+export async function sendInvoiceEmailAction(formData: FormData) {
+  const db = getDb();
+  const id = Number(formData.get('id'));
+  const recipientEmail = formData.get('email') as string;
+  const message = formData.get('message') as string;
+  const invoice = getInvoiceById(db, id);
+  if (!invoice || !recipientEmail) return;
+
+  const { sendEmail } = await import('@/lib/email');
+  const { logEmail } = await import('@/lib/queries/email-log-queries');
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://commandpost.rekindleleads.com';
+  const pdfUrl = `${baseUrl}/api/invoices/${id}/pdf`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #1a1a2e;">Invoice ${invoice.invoice_number}</h2>
+      <p>${message || `Please find your invoice attached. The total amount is $${invoice.total_amount.toLocaleString()} and is due by ${invoice.due_date}.`}</p>
+      <div style="margin: 24px 0; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+        <p style="margin: 0;"><strong>Invoice:</strong> ${invoice.invoice_number}</p>
+        <p style="margin: 4px 0;"><strong>Amount:</strong> $${invoice.total_amount.toLocaleString()}</p>
+        <p style="margin: 4px 0;"><strong>Due Date:</strong> ${invoice.due_date}</p>
+        ${invoice.stripe_payment_link ? `<p style="margin: 4px 0;"><a href="${invoice.stripe_payment_link}" style="color: #2563eb;">Pay Online</a></p>` : ''}
+      </div>
+      <p><a href="${pdfUrl}" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px;">View Invoice</a></p>
+    </div>
+  `;
+
+  const sent = await sendEmail({
+    to: recipientEmail,
+    subject: `Invoice ${invoice.invoice_number} — $${invoice.total_amount.toLocaleString()}`,
+    html,
+  });
+
+  if (sent) {
+    markInvoiceSent(db, id);
+    logAudit(db, 'invoice', id, 'emailed');
+    logEmail(db, {
+      client_id: invoice.client_id,
+      recipient_email: recipientEmail,
+      subject: `Invoice ${invoice.invoice_number}`,
+      email_type: 'invoice',
+      reference_id: id,
+    });
+  }
+
+  revalidatePath('/finances');
+  revalidatePath(`/finances/invoices/${id}`);
+  redirect(`/finances/invoices/${id}`);
+}
+
 export async function markReminderSentAction(formData: FormData) {
   const db = getDb();
   const id = Number(formData.get('id'));

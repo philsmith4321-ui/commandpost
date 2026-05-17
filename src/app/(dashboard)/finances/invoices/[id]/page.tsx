@@ -13,6 +13,7 @@ import {
 } from '@/lib/actions/invoice-actions';
 import { isStripeConfigured } from '@/lib/stripe';
 import { StatusBadge } from '@/components/status-badge';
+import { SendInvoiceEmail } from '@/components/send-invoice-email';
 
 export default async function InvoiceDetailPage({
   params,
@@ -154,6 +155,19 @@ export default async function InvoiceDetailPage({
           <p className="text-sm text-blue-400">
             Payment link: <a href={invoice.stripe_payment_link} target="_blank" rel="noreferrer" className="underline">{invoice.stripe_payment_link}</a>
           </p>
+        </div>
+      )}
+
+      {/* Email Invoice */}
+      {invoice.status !== 'paid' && (
+        <div className="mb-6">
+          <SendInvoiceEmail
+            invoiceId={invoice.id}
+            clientEmail={invoice.client_email || null}
+            invoiceNumber={invoice.invoice_number}
+            amount={invoice.total_amount}
+            dueDate={invoice.due_date}
+          />
         </div>
       )}
 

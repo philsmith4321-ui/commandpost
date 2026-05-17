@@ -20,6 +20,7 @@ interface UpdateInvoiceInput {
 
 export interface InvoiceWithClient extends Invoice {
   client_name: string;
+  client_email?: string | null;
   items: InvoiceItem[];
   is_overdue: boolean;
 }
@@ -84,10 +85,10 @@ export function createInvoice(db: Database.Database, input: CreateInvoiceInput):
 
 export function getInvoiceById(db: Database.Database, id: number): InvoiceWithClient | undefined {
   const invoice = db.prepare(`
-    SELECT i.*, c.name as client_name
+    SELECT i.*, c.name as client_name, c.email as client_email
     FROM invoices i JOIN clients c ON i.client_id = c.id
     WHERE i.id = ?
-  `).get(id) as (Invoice & { client_name: string }) | undefined;
+  `).get(id) as (Invoice & { client_name: string; client_email: string | null }) | undefined;
 
   if (!invoice) return undefined;
 
