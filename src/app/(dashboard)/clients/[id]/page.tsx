@@ -18,6 +18,7 @@ import { listClientDocuments } from '@/lib/queries/document-queries';
 import { ClientDocuments } from '@/components/client-documents';
 import { getClientChecklists, listOnboardingTemplates } from '@/lib/queries/onboarding-queries';
 import { ClientOnboarding } from '@/components/client-onboarding';
+import { getClientActivity } from '@/lib/queries/client-activity-queries';
 import type { Project, ActivityLog as ActivityLogType } from '@/lib/types';
 
 export default async function ClientDetailPage({
@@ -50,6 +51,7 @@ export default async function ClientDetailPage({
   const revenueHistory = getClientRevenueHistory(db, Number(id));
   const checklists = getClientChecklists(db, Number(id));
   const onboardingTemplates = listOnboardingTemplates(db);
+  const clientActivity = getClientActivity(db, Number(id));
 
   return (
     <div className="p-4 sm:p-6 bg-gray-950 min-h-screen">
@@ -181,6 +183,32 @@ export default async function ClientDetailPage({
       <div className="mb-8">
         <ClientDocuments clientId={client.id} documents={documents} />
       </div>
+
+      {/* Unified Activity Feed */}
+      {clientActivity.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-white mb-3">Activity Feed</h3>
+          <div className="space-y-2">
+            {clientActivity.slice(0, 20).map(evt => {
+              const icon = evt.type === 'invoice_paid' ? '$$' : evt.type === 'invoice_sent' ? '→' : evt.type === 'invoice_created' ? '+' : evt.type === 'proposal' ? '▤' : evt.type === 'meeting' ? '◉' : evt.type === 'time' ? '◷' : '●';
+              return (
+                <div key={evt.id} className="flex items-start gap-3 p-3 bg-gray-900 border border-gray-800 rounded-lg">
+                  <span className="text-sm mt-0.5 text-gray-500 w-5 text-center">{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    {evt.link ? (
+                      <a href={evt.link} className="text-sm text-white hover:text-blue-400">{evt.title}</a>
+                    ) : (
+                      <p className="text-sm text-white">{evt.title}</p>
+                    )}
+                    {evt.description && <p className="text-xs text-gray-500 truncate">{evt.description}</p>}
+                  </div>
+                  <span className="text-xs text-gray-600 whitespace-nowrap">{evt.timestamp.slice(0, 10)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="mb-8">
         <ActivityLog clientId={client.id} activities={activities} />
