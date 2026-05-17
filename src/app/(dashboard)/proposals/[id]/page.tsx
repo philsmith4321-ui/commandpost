@@ -27,6 +27,10 @@ export default async function ProposalDetailPage({
         <StatusBadge status={proposal.status} />
       </div>
 
+      <div className="flex gap-2 mb-6">
+        <a href={`/api/proposals/${proposal.id}/print`} target="_blank" className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors">View / Print</a>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-3 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-gray-500 text-xs uppercase">For</p>
