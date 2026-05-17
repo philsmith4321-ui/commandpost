@@ -457,6 +457,12 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: add budget to projects
+  const hasBudget = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'budget'").get() as any;
+  if (hasBudget.count === 0) {
+    db.exec("ALTER TABLE projects ADD COLUMN budget REAL");
+  }
+
   // Migration: create saved_filters table
   db.exec(`
     CREATE TABLE IF NOT EXISTS saved_filters (
