@@ -8,6 +8,7 @@ const TABS = [
   { key: 'profitability', label: 'Profitability' },
   { key: 'recurring', label: 'Recurring' },
   { key: 'time', label: 'Time' },
+  { key: 'subscriptions', label: 'Subscriptions' },
 ];
 
 export function FinanceTabs({ active }: { active: string }) {
@@ -16,7 +17,7 @@ export function FinanceTabs({ active }: { active: string }) {
       {TABS.map((tab) => (
         <Link
           key={tab.key}
-          href={tab.key === 'invoices' ? '/finances' : tab.key === 'time' ? '/finances/time' : tab.key === 'expenses' ? '/finances/expenses' : tab.key === 'overdue' ? '/finances/overdue' : `/finances?tab=${tab.key}`}
+          href={tab.key === 'invoices' ? '/finances' : tab.key === 'time' ? '/finances/time' : tab.key === 'expenses' ? '/finances/expenses' : tab.key === 'overdue' ? '/finances/overdue' : tab.key === 'subscriptions' ? '/finances/subscriptions' : `/finances?tab=${tab.key}`}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             active === tab.key
               ? 'bg-gray-800 text-white'

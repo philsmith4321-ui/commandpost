@@ -457,6 +457,21 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create subscriptions table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'software' CHECK(category IN ('servers','software','contractor','marketing','other')),
+      amount REAL NOT NULL,
+      frequency TEXT NOT NULL DEFAULT 'monthly' CHECK(frequency IN ('monthly','yearly')),
+      next_renewal TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: create proposal_templates table
   db.exec(`
     CREATE TABLE IF NOT EXISTS proposal_templates (
