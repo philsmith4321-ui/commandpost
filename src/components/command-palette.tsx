@@ -59,6 +59,7 @@ export function CommandPalette() {
     { id: 'nav-funnel', label: 'Pipeline Funnel', section: 'Navigation', action: () => router.push('/pipeline/funnel') },
     { id: 'nav-settings-main', label: 'Settings', section: 'Navigation', action: () => router.push('/settings') },
     { id: 'nav-yearly', label: 'Yearly Report', section: 'Navigation', action: () => router.push('/reports/yearly') },
+    { id: 'nav-client-revenue', label: 'Client Revenue Report', section: 'Navigation', action: () => router.push('/reports/clients') },
   ];
 
   const filtered = query
