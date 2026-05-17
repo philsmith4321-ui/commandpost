@@ -8,9 +8,9 @@ import { markLeadWon } from '@/lib/queries/lead-queries';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { token } = await params;
+  const { id: token } = await params;
   const db = getDb();
 
   const proposal = getProposalByToken(db, token);
