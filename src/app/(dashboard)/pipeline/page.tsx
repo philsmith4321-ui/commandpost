@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
-import { listLeadsByStage, getPipelineSummary } from '@/lib/queries/lead-queries';
+import { listLeadsByStage, getPipelineSummary, findDuplicateLeads } from '@/lib/queries/lead-queries';
 import { KanbanBoard } from '@/components/kanban-board';
 import { ExportButton } from '@/components/export-button';
 
@@ -10,6 +10,7 @@ export default function PipelinePage() {
   const db = getDb();
   const leadsByStage = listLeadsByStage(db);
   const summary = getPipelineSummary(db);
+  const duplicates = findDuplicateLeads(db);
 
   // Get latest stage entry dates for aging calculation
   const allLeadIds = Object.values(leadsByStage).flat().map((l) => l.id);
@@ -43,6 +44,24 @@ export default function PipelinePage() {
           </Link>
         </div>
       </div>
+
+      {duplicates.length > 0 && (
+        <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-800/50 rounded-lg">
+          <h3 className="text-sm font-medium text-yellow-400 mb-2">Possible Duplicate Leads ({duplicates.length})</h3>
+          <div className="space-y-2">
+            {duplicates.map((group, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-yellow-300/70">{group.email || group.business_name}:</span>
+                {group.leads.map(l => (
+                  <a key={l.id} href={`/pipeline/${l.id}`} className="text-yellow-400 hover:text-yellow-300 underline">
+                    {l.business_name}
+                  </a>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <KanbanBoard leadsByStage={leadsByStage} stageEnteredDates={stageEnteredDates} />
     </div>

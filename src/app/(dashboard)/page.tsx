@@ -22,6 +22,17 @@ export default function DashboardPage() {
   const activeClients = db.prepare("SELECT id, name FROM clients WHERE status = 'active' AND deleted_at IS NULL ORDER BY name").all() as { id: number; name: string }[];
   const claudeEnabled = isClaudeConfigured();
 
+  // Proposals summary
+  const proposalStats = db.prepare(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as drafts,
+      SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+      SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as accepted,
+      COALESCE(SUM(CASE WHEN status = 'sent' THEN total_amount ELSE 0 END), 0) as pending_value
+    FROM proposals
+  `).get() as { total: number; drafts: number; sent: number; accepted: number; pending_value: number };
+
   // Today's stats
   const today = new Date().toISOString().split('T')[0];
   const todayMinutes = (db.prepare(
@@ -98,6 +109,31 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Proposals & Today */}
+      {(proposalStats.drafts > 0 || proposalStats.sent > 0) && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase mb-1">Draft Proposals</p>
+            <p className="text-2xl font-bold text-gray-300">{proposalStats.drafts}</p>
+          </div>
+          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase mb-1">Awaiting Response</p>
+            <p className="text-2xl font-bold text-yellow-400">{proposalStats.sent}</p>
+            {proposalStats.pending_value > 0 && (
+              <p className="text-xs text-gray-500">${proposalStats.pending_value.toLocaleString()} value</p>
+            )}
+          </div>
+          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase mb-1">Accepted</p>
+            <p className="text-2xl font-bold text-green-400">{proposalStats.accepted}</p>
+          </div>
+          <Link href="/proposals" className="p-4 bg-gray-900 border border-gray-800 rounded-lg hover:border-blue-600 transition-colors">
+            <p className="text-xs text-gray-500 uppercase mb-1">View All</p>
+            <p className="text-sm text-blue-400">{proposalStats.total} total proposals →</p>
+          </Link>
+        </div>
+      )}
 
       {/* Today & This Week */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

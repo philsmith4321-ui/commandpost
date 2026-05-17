@@ -132,6 +132,46 @@ export function deleteLead(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM leads WHERE id = ?').run(id);
 }
 
+export interface DuplicateGroup {
+  email?: string;
+  business_name?: string;
+  leads: Lead[];
+}
+
+export function findDuplicateLeads(db: Database.Database): DuplicateGroup[] {
+  const groups: DuplicateGroup[] = [];
+
+  // Find duplicates by email
+  const emailDups = db.prepare(`
+    SELECT email, COUNT(*) as cnt FROM leads
+    WHERE email IS NOT NULL AND email != '' AND stage NOT IN ('won','lost')
+    GROUP BY LOWER(email) HAVING cnt > 1
+  `).all() as { email: string; cnt: number }[];
+
+  for (const dup of emailDups) {
+    const leads = db.prepare("SELECT * FROM leads WHERE LOWER(email) = LOWER(?) AND stage NOT IN ('won','lost')").all(dup.email) as Lead[];
+    groups.push({ email: dup.email, leads });
+  }
+
+  // Find duplicates by business name (exact match)
+  const nameDups = db.prepare(`
+    SELECT business_name, COUNT(*) as cnt FROM leads
+    WHERE stage NOT IN ('won','lost')
+    GROUP BY LOWER(business_name) HAVING cnt > 1
+  `).all() as { business_name: string; cnt: number }[];
+
+  for (const dup of nameDups) {
+    // Skip if already caught by email
+    const leads = db.prepare("SELECT * FROM leads WHERE LOWER(business_name) = LOWER(?) AND stage NOT IN ('won','lost')").all(dup.business_name) as Lead[];
+    const alreadyCovered = groups.some(g => g.leads.some(l => leads.some(dl => dl.id === l.id)));
+    if (!alreadyCovered) {
+      groups.push({ business_name: dup.business_name, leads });
+    }
+  }
+
+  return groups;
+}
+
 export interface ScoredLead extends Lead {
   score: number;
   score_breakdown: { value: number; engagement: number; stage: number; recency: number };
