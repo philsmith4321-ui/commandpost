@@ -22,6 +22,25 @@ export default function DashboardPage() {
   const activeClients = db.prepare("SELECT id, name FROM clients WHERE status = 'active' AND deleted_at IS NULL ORDER BY name").all() as { id: number; name: string }[];
   const claudeEnabled = isClaudeConfigured();
 
+  // Today's stats
+  const today = new Date().toISOString().split('T')[0];
+  const todayMinutes = (db.prepare(
+    "SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE entry_date = ?"
+  ).get(today) as any).total;
+  const todayHours = todayMinutes / 60;
+
+  // This week's revenue
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekRevenue = (db.prepare(
+    "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ?"
+  ).get(weekStart.toISOString().split('T')[0]) as any).total;
+
+  // Upcoming follow-ups
+  const followUps = db.prepare(
+    "SELECT id, business_name, follow_up_date FROM leads WHERE follow_up_date IS NOT NULL AND follow_up_date >= ? AND stage NOT IN ('won','lost') ORDER BY follow_up_date LIMIT 5"
+  ).all(today) as { id: number; business_name: string; follow_up_date: string }[];
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -76,6 +95,32 @@ export default function DashboardPage() {
           <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
             <p className="text-xs text-gray-500 uppercase mb-1">Uninvoiced Time</p>
             <p className="text-2xl font-bold text-yellow-400">${summary.uninvoicedTime.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Today & This Week */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">Today&apos;s Hours</p>
+          <p className="text-2xl font-bold text-white">{todayHours.toFixed(1)}h</p>
+          <Link href="/finances/time" className="text-xs text-blue-400 hover:text-blue-300">View time log →</Link>
+        </div>
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">This Week&apos;s Revenue</p>
+          <p className="text-2xl font-bold text-green-400">${weekRevenue.toLocaleString()}</p>
+        </div>
+        {followUps.length > 0 && (
+          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase mb-2">Upcoming Follow-ups</p>
+            <div className="space-y-1">
+              {followUps.map(f => (
+                <Link key={f.id} href={`/pipeline`} className="flex justify-between text-xs hover:text-blue-400">
+                  <span className="text-white truncate">{f.business_name}</span>
+                  <span className="text-gray-500 ml-2">{f.follow_up_date.slice(5)}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>
