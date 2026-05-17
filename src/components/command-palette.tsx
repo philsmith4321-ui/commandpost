@@ -58,6 +58,7 @@ export function CommandPalette() {
     { id: 'nav-notes', label: 'Scratchpad / Notes', section: 'Navigation', action: () => router.push('/notes') },
     { id: 'nav-funnel', label: 'Pipeline Funnel', section: 'Navigation', action: () => router.push('/pipeline/funnel') },
     { id: 'nav-settings-main', label: 'Settings', section: 'Navigation', action: () => router.push('/settings') },
+    { id: 'nav-yearly', label: 'Yearly Report', section: 'Navigation', action: () => router.push('/reports/yearly') },
   ];
 
   const filtered = query
