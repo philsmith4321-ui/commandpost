@@ -1,8 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ReportDatePicker } from '@/components/report-date-picker';
 import { ExportButton } from '@/components/export-button';
+
+const interactiveReports = [
+  { href: '/reports/pnl', label: 'Profit & Loss Statement', description: 'Formal P&L with income, expenses by category, and monthly breakdown' },
+  { href: '/reports/yearly', label: 'Yearly Summary', description: 'Annual overview with revenue, expenses, profit, hours, clients, and leads' },
+  { href: '/reports/clients', label: 'Client Revenue Breakdown', description: 'Per-client revenue analysis with distribution chart and effective rates' },
+  { href: '/reports/aging', label: 'Invoice Aging', description: 'Outstanding invoices grouped by aging buckets (current, 30, 60, 90+ days)' },
+  { href: '/reports/snapshots', label: 'Metric Snapshots', description: 'Historical metric trends with sparkline charts' },
+  { href: '/pipeline/funnel', label: 'Pipeline Funnel', description: 'Lead conversion funnel with stage counts and drop-off rates' },
+  { href: '/pipeline/scores', label: 'Lead Scores', description: 'Ranked lead scoring with engagement and value breakdown' },
+  { href: '/pipeline/followups', label: 'Follow-up Reminders', description: 'Overdue and upcoming lead follow-ups with snooze controls' },
+  { href: '/projects/timeline', label: 'Project Timeline', description: 'Gantt-style milestone timeline across all projects' },
+];
 
 const today = new Date().toISOString().split('T')[0];
 const yearStart = `${new Date().getFullYear()}-01-01`;
@@ -80,6 +93,22 @@ export default function ReportsPage() {
     <div className="p-4 sm:p-6">
       <h2 className="text-2xl font-bold mb-4">Reports</h2>
 
+      {/* Interactive Reports */}
+      <div className="mb-8">
+        <h3 className="text-sm text-gray-500 uppercase mb-3">Interactive Reports</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {interactiveReports.map(r => (
+            <Link key={r.href} href={r.href}
+              className="p-4 bg-gray-900 border border-gray-800 rounded-lg hover:border-blue-600 transition-colors group">
+              <h3 className="text-sm font-semibold text-white group-hover:text-blue-400 mb-1">{r.label}</h3>
+              <p className="text-xs text-gray-400">{r.description}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Downloadable Reports */}
+      <h3 className="text-sm text-gray-500 uppercase mb-3">Downloadable Reports</h3>
       <div className="mb-6">
         <p className="text-xs text-gray-500 uppercase mb-2">Date Range (for financial reports)</p>
         <ReportDatePicker onChange={(s, e) => { setStart(s); setEnd(e); }} />
