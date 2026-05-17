@@ -457,6 +457,25 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create proposal_templates table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS proposal_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      scope TEXT,
+      timeline TEXT,
+      valid_days INTEGER NOT NULL DEFAULT 30,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS proposal_template_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_id INTEGER NOT NULL REFERENCES proposal_templates(id) ON DELETE CASCADE,
+      description TEXT NOT NULL,
+      quantity REAL NOT NULL DEFAULT 1,
+      unit_price REAL NOT NULL
+    );
+  `);
+
   // Migration: create satisfaction_scores table
   db.exec(`
     CREATE TABLE IF NOT EXISTS satisfaction_scores (

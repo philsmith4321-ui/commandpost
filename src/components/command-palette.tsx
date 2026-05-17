@@ -67,6 +67,7 @@ export function CommandPalette() {
     { id: 'nav-budgets', label: 'Project Budgets', section: 'Navigation', action: () => router.push('/projects/budgets') },
     { id: 'nav-utilization', label: 'Utilization Dashboard', section: 'Navigation', action: () => router.push('/reports/utilization') },
     { id: 'nav-satisfaction', label: 'Client Satisfaction / NPS', section: 'Navigation', action: () => router.push('/reports/satisfaction') },
+    { id: 'nav-proposal-templates', label: 'Proposal Templates', section: 'Navigation', action: () => router.push('/proposals/templates') },
   ];
 
   const filtered = query
