@@ -13,6 +13,8 @@ import { RecurringInvoiceForm } from '@/components/recurring-invoice-form';
 import { PortalLinkCard } from '@/components/portal-link-card';
 import { togglePinClientAction } from '@/lib/actions/dashboard-actions';
 import { getClientTags, listTags } from '@/lib/queries/tag-queries';
+import { getDocumentsForEntity } from '@/lib/queries/document-queries';
+import { DocumentUpload } from '@/components/document-upload';
 import { addTagToClientAction, removeTagFromClientAction } from '@/lib/actions/tag-actions';
 import { listClientDocuments } from '@/lib/queries/document-queries';
 import { ClientDocuments } from '@/components/client-documents';
@@ -210,7 +212,9 @@ export default async function ClientDetailPage({
         </div>
       )}
 
-      <div className="mb-8">
+      <DocumentUpload entityType="client" entityId={client.id} documents={getDocumentsForEntity(db, 'client', client.id)} />
+
+      <div className="mb-8 mt-6">
         <ActivityLog clientId={client.id} activities={activities} />
       </div>
 

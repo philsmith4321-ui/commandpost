@@ -32,7 +32,9 @@ export interface ProposalRow {
   created_at: string;
   updated_at: string;
   lead_name: string | null;
+  lead_email: string | null;
   client_name: string | null;
+  client_email: string | null;
   total_amount: number;
 }
 
@@ -57,7 +59,9 @@ export function getProposalById(db: Database.Database, id: number): ProposalRow 
   return db.prepare(`
     SELECT p.*,
       l.business_name as lead_name,
+      l.email as lead_email,
       c.name as client_name,
+      c.email as client_email,
       COALESCE((SELECT SUM(amount) FROM proposal_items WHERE proposal_id = p.id), 0) as total_amount
     FROM proposals p
     LEFT JOIN leads l ON p.lead_id = l.id
@@ -70,7 +74,9 @@ export function listProposals(db: Database.Database, status?: string): ProposalR
   let sql = `
     SELECT p.*,
       l.business_name as lead_name,
+      l.email as lead_email,
       c.name as client_name,
+      c.email as client_email,
       COALESCE((SELECT SUM(amount) FROM proposal_items WHERE proposal_id = p.id), 0) as total_amount
     FROM proposals p
     LEFT JOIN leads l ON p.lead_id = l.id
@@ -89,7 +95,9 @@ export function getProposalByToken(db: Database.Database, token: string): Propos
   return db.prepare(`
     SELECT p.*,
       l.business_name as lead_name,
+      l.email as lead_email,
       c.name as client_name,
+      c.email as client_email,
       COALESCE((SELECT SUM(amount) FROM proposal_items WHERE proposal_id = p.id), 0) as total_amount
     FROM proposals p
     LEFT JOIN leads l ON p.lead_id = l.id

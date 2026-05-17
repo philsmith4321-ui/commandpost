@@ -519,6 +519,46 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create documents table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size INTEGER NOT NULL DEFAULT 0,
+      entity_type TEXT NOT NULL CHECK(entity_type IN ('client','project','invoice','proposal','contract')),
+      entity_id INTEGER NOT NULL,
+      uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration: create automations table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS automations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      trigger_type TEXT NOT NULL,
+      trigger_value TEXT,
+      action_type TEXT NOT NULL,
+      action_config TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_run TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration: create automation_log table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS automation_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      automation_id INTEGER REFERENCES automations(id),
+      trigger_detail TEXT,
+      action_detail TEXT,
+      ran_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   return db;
 }
 

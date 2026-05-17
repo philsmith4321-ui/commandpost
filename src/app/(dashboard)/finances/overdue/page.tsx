@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/db';
 import { getOverdueInvoices } from '@/lib/queries/invoice-queries';
-import { markReminderSentAction } from '@/lib/actions/invoice-actions';
+import { markReminderSentAction, sendReminderEmailAction } from '@/lib/actions/invoice-actions';
 import { FinanceTabs } from '@/components/finance-tabs';
 import Link from 'next/link';
 
@@ -71,15 +71,23 @@ export default async function OverduePage() {
                       : 'Never'}
                   </td>
                   <td className="py-3">
-                    <form action={markReminderSentAction} className="inline">
-                      <input type="hidden" name="id" value={inv.id} />
-                      <button
-                        type="submit"
-                        className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
-                      >
-                        Mark Reminded
-                      </button>
-                    </form>
+                    <div className="flex gap-1">
+                      {inv.client_email && (
+                        <form action={sendReminderEmailAction} className="inline">
+                          <input type="hidden" name="id" value={inv.id} />
+                          <input type="hidden" name="email" value={inv.client_email} />
+                          <button type="submit" className="px-2 py-1 text-xs bg-red-700 hover:bg-red-600 rounded">
+                            Send Reminder
+                          </button>
+                        </form>
+                      )}
+                      <form action={markReminderSentAction} className="inline">
+                        <input type="hidden" name="id" value={inv.id} />
+                        <button type="submit" className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">
+                          Mark Reminded
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

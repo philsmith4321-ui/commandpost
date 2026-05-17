@@ -4,6 +4,9 @@ import { getDb } from '@/lib/db';
 import { getProposalById, getProposalItems } from '@/lib/queries/proposal-queries';
 import { markProposalSentAction, markProposalRejectedAction } from '@/lib/actions/proposal-actions';
 import { StatusBadge } from '@/components/status-badge';
+import { SendProposalEmail } from '@/components/send-proposal-email';
+import { getDocumentsForEntity } from '@/lib/queries/document-queries';
+import { DocumentUpload } from '@/components/document-upload';
 
 export default async function ProposalDetailPage({
   params,
@@ -90,7 +93,7 @@ export default async function ProposalDetailPage({
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         {proposal.status === 'draft' && (
           <form action={markProposalSentAction}>
             <input type="hidden" name="id" value={proposal.id} />
@@ -98,6 +101,14 @@ export default async function ProposalDetailPage({
               Mark as Sent
             </button>
           </form>
+        )}
+        {(proposal.status === 'draft' || proposal.status === 'sent') && (
+          <SendProposalEmail
+            proposalId={proposal.id}
+            recipientEmail={proposal.client_email || proposal.lead_email}
+            title={proposal.title}
+            amount={proposal.total_amount}
+          />
         )}
         {portalUrl && (
           <Link href={portalUrl} target="_blank" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors">
@@ -113,6 +124,8 @@ export default async function ProposalDetailPage({
           </form>
         )}
       </div>
+
+      <DocumentUpload entityType="proposal" entityId={proposal.id} documents={getDocumentsForEntity(db, 'proposal', proposal.id)} />
     </div>
   );
 }

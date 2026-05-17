@@ -93,6 +93,12 @@ export async function markInvoicePaidAction(formData: FormData) {
       message: `$${invoice.total_amount}`,
       link: `/finances/invoices/${id}`,
     });
+    const { runAutomations } = await import('@/lib/automation-runner');
+    await runAutomations(db, 'invoice_paid', {
+      entityType: 'invoice', entityId: id,
+      entityName: invoice.invoice_number,
+      details: `$${invoice.total_amount}`,
+    });
   }
 
   revalidatePath('/finances');
@@ -308,6 +314,56 @@ export async function markReminderSentAction(formData: FormData) {
 
   markReminderSent(db, id);
   logAudit(db, 'invoice', id, 'reminder_sent');
+
+  revalidatePath('/finances');
+  revalidatePath('/finances/overdue');
+  revalidatePath(`/finances/invoices/${id}`);
+}
+
+export async function sendReminderEmailAction(formData: FormData) {
+  const db = getDb();
+  const id = Number(formData.get('id'));
+  const recipientEmail = formData.get('email') as string;
+  const invoice = getInvoiceById(db, id);
+  if (!invoice || !recipientEmail) return;
+
+  const daysOverdue = Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24));
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #dc2626;">Payment Reminder</h2>
+      <p>This is a friendly reminder that invoice <strong>${invoice.invoice_number}</strong> for <strong>$${invoice.total_amount.toLocaleString()}</strong> was due on <strong>${invoice.due_date}</strong> (${daysOverdue} days ago).</p>
+      <div style="margin: 24px 0; padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+        <p style="margin: 0;"><strong>Invoice:</strong> ${invoice.invoice_number}</p>
+        <p style="margin: 4px 0;"><strong>Amount Due:</strong> $${invoice.total_amount.toLocaleString()}</p>
+        <p style="margin: 4px 0;"><strong>Due Date:</strong> ${invoice.due_date}</p>
+        <p style="margin: 4px 0; color: #dc2626;"><strong>Days Overdue:</strong> ${daysOverdue}</p>
+        ${invoice.stripe_payment_link ? `<p style="margin: 8px 0 0;"><a href="${invoice.stripe_payment_link}" style="display:inline-block;padding:8px 16px;background:#2563eb;color:white;text-decoration:none;border-radius:6px;">Pay Now</a></p>` : ''}
+      </div>
+      <p>Please let us know if you have any questions. Thank you!</p>
+    </div>
+  `;
+
+  const { sendEmail } = await import('@/lib/email');
+  const { logEmail } = await import('@/lib/queries/email-log-queries');
+
+  const sent = await sendEmail({
+    to: recipientEmail,
+    subject: `Payment Reminder: Invoice ${invoice.invoice_number} — $${invoice.total_amount.toLocaleString()} overdue`,
+    html,
+  });
+
+  if (sent) {
+    markReminderSent(db, id);
+    logAudit(db, 'invoice', id, 'reminder_emailed');
+    logEmail(db, {
+      client_id: invoice.client_id,
+      recipient_email: recipientEmail,
+      subject: `Reminder: Invoice ${invoice.invoice_number}`,
+      email_type: 'reminder',
+      reference_id: id,
+    });
+  }
 
   revalidatePath('/finances');
   revalidatePath('/finances/overdue');

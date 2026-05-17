@@ -90,5 +90,13 @@ export async function POST(
     link: `/contracts`,
   });
 
+  // 6. Run automations
+  const { runAutomations } = await import('@/lib/automation-runner');
+  await runAutomations(db, 'proposal_accepted', {
+    entityType: 'proposal', entityId: proposal.id,
+    entityName: proposal.title,
+    details: `Accepted by ${proposal.lead_name || proposal.client_name || 'client'}`,
+  });
+
   return NextResponse.json({ ok: true });
 }

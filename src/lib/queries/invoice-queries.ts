@@ -208,11 +208,13 @@ export interface OverdueInvoice {
   due_date: string;
   days_overdue: number;
   last_reminder_sent: string | null;
+  client_email: string | null;
 }
 
 export function getOverdueInvoices(db: Database.Database): OverdueInvoice[] {
   return db.prepare(`
     SELECT i.id, i.invoice_number, i.client_id, c.name as client_name,
+           c.email as client_email,
            i.total_amount, i.due_date, i.last_reminder_sent,
            CAST(julianday('now') - julianday(i.due_date) AS INTEGER) as days_overdue
     FROM invoices i JOIN clients c ON i.client_id = c.id

@@ -23,4 +23,7 @@ export const SETTING_KEYS = [
   { key: 'default_hourly_rate', label: 'Default Hourly Rate ($)', type: 'number' },
   { key: 'invoice_footer', label: 'Invoice Footer Note', type: 'text' },
   { key: 'payment_terms', label: 'Payment Terms (days)', type: 'number' },
+  { key: 'email_from_name', label: 'Email From Name', type: 'text' },
+  { key: 'email_signature', label: 'Email Signature', type: 'text' },
+  { key: 'resend_api_key', label: 'Resend API Key', type: 'password' },
 ] as const;

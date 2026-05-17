@@ -13,6 +13,8 @@ import {
   updateRecurrenceDayAction,
 } from '@/lib/actions/invoice-actions';
 import { isStripeConfigured } from '@/lib/stripe';
+import { getDocumentsForEntity } from '@/lib/queries/document-queries';
+import { DocumentUpload } from '@/components/document-upload';
 import { StatusBadge } from '@/components/status-badge';
 import { SendInvoiceEmail } from '@/components/send-invoice-email';
 
@@ -226,6 +228,8 @@ export default async function InvoiceDetailPage({
           </a>
         )}
       </div>
+
+      <DocumentUpload entityType="invoice" entityId={invoice.id} documents={getDocumentsForEntity(db, 'invoice', invoice.id)} />
 
       {invoice.status === 'draft' && (
         <div className="pt-6 border-t border-gray-800">
