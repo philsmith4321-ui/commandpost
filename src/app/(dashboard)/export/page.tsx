@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CsvImportForm } from '@/components/csv-import-form';
 
 const exports = [
   { type: 'clients', label: 'Clients', description: 'All active clients with contact info and monthly value' },
@@ -11,8 +12,15 @@ const exports = [
 export default function ExportPage() {
   return (
     <div className="p-4 sm:p-6">
-      <h1 className="text-2xl font-bold mb-6">Export Data</h1>
-      <p className="text-gray-400 text-sm mb-6">Download your data as CSV files for accounting, reporting, or backup.</p>
+      <h1 className="text-2xl font-bold mb-6">Import / Export Data</h1>
+      <p className="text-gray-400 text-sm mb-6">Download your data as CSV files or import data from CSV.</p>
+
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">Import</h2>
+        <CsvImportForm />
+      </div>
+
+      <h2 className="text-lg font-semibold mb-4">Export</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {exports.map(e => (
           <div key={e.type} className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
