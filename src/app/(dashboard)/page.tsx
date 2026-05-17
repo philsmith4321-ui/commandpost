@@ -33,6 +33,11 @@ export default function DashboardPage() {
     FROM proposals p
   `).get() as { total: number; drafts: number; sent: number; accepted: number; pending_value: number };
 
+  // Pipeline conversion rate
+  const totalLeads = (db.prepare("SELECT COUNT(*) as cnt FROM leads").get() as any).cnt;
+  const wonLeads = (db.prepare("SELECT COUNT(*) as cnt FROM leads WHERE stage = 'won'").get() as any).cnt;
+  const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
   // Expiring contracts
   const expiringContracts = db.prepare(`
     SELECT ct.title, c.name as client_name, ct.expires_at
@@ -115,6 +120,13 @@ export default function DashboardPage() {
           <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
             <p className="text-xs text-gray-500 uppercase mb-1">Uninvoiced Time</p>
             <p className="text-2xl font-bold text-yellow-400">${summary.uninvoicedTime.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+          </div>
+        )}
+        {totalLeads > 0 && (
+          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase mb-1">Win Rate</p>
+            <p className="text-2xl font-bold text-white">{conversionRate}%</p>
+            <p className="text-xs text-gray-500">{wonLeads}/{totalLeads} leads</p>
           </div>
         )}
       </div>
