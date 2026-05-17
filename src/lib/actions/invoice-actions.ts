@@ -205,6 +205,28 @@ export async function createRecurringInvoiceAction(formData: FormData) {
   redirect(`/finances/invoices/${id}`);
 }
 
+export async function bulkInvoiceAction(formData: FormData) {
+  const db = getDb();
+  const ids = (formData.get('ids') as string || '').split(',').map(Number).filter(Boolean);
+  const action = formData.get('action') as string;
+  if (ids.length === 0 || !action) return;
+
+  for (const id of ids) {
+    if (action === 'mark_sent') {
+      markInvoiceSent(db, id);
+      logAudit(db, 'invoice', id, 'sent');
+    } else if (action === 'mark_paid') {
+      markInvoicePaid(db, id);
+      logAudit(db, 'invoice', id, 'paid');
+    } else if (action === 'delete') {
+      deleteInvoice(db, id);
+      logAudit(db, 'invoice', id, 'deleted');
+    }
+  }
+
+  revalidatePath('/finances');
+}
+
 export async function markReminderSentAction(formData: FormData) {
   const db = getDb();
   const id = Number(formData.get('id'));

@@ -12,6 +12,7 @@ import { ExpenseForm } from '@/components/expense-form';
 import { RevenueChart } from '@/components/revenue-chart';
 import { StatusBadge } from '@/components/status-badge';
 import { ExportButton } from '@/components/export-button';
+import { BulkInvoiceTable } from '@/components/bulk-invoice-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,36 +79,7 @@ function InvoicesTab() {
       {invoices.length === 0 ? (
         <p className="text-sm text-gray-500">No invoices yet. Create your first invoice to get started.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-left text-gray-500">
-                <th className="pb-3 font-medium">Invoice</th>
-                <th className="pb-3 font-medium">Client</th>
-                <th className="pb-3 font-medium">Status</th>
-                <th className="pb-3 font-medium text-right">Amount</th>
-                <th className="pb-3 font-medium">Due Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b border-gray-800/50 hover:bg-gray-900/50">
-                  <td className="py-3">
-                    <Link href={`/finances/invoices/${inv.id}`} className="text-blue-400 hover:text-blue-300">
-                      {inv.invoice_number}
-                    </Link>
-                  </td>
-                  <td className="py-3 text-white">{inv.client_name}</td>
-                  <td className="py-3">
-                    <StatusBadge status={inv.is_overdue ? 'overdue' : inv.status} />
-                  </td>
-                  <td className="py-3 text-right text-white">${inv.total_amount.toLocaleString()}</td>
-                  <td className={`py-3 ${inv.is_overdue ? 'text-red-400' : 'text-gray-400'}`}>{inv.due_date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <BulkInvoiceTable invoices={invoices} />
       )}
     </>
   );
