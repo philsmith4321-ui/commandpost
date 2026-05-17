@@ -3,6 +3,7 @@ import { MobileNav } from '@/components/mobile-nav';
 import { NotificationBellServer } from '@/components/notification-bell-server';
 import { GlobalSearch } from '@/components/global-search';
 import { CommandPalette } from '@/components/command-palette';
+import { QuickAdd } from '@/components/quick-add';
 
 export default function DashboardLayout({
   children,
@@ -21,6 +22,7 @@ export default function DashboardLayout({
       </main>
       <MobileNav />
       <CommandPalette />
+      <QuickAdd />
     </div>
   );
 }
