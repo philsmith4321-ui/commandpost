@@ -63,6 +63,7 @@ export function CommandPalette() {
     { id: 'nav-project-timeline', label: 'Project Timeline / Gantt', section: 'Navigation', action: () => router.push('/projects/timeline') },
     { id: 'nav-pnl', label: 'Profit & Loss Statement', section: 'Navigation', action: () => router.push('/reports/pnl') },
     { id: 'nav-followups', label: 'Follow-up Reminders', section: 'Navigation', action: () => router.push('/pipeline/followups') },
+    { id: 'nav-aging', label: 'Invoice Aging Report', section: 'Navigation', action: () => router.push('/reports/aging') },
   ];
 
   const filtered = query
