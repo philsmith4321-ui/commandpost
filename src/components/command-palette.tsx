@@ -56,6 +56,8 @@ export function CommandPalette() {
     { id: 'nav-lead-scores', label: 'Lead Scores', section: 'Navigation', action: () => router.push('/pipeline/scores') },
     { id: 'nav-snapshots', label: 'Metric Snapshots', section: 'Navigation', action: () => router.push('/reports/snapshots') },
     { id: 'nav-notes', label: 'Scratchpad / Notes', section: 'Navigation', action: () => router.push('/notes') },
+    { id: 'nav-funnel', label: 'Pipeline Funnel', section: 'Navigation', action: () => router.push('/pipeline/funnel') },
+    { id: 'nav-settings-main', label: 'Settings', section: 'Navigation', action: () => router.push('/settings') },
   ];
 
   const filtered = query
