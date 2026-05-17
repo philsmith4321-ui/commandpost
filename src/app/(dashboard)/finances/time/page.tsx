@@ -33,20 +33,73 @@ export default async function FinancesTimePage({
       <FinanceTabs active="time" />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-          <p className="text-xs text-gray-500 uppercase mb-1">Hours This Month</p>
-          <p className="text-2xl font-bold text-white">{stats.hoursThisMonth.toFixed(1)}h</p>
-        </div>
-        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-          <p className="text-xs text-gray-500 uppercase mb-1">Uninvoiced Total</p>
-          <p className="text-2xl font-bold text-yellow-400">${stats.uninvoicedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        </div>
-        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-          <p className="text-xs text-gray-500 uppercase mb-1">Uninvoiced Hours</p>
-          <p className="text-2xl font-bold text-yellow-400">{stats.uninvoicedHours.toFixed(1)}h</p>
-        </div>
-      </div>
+      {(() => {
+        const avgRate = entries.length > 0
+          ? entries.reduce((s, e: any) => s + e.hourly_rate, 0) / entries.length
+          : 0;
+        const totalHours = entries.reduce((s, e: any) => s + e.duration_minutes, 0) / 60;
+        const totalRevenue = entries.reduce((s, e: any) => s + (e.duration_minutes * e.hourly_rate / 60), 0);
+        const effectiveRate = totalHours > 0 ? totalRevenue / totalHours : 0;
+
+        // Weekly breakdown for last 4 weeks
+        const weeks: { label: string; hours: number }[] = [];
+        for (let w = 0; w < 4; w++) {
+          const end = new Date();
+          end.setDate(end.getDate() - w * 7);
+          const start = new Date(end);
+          start.setDate(start.getDate() - 6);
+          const startStr = start.toISOString().split('T')[0];
+          const endStr = end.toISOString().split('T')[0];
+          const weekEntries = entries.filter((e: any) => e.entry_date >= startStr && e.entry_date <= endStr);
+          const weekHours = weekEntries.reduce((s: number, e: any) => s + e.duration_minutes, 0) / 60;
+          weeks.push({ label: w === 0 ? 'This week' : w === 1 ? 'Last week' : `${w} weeks ago`, hours: weekHours });
+        }
+
+        return (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+              <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase mb-1">Hours This Month</p>
+                <p className="text-2xl font-bold text-white">{stats.hoursThisMonth.toFixed(1)}h</p>
+              </div>
+              <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase mb-1">Uninvoiced</p>
+                <p className="text-2xl font-bold text-yellow-400">${stats.uninvoicedTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-xs text-gray-500">{stats.uninvoicedHours.toFixed(1)}h</p>
+              </div>
+              <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase mb-1">Total Hours</p>
+                <p className="text-2xl font-bold text-white">{totalHours.toFixed(1)}h</p>
+              </div>
+              <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase mb-1">Total Revenue</p>
+                <p className="text-2xl font-bold text-green-400">${totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              </div>
+              <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+                <p className="text-xs text-gray-500 uppercase mb-1">Effective Rate</p>
+                <p className="text-2xl font-bold text-white">${effectiveRate.toFixed(0)}/hr</p>
+              </div>
+            </div>
+
+            {/* Weekly breakdown */}
+            <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Weekly Hours</h3>
+              <div className="flex items-end gap-3 h-16">
+                {weeks.reverse().map((w, i) => {
+                  const maxH = Math.max(...weeks.map(ww => ww.hours), 1);
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-xs text-gray-500">{w.hours.toFixed(1)}h</span>
+                      <div className="w-full bg-blue-600/50 rounded-t" style={{ height: `${(w.hours / maxH) * 48}px` }} />
+                      <span className="text-xs text-gray-600 truncate w-full text-center">{w.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Filters */}
       <form className="flex flex-wrap gap-3 mb-6">
