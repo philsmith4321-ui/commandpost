@@ -205,6 +205,28 @@ export async function createRecurringInvoiceAction(formData: FormData) {
   redirect(`/finances/invoices/${id}`);
 }
 
+export async function duplicateInvoiceAction(formData: FormData) {
+  const db = getDb();
+  const id = Number(formData.get('id'));
+  const invoice = getInvoiceById(db, id);
+  if (!invoice) return;
+
+  const newId = createInvoice(db, {
+    client_id: invoice.client_id,
+    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    notes: invoice.notes || undefined,
+    items: invoice.items.map(item => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+    })),
+  });
+
+  logAudit(db, 'invoice', newId, 'duplicated', `Cloned from ${invoice.invoice_number}`);
+  revalidatePath('/finances');
+  redirect(`/finances/invoices/${newId}`);
+}
+
 export async function bulkInvoiceAction(formData: FormData) {
   const db = getDb();
   const ids = (formData.get('ids') as string || '').split(',').map(Number).filter(Boolean);

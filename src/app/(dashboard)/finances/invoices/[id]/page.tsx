@@ -6,6 +6,7 @@ import {
   markInvoiceSentAction,
   markInvoicePaidAction,
   deleteInvoiceAction,
+  duplicateInvoiceAction,
   generateStripeLink,
   syncStripePaymentAction,
   toggleRecurringAction,
@@ -212,6 +213,12 @@ export default async function InvoiceDetailPage({
             )}
           </>
         )}
+        <form action={duplicateInvoiceAction}>
+          <input type="hidden" name="id" value={invoice.id} />
+          <button type="submit" className="px-4 py-2 text-sm text-gray-400 border border-gray-700 rounded-lg hover:text-white hover:border-gray-600 transition-colors">
+            Duplicate
+          </button>
+        </form>
         {invoice.status !== 'draft' && (
           <a href={`/api/invoices/${invoice.id}/pdf`}
             className="px-4 py-2 text-sm text-gray-400 border border-gray-700 rounded-lg hover:text-white hover:border-gray-600 transition-colors">
