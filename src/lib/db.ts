@@ -363,6 +363,14 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create settings table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+
   // Migration: create scratchpad table
   db.exec(`
     CREATE TABLE IF NOT EXISTS scratchpad (
