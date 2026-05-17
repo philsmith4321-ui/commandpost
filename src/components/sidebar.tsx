@@ -20,8 +20,10 @@ const navItems = [
   { href: '/calendar', label: 'Calendar', icon: '⊘' },
   { href: '/timeline', label: 'Timeline', icon: '⊙' },
   { href: '/notes', label: 'Notes', icon: '⊡' },
+  { href: '/goals', label: 'Goals', icon: '⊕' },
   { href: '/automations', label: 'Automations', icon: '⚡' },
   { href: '/notifications', label: 'Notifications', icon: '⊛' },
+  { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
 export function Sidebar() {

@@ -33,6 +33,15 @@ export default function DashboardPage() {
     FROM proposals p
   `).get() as { total: number; drafts: number; sent: number; accepted: number; pending_value: number };
 
+  // Expiring contracts
+  const expiringContracts = db.prepare(`
+    SELECT ct.title, c.name as client_name, ct.expires_at
+    FROM contracts ct JOIN clients c ON ct.client_id = c.id
+    WHERE ct.status = 'active' AND ct.expires_at IS NOT NULL
+      AND ct.expires_at <= date('now', '+30 days') AND ct.expires_at >= date('now')
+    ORDER BY ct.expires_at ASC LIMIT 5
+  `).all() as { title: string; client_name: string; expires_at: string }[];
+
   // Today's stats
   const today = new Date().toISOString().split('T')[0];
   const todayMinutes = (db.prepare(
@@ -181,6 +190,25 @@ export default function DashboardPage() {
                   {item.type === 'overdue_invoice' ? 'OVERDUE' : item.type === 'missed_follow_up' ? 'FOLLOW UP' : item.type === 'server_down' ? 'DOWN' : item.type === 'client_needs_attention' ? 'CLIENT' : item.type === 'client_at_risk' ? 'CLIENT' : item.urgency === 'red' ? 'OVERDUE' : 'DUE SOON'}
                 </span>
                 <span className="text-sm text-white">{item.title}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expiring Contracts */}
+      {expiringContracts.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-3">Contracts Expiring Soon</h3>
+          <div className="space-y-2">
+            {expiringContracts.map((c, i) => (
+              <Link key={i} href="/contracts"
+                className="flex items-center justify-between p-3 bg-yellow-900/10 border border-yellow-800/50 rounded-lg hover:bg-yellow-900/20 transition-colors">
+                <div>
+                  <span className="text-sm text-white">{c.title}</span>
+                  <span className="text-xs text-gray-500 ml-2">{c.client_name}</span>
+                </div>
+                <span className="text-xs text-yellow-400">{c.expires_at}</span>
               </Link>
             ))}
           </div>
