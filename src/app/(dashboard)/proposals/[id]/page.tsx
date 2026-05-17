@@ -34,6 +34,30 @@ export default async function ProposalDetailPage({
         <a href={`/api/proposals/${proposal.id}/print`} target="_blank" className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors">View / Print</a>
       </div>
 
+      {/* Status Timeline */}
+      <div className="mb-6 flex items-center gap-2">
+        {['draft', 'sent', 'accepted'].map((stage, i) => {
+          const stages = ['draft', 'sent', 'accepted'];
+          const currentIdx = stages.indexOf(proposal.status === 'rejected' ? 'sent' : proposal.status);
+          const isCompleted = i <= currentIdx;
+          const isRejected = proposal.status === 'rejected' && i === 2;
+          return (
+            <div key={stage} className="flex items-center gap-2 flex-1">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                isRejected ? 'bg-red-900/50 text-red-400 border border-red-700' :
+                isCompleted ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-500 border border-gray-700'
+              }`}>
+                {isRejected ? '✕' : isCompleted ? '✓' : i + 1}
+              </div>
+              <span className={`text-xs capitalize ${isCompleted ? 'text-white' : 'text-gray-500'}`}>
+                {isRejected ? 'Rejected' : stage}
+              </span>
+              {i < 2 && <div className={`flex-1 h-0.5 ${i < currentIdx ? 'bg-blue-600' : 'bg-gray-800'}`} />}
+            </div>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-3 bg-gray-900 border border-gray-800 rounded-lg">
           <p className="text-gray-500 text-xs uppercase">For</p>

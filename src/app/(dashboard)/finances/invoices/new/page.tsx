@@ -8,12 +8,22 @@ export default function NewInvoicePage() {
   const db = getDb();
   const clients = listClients(db);
 
+  // Preview next invoice number
+  const last = db.prepare("SELECT invoice_number FROM invoices ORDER BY id DESC LIMIT 1").get() as { invoice_number: string } | undefined;
+  const nextNumber = last ? `INV-${String(parseInt(last.invoice_number.replace('INV-', ''), 10) + 1).padStart(4, '0')}` : 'INV-0001';
+
+  // Default due date: 14 days from now
+  const defaultDue = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+
   return (
     <div className="p-4 sm:p-6">
       <Link href="/finances" className="text-sm text-gray-400 hover:text-white mb-4 inline-block">
         &larr; Back to Finances
       </Link>
-      <h2 className="text-2xl font-bold mb-6">New Invoice</h2>
+      <div className="flex items-center gap-4 mb-6">
+        <h2 className="text-2xl font-bold">New Invoice</h2>
+        <span className="px-3 py-1 bg-gray-800 text-gray-400 text-sm rounded-lg font-mono">{nextNumber}</span>
+      </div>
 
       <form action={createInvoiceAction} className="space-y-4 max-w-2xl">
         <div className="grid grid-cols-2 gap-4">
@@ -29,7 +39,7 @@ export default function NewInvoicePage() {
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Due Date *</label>
-            <input type="date" name="due_date" required
+            <input type="date" name="due_date" required defaultValue={defaultDue}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500" />
           </div>
         </div>
