@@ -60,6 +60,7 @@ export function CommandPalette() {
     { id: 'nav-settings-main', label: 'Settings', section: 'Navigation', action: () => router.push('/settings') },
     { id: 'nav-yearly', label: 'Yearly Report', section: 'Navigation', action: () => router.push('/reports/yearly') },
     { id: 'nav-client-revenue', label: 'Client Revenue Report', section: 'Navigation', action: () => router.push('/reports/clients') },
+    { id: 'nav-project-timeline', label: 'Project Timeline / Gantt', section: 'Navigation', action: () => router.push('/projects/timeline') },
   ];
 
   const filtered = query

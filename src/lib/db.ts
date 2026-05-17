@@ -443,6 +443,20 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec("ALTER TABLE invoices ADD COLUMN last_reminder_sent TEXT");
   }
 
+  // Migration: create milestones table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'planned' CHECK(status IN ('planned','in_progress','completed')),
+      color TEXT NOT NULL DEFAULT 'blue',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   return db;
 }
 
