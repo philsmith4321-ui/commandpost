@@ -17,6 +17,8 @@ import { getDocumentsForEntity } from '@/lib/queries/document-queries';
 import { DocumentUpload } from '@/components/document-upload';
 import { StatusBadge } from '@/components/status-badge';
 import { SendInvoiceEmail } from '@/components/send-invoice-email';
+import { getPaymentsForInvoice, getTotalPaid } from '@/lib/queries/payment-queries';
+import { addPaymentAction, deletePaymentAction } from '@/lib/actions/payment-actions';
 
 export default async function InvoiceDetailPage({
   params,
@@ -228,6 +230,65 @@ export default async function InvoiceDetailPage({
           </a>
         )}
       </div>
+
+      {/* Payments */}
+      {invoice.status !== 'draft' && (() => {
+        const payments = getPaymentsForInvoice(db, invoice.id);
+        const totalPaid = getTotalPaid(db, invoice.id);
+        const remaining = invoice.total_amount - totalPaid;
+        return (
+          <div className="mt-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-400 uppercase mb-3">Payments</h3>
+            <div className="flex gap-4 mb-3 text-sm">
+              <span className="text-gray-400">Total: <span className="text-white font-medium">${invoice.total_amount.toLocaleString()}</span></span>
+              <span className="text-gray-400">Paid: <span className="text-green-400 font-medium">${totalPaid.toLocaleString()}</span></span>
+              {remaining > 0 && <span className="text-gray-400">Remaining: <span className="text-yellow-400 font-medium">${remaining.toLocaleString()}</span></span>}
+            </div>
+            {/* Progress bar */}
+            <div className="h-2 bg-gray-800 rounded-full mb-3 overflow-hidden">
+              <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${Math.min((totalPaid / invoice.total_amount) * 100, 100)}%` }} />
+            </div>
+            {payments.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {payments.map(p => (
+                  <div key={p.id} className="flex items-center justify-between text-xs p-2 bg-gray-800 rounded">
+                    <div>
+                      <span className="text-green-400 font-medium">${p.amount.toLocaleString()}</span>
+                      <span className="text-gray-500 ml-2">{p.payment_method}</span>
+                      {p.notes && <span className="text-gray-500 ml-2">— {p.notes}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">{new Date(p.paid_at + 'Z').toLocaleDateString()}</span>
+                      <form action={deletePaymentAction} className="inline">
+                        <input type="hidden" name="id" value={p.id} />
+                        <input type="hidden" name="invoice_id" value={invoice.id} />
+                        <button type="submit" className="text-red-400 hover:text-red-300">×</button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {remaining > 0 && (
+              <form action={addPaymentAction} className="flex gap-2 items-end">
+                <input type="hidden" name="invoice_id" value={invoice.id} />
+                <input type="number" name="amount" step="0.01" required placeholder="Amount" defaultValue={remaining}
+                  className="w-28 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-white" />
+                <select name="payment_method" className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-white">
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="credit_card">Credit Card</option>
+                  <option value="check">Check</option>
+                  <option value="cash">Cash</option>
+                  <option value="stripe">Stripe</option>
+                  <option value="other">Other</option>
+                </select>
+                <input type="text" name="notes" placeholder="Note (optional)" className="flex-1 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-white" />
+                <button type="submit" className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm text-white">Record Payment</button>
+              </form>
+            )}
+          </div>
+        );
+      })()}
 
       <DocumentUpload entityType="invoice" entityId={invoice.id} documents={getDocumentsForEntity(db, 'invoice', invoice.id)} />
 

@@ -519,6 +519,55 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create webhooks table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      events TEXT NOT NULL,
+      secret TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_triggered TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration: create communications table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS communications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      comm_type TEXT NOT NULL DEFAULT 'note' CHECK(comm_type IN ('call','email','meeting','note')),
+      subject TEXT NOT NULL,
+      body TEXT,
+      comm_date TEXT NOT NULL DEFAULT (datetime('now')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration: create invoice_payments table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS invoice_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+      amount REAL NOT NULL,
+      payment_method TEXT DEFAULT 'other',
+      notes TEXT,
+      paid_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration: add expense_budgets table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS expense_budgets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL UNIQUE,
+      monthly_limit REAL NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: create documents table
   db.exec(`
     CREATE TABLE IF NOT EXISTS documents (

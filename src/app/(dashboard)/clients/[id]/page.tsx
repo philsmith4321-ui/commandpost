@@ -15,6 +15,8 @@ import { togglePinClientAction } from '@/lib/actions/dashboard-actions';
 import { getClientTags, listTags } from '@/lib/queries/tag-queries';
 import { getDocumentsForEntity } from '@/lib/queries/document-queries';
 import { DocumentUpload } from '@/components/document-upload';
+import { listCommunications } from '@/lib/queries/communication-queries';
+import { addCommunicationAction, deleteCommunicationAction } from '@/lib/actions/communication-actions';
 import { addTagToClientAction, removeTagFromClientAction } from '@/lib/actions/tag-actions';
 import { listClientDocuments } from '@/lib/queries/document-queries';
 import { ClientDocuments } from '@/components/client-documents';
@@ -211,6 +213,55 @@ export default async function ClientDetailPage({
           </div>
         </div>
       )}
+
+      {/* Communication Log */}
+      {(() => {
+        const comms = listCommunications(db, client.id);
+        const typeIcons: Record<string, string> = { call: '📞', email: '✉', meeting: '👥', note: '📝' };
+        return (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-400 uppercase mb-3">Communication Log</h3>
+            <form action={addCommunicationAction} className="mb-3 p-3 bg-gray-900 border border-gray-800 rounded-lg">
+              <input type="hidden" name="client_id" value={client.id} />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                <select name="comm_type" className="px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white">
+                  <option value="call">Call</option>
+                  <option value="email">Email</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="note">Note</option>
+                </select>
+                <input type="text" name="subject" required placeholder="Subject" className="px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white" />
+                <input type="date" name="comm_date" defaultValue={new Date().toISOString().split('T')[0]} className="px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white" />
+                <button type="submit" className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm">Log</button>
+              </div>
+              <textarea name="body" rows={2} placeholder="Details (optional)" className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white resize-none" />
+            </form>
+            {comms.length === 0 ? (
+              <p className="text-sm text-gray-500">No communications logged.</p>
+            ) : (
+              <div className="space-y-2">
+                {comms.map(c => (
+                  <div key={c.id} className="flex items-start justify-between p-3 bg-gray-900/50 border border-gray-800/50 rounded-lg">
+                    <div className="flex gap-2 min-w-0">
+                      <span className="text-sm">{typeIcons[c.comm_type] || '📝'}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm text-white">{c.subject}</p>
+                        {c.body && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{c.body}</p>}
+                        <p className="text-xs text-gray-600 mt-0.5">{c.comm_date}</p>
+                      </div>
+                    </div>
+                    <form action={deleteCommunicationAction}>
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="client_id" value={client.id} />
+                      <button type="submit" className="text-xs text-red-400 hover:text-red-300">×</button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <DocumentUpload entityType="client" entityId={client.id} documents={getDocumentsForEntity(db, 'client', client.id)} />
 

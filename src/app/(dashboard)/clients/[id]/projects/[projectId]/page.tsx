@@ -8,6 +8,8 @@ import { StatusBadge } from '@/components/status-badge';
 import { DeliverableList } from '@/components/deliverable-list';
 import { ActivityLog } from '@/components/activity-log';
 import { DeleteProjectButton } from '@/components/delete-project-button';
+import { getDocumentsForEntity } from '@/lib/queries/document-queries';
+import { DocumentUpload } from '@/components/document-upload';
 import { TimeEntryForm } from '@/components/time-entry-form';
 import { TimeSummaryCard } from '@/components/time-summary-card';
 import { TimeEntriesTable } from '@/components/time-entries-table';
@@ -67,6 +69,23 @@ export default async function ProjectDetailPage({
         {client.name}
         {project.hourly_rate && <span className="ml-2">&middot; ${project.hourly_rate}/hr</span>}
       </p>
+
+      {/* Progress */}
+      {deliverables.length > 0 && (() => {
+        const done = deliverables.filter(d => d.status === 'delivered').length;
+        const pct = Math.round((done / deliverables.length) * 100);
+        return (
+          <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">Progress</span>
+              <span className="text-sm font-medium text-white">{pct}% ({done}/{deliverables.length} deliverables)</span>
+            </div>
+            <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })()}
 
       {techDetails.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -154,6 +173,8 @@ export default async function ProjectDetailPage({
           activities={activities}
         />
       </div>
+
+      <DocumentUpload entityType="project" entityId={project.id} documents={getDocumentsForEntity(db, 'project', project.id)} />
 
       <DeleteProjectButton projectId={project.id} clientId={client.id} />
     </div>

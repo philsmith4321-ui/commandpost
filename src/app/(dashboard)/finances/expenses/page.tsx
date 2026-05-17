@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/db';
 import { FinanceTabs } from '@/components/finance-tabs';
-import { createExpenseAction } from '@/lib/actions/expense-actions';
+import { createExpenseAction, deleteExpenseAction, saveBudgetAction } from '@/lib/actions/expense-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +41,25 @@ export default async function ExpensesPage({
   const clients = db.prepare("SELECT id, name FROM clients WHERE deleted_at IS NULL ORDER BY name").all() as { id: number; name: string }[];
 
   const categories = ['servers', 'software', 'contractor', 'marketing', 'other'];
+
+  // Monthly trends (last 6 months)
+  const monthlyTrends = db.prepare(`
+    SELECT strftime('%Y-%m', expense_date) as month, SUM(amount) as total
+    FROM expenses WHERE expense_date >= date('now', '-6 months')
+    GROUP BY month ORDER BY month
+  `).all() as { month: string; total: number }[];
+
+  // Budgets
+  const budgets = db.prepare('SELECT * FROM expense_budgets').all() as { category: string; monthly_limit: number }[];
+  const budgetMap: Record<string, number> = {};
+  for (const b of budgets) budgetMap[b.category] = b.monthly_limit;
+
+  // This month spending by category
+  const monthSpending = db.prepare(`
+    SELECT category, SUM(amount) as total FROM expenses WHERE expense_date >= ? GROUP BY category
+  `).all(monthStart) as { category: string; total: number }[];
+  const monthSpendMap: Record<string, number> = {};
+  for (const s of monthSpending) monthSpendMap[s.category] = s.total;
 
   return (
     <div className="p-4 sm:p-6">
@@ -88,6 +107,56 @@ export default async function ExpensesPage({
         );
       })()}
 
+      {/* Monthly Trend */}
+      {monthlyTrends.length > 0 && (() => {
+        const maxTotal = Math.max(...monthlyTrends.map(m => m.total), 1);
+        return (
+          <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Monthly Expenses (6 mo)</h3>
+            <div className="flex items-end gap-2 h-24">
+              {monthlyTrends.map(m => (
+                <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs text-gray-500">${Math.round(m.total)}</span>
+                  <div className="w-full flex justify-center" style={{ height: `${Math.max((m.total / maxTotal) * 100, 4)}%` }}>
+                    <div className="w-full max-w-8 bg-red-500 rounded-t" />
+                  </div>
+                  <span className="text-xs text-gray-500">{m.month.slice(5)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Budget Alerts */}
+      {categories.map(cat => {
+        const budget = budgetMap[cat];
+        const spent = monthSpendMap[cat] || 0;
+        if (!budget || spent < budget * 0.8) return null;
+        const pct = Math.round((spent / budget) * 100);
+        return (
+          <div key={cat} className={`mb-2 p-3 rounded-lg border text-sm ${spent >= budget ? 'bg-red-900/20 border-red-800 text-red-300' : 'bg-yellow-900/20 border-yellow-800 text-yellow-300'}`}>
+            {cat}: ${spent.toFixed(0)} / ${budget.toFixed(0)} budget ({pct}%)
+          </div>
+        );
+      })}
+
+      {/* Budget Settings */}
+      <form action={saveBudgetAction} className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+        <h3 className="text-sm font-medium text-gray-400 mb-3">Monthly Budgets</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {categories.map(cat => (
+            <div key={cat}>
+              <label className="text-xs text-gray-500">{cat}</label>
+              <input type="number" name={`budget_${cat}`} step="1" placeholder="No limit"
+                defaultValue={budgetMap[cat] || ''}
+                className="w-full px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-white text-sm" />
+            </div>
+          ))}
+        </div>
+        <button type="submit" className="mt-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs">Save Budgets</button>
+      </form>
+
       {/* Add Expense Form */}
       <form action={createExpenseAction} className="p-4 bg-gray-900 border border-gray-800 rounded-lg mb-6">
         <h3 className="text-sm font-medium text-gray-400 mb-3">Add Expense</h3>
@@ -132,6 +201,7 @@ export default async function ExpensesPage({
                 <th className="pb-2 pr-4">Category</th>
                 <th className="pb-2 pr-4">Client</th>
                 <th className="pb-2 text-right">Amount</th>
+                <th className="pb-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -144,6 +214,12 @@ export default async function ExpensesPage({
                   </td>
                   <td className="py-2 pr-4 text-gray-400">{e.client_name}</td>
                   <td className="py-2 text-right text-white">${e.amount.toFixed(2)}</td>
+                  <td className="py-2 text-right">
+                    <form action={deleteExpenseAction} className="inline">
+                      <input type="hidden" name="id" value={e.id} />
+                      <button type="submit" className="text-xs text-red-400 hover:text-red-300">Delete</button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -72,6 +72,7 @@ export function CommandPalette() {
     { id: 'nav-automations', label: 'Automations', section: 'Navigation', action: () => router.push('/automations') },
     { id: 'nav-calendar', label: 'Calendar', section: 'Navigation', action: () => router.push('/calendar') },
     { id: 'nav-system', label: 'System & Backup', section: 'Navigation', action: () => router.push('/settings/system') },
+    { id: 'nav-webhooks', label: 'Webhooks', section: 'Navigation', action: () => router.push('/settings/webhooks') },
   ];
 
   const filtered = query

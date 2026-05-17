@@ -43,4 +43,23 @@ export async function deleteExpenseAction(formData: FormData) {
   const id = Number(formData.get('id'));
   deleteExpense(db, id);
   revalidatePath('/finances');
+  revalidatePath('/finances/expenses');
+}
+
+export async function saveBudgetAction(formData: FormData) {
+  const db = getDb();
+  const categories = ['servers', 'software', 'contractor', 'marketing', 'other'];
+  const stmt = db.prepare('INSERT OR REPLACE INTO expense_budgets (category, monthly_limit) VALUES (?, ?)');
+  const delStmt = db.prepare('DELETE FROM expense_budgets WHERE category = ?');
+
+  for (const cat of categories) {
+    const val = formData.get(`budget_${cat}`);
+    if (val && Number(val) > 0) {
+      stmt.run(cat, Number(val));
+    } else {
+      delStmt.run(cat);
+    }
+  }
+
+  revalidatePath('/finances/expenses');
 }
