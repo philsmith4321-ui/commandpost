@@ -1,7 +1,9 @@
 import { getDb } from '@/lib/db';
 import { getTimeStats, getTimeEntriesFiltered } from '@/lib/queries/time-queries';
+import { listSavedFilters } from '@/lib/queries/saved-filter-queries';
 import { FinanceTabs } from '@/components/finance-tabs';
 import { BulkTimeTable } from '@/components/bulk-time-table';
+import { SavedFilters } from '@/components/saved-filters';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,6 +102,13 @@ export default async function FinancesTimePage({
           </>
         );
       })()}
+
+      {/* Saved Filters */}
+      <SavedFilters
+        filters={listSavedFilters(db, '/finances/time')}
+        page="/finances/time"
+        currentParams={Object.entries(sp).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join('&')}
+      />
 
       {/* Filters */}
       <form className="flex flex-wrap gap-3 mb-6">
