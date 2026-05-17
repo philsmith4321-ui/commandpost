@@ -26,11 +26,11 @@ export default function DashboardPage() {
   const proposalStats = db.prepare(`
     SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as drafts,
-      SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
-      SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as accepted,
-      COALESCE(SUM(CASE WHEN status = 'sent' THEN total_amount ELSE 0 END), 0) as pending_value
-    FROM proposals
+      SUM(CASE WHEN p.status = 'draft' THEN 1 ELSE 0 END) as drafts,
+      SUM(CASE WHEN p.status = 'sent' THEN 1 ELSE 0 END) as sent,
+      SUM(CASE WHEN p.status = 'accepted' THEN 1 ELSE 0 END) as accepted,
+      COALESCE(SUM(CASE WHEN p.status = 'sent' THEN (SELECT COALESCE(SUM(li.amount), 0) FROM proposal_line_items li WHERE li.proposal_id = p.id) ELSE 0 END), 0) as pending_value
+    FROM proposals p
   `).get() as { total: number; drafts: number; sent: number; accepted: number; pending_value: number };
 
   // Today's stats
