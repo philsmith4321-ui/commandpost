@@ -6,14 +6,78 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default function EmailLogPage() {
+export default async function EmailLogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string; type?: string }>;
+}) {
+  const params = await searchParams;
   const db = getDb();
-  const emails = listEmailLog(db);
+  const allEmails = listEmailLog(db);
   const clients = listClients(db).map(c => ({ id: c.id, name: c.name }));
+
+  // Filter
+  let emails = allEmails;
+  if (params.search) {
+    const q = params.search.toLowerCase();
+    emails = emails.filter(e =>
+      e.subject.toLowerCase().includes(q) ||
+      e.recipient_email.toLowerCase().includes(q) ||
+      (e.client_name || '').toLowerCase().includes(q)
+    );
+  }
+  if (params.type) {
+    emails = emails.filter(e => e.email_type === params.type);
+  }
+
+  // Stats
+  const typeSet = new Set(allEmails.map(e => e.email_type));
+  const types = Array.from(typeSet).sort();
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const emailsThisMonth = allEmails.filter(e => e.sent_at.startsWith(thisMonth)).length;
 
   return (
     <div className="p-4 sm:p-6">
       <h2 className="text-2xl font-bold mb-6">Email Log</h2>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">Total Emails</p>
+          <p className="text-2xl font-bold text-white">{allEmails.length}</p>
+        </div>
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">This Month</p>
+          <p className="text-2xl font-bold text-white">{emailsThisMonth}</p>
+        </div>
+        <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
+          <p className="text-xs text-gray-500 uppercase mb-1">Types</p>
+          <p className="text-2xl font-bold text-white">{types.length}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <form method="GET" action="/emails" className="flex-1 min-w-[200px] max-w-sm">
+          {params.type && <input type="hidden" name="type" value={params.type} />}
+          <input
+            type="text"
+            name="search"
+            defaultValue={params.search || ''}
+            placeholder="Search emails..."
+            className="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 outline-none"
+          />
+        </form>
+        <div className="flex items-center gap-2">
+          <Link href="/emails" className={`px-2 py-1 rounded text-xs ${!params.type ? 'bg-blue-600/20 text-blue-400' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>All</Link>
+          {types.map(t => (
+            <Link key={t} href={`/emails?type=${t}${params.search ? `&search=${params.search}` : ''}`}
+              className={`px-2 py-1 rounded text-xs transition-colors ${params.type === t ? 'bg-blue-600/20 text-blue-400' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+              {t}
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {/* Log email form */}
       <form action={logEmailAction} className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
@@ -39,7 +103,7 @@ export default function EmailLogPage() {
       </form>
 
       {emails.length === 0 ? (
-        <p className="text-gray-500">No emails logged yet.</p>
+        <p className="text-gray-500">No emails found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
