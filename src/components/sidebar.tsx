@@ -15,6 +15,7 @@ const navItems = [
   { href: '/reports', label: 'Reports', icon: '◫' },
   { href: '/board', label: 'Board', icon: '⊟' },
   { href: '/templates', label: 'Templates', icon: '⊞' },
+  { href: '/calendar', label: 'Calendar', icon: '⊘' },
   { href: '/timeline', label: 'Timeline', icon: '⊙' },
   { href: '/notes', label: 'Notes', icon: '⊡' },
   { href: '/automations', label: 'Automations', icon: '⚡' },

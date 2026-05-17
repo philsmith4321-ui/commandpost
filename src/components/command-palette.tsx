@@ -70,6 +70,8 @@ export function CommandPalette() {
     { id: 'nav-proposal-templates', label: 'Proposal Templates', section: 'Navigation', action: () => router.push('/proposals/templates') },
     { id: 'nav-compare', label: 'Compare Clients', section: 'Navigation', action: () => router.push('/reports/compare') },
     { id: 'nav-automations', label: 'Automations', section: 'Navigation', action: () => router.push('/automations') },
+    { id: 'nav-calendar', label: 'Calendar', section: 'Navigation', action: () => router.push('/calendar') },
+    { id: 'nav-system', label: 'System & Backup', section: 'Navigation', action: () => router.push('/settings/system') },
   ];
 
   const filtered = query

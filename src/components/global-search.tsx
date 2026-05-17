@@ -12,12 +12,13 @@ interface SearchResult {
 }
 
 const typeColors: Record<string, string> = {
-  client: 'text-blue-400',
-  project: 'text-green-400',
-  lead: 'text-purple-400',
-  invoice: 'text-yellow-400',
-  proposal: 'text-cyan-400',
-  activity: 'text-gray-400',
+  Client: 'text-blue-400',
+  Project: 'text-green-400',
+  Lead: 'text-purple-400',
+  Invoice: 'text-yellow-400',
+  Proposal: 'text-cyan-400',
+  Note: 'text-orange-400',
+  Contract: 'text-emerald-400',
 };
 
 export function GlobalSearch() {
