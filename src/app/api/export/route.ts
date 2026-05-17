@@ -72,8 +72,52 @@ export async function GET(request: NextRequest) {
       filename = 'leads.csv';
       break;
 
+    case 'proposals':
+      rows = db.prepare(`
+        SELECT p.title, COALESCE(c.name, l.business_name, 'N/A') as client_or_lead, p.status,
+          COALESCE((SELECT SUM(amount) FROM proposal_items WHERE proposal_id = p.id), 0) as total_amount,
+          p.valid_until, p.created_at
+        FROM proposals p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN leads l ON p.lead_id = l.id
+        ORDER BY p.created_at DESC
+      `).all() as any[];
+      filename = 'proposals.csv';
+      break;
+
+    case 'meetings':
+      rows = db.prepare(`
+        SELECT m.title, c.name as client, p.name as project, m.meeting_date, m.duration_minutes, m.notes, m.action_items
+        FROM meetings m
+        JOIN clients c ON m.client_id = c.id
+        LEFT JOIN projects p ON m.project_id = p.id
+        ORDER BY m.meeting_date DESC
+      `).all() as any[];
+      filename = 'meetings.csv';
+      break;
+
+    case 'contracts':
+      rows = db.prepare(`
+        SELECT ct.title, c.name as client, ct.status, ct.signed_at, ct.expires_at, ct.terms_summary
+        FROM contracts ct
+        JOIN clients c ON ct.client_id = c.id
+        ORDER BY ct.created_at DESC
+      `).all() as any[];
+      filename = 'contracts.csv';
+      break;
+
+    case 'projects':
+      rows = db.prepare(`
+        SELECT p.name, c.name as client, p.status, p.hourly_rate, p.start_date, p.created_at
+        FROM projects p
+        JOIN clients c ON p.client_id = c.id
+        ORDER BY p.created_at DESC
+      `).all() as any[];
+      filename = 'projects.csv';
+      break;
+
     default:
-      return NextResponse.json({ error: 'Invalid type. Use: clients, invoices, time, expenses, leads' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid export type' }, { status: 400 });
   }
 
   const csv = toCsv(rows);

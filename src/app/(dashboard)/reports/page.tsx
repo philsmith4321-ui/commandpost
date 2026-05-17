@@ -15,6 +15,11 @@ const interactiveReports = [
   { href: '/pipeline/scores', label: 'Lead Scores', description: 'Ranked lead scoring with engagement and value breakdown' },
   { href: '/pipeline/followups', label: 'Follow-up Reminders', description: 'Overdue and upcoming lead follow-ups with snooze controls' },
   { href: '/projects/timeline', label: 'Project Timeline', description: 'Gantt-style milestone timeline across all projects' },
+  { href: '/reports/utilization', label: 'Utilization Dashboard', description: 'Time utilization rates and billable efficiency by client' },
+  { href: '/reports/satisfaction', label: 'Client Satisfaction / NPS', description: 'Net promoter score tracking and client feedback' },
+  { href: '/reports/compare', label: 'Compare Clients', description: 'Side-by-side client comparison on revenue, hours, and health' },
+  { href: '/projects/budgets', label: 'Project Budgets', description: 'Budget tracking and burn rate per project' },
+  { href: '/digest', label: 'Weekly Digest', description: 'Week-at-a-glance with revenue, hours, deliverables, and upcoming tasks' },
 ];
 
 const today = new Date().toISOString().split('T')[0];

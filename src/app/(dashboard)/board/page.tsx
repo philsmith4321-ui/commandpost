@@ -11,15 +11,54 @@ const columns = [
   { status: 'delivered', label: 'Delivered', color: 'border-green-600' },
 ];
 
-export default function BoardPage() {
+export default async function BoardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ client?: string }>;
+}) {
+  const params = await searchParams;
   const db = getDb();
-  const deliverables = getAllActiveDeliverables(db);
+  let deliverables = getAllActiveDeliverables(db);
+
+  // Client filter
+  if (params.client) {
+    deliverables = deliverables.filter(d => d.client_id === Number(params.client));
+  }
 
   const today = new Date().toISOString().split('T')[0];
 
+  const overdueCount = deliverables.filter(d => d.due_date && d.due_date < today && d.status !== 'delivered').length;
+  const totalCount = deliverables.length;
+
+  // Unique clients for filter
+  const allDeliverables = getAllActiveDeliverables(db);
+  const clientMap = new Map<number, string>();
+  allDeliverables.forEach(d => clientMap.set(d.client_id, d.client_name));
+  const clients = Array.from(clientMap.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="p-4 sm:p-6">
-      <h1 className="text-2xl font-bold mb-6">Deliverables Board</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Deliverables Board</h1>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-gray-400">{totalCount} items</span>
+          {overdueCount > 0 && <span className="text-red-400">{overdueCount} overdue</span>}
+        </div>
+      </div>
+
+      {/* Client filter */}
+      {clients.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-xs text-gray-500">Filter:</span>
+          <Link href="/board" className={`px-2 py-1 rounded text-xs ${!params.client ? 'bg-blue-600/20 text-blue-400' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>All</Link>
+          {clients.map(c => (
+            <Link key={c.id} href={`/board?client=${c.id}`}
+              className={`px-2 py-1 rounded text-xs transition-colors ${String(c.id) === params.client ? 'bg-blue-600/20 text-blue-400' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+              {c.name}
+            </Link>
+          ))}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map(col => {
           const items = deliverables.filter(d => d.status === col.status);

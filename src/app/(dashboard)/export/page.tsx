@@ -7,6 +7,10 @@ const exports = [
   { type: 'time', label: 'Time Entries', description: 'All time entries with rates and invoice status' },
   { type: 'expenses', label: 'Expenses', description: 'All expenses by category and date' },
   { type: 'leads', label: 'Leads', description: 'All pipeline leads with stage and contact info' },
+  { type: 'proposals', label: 'Proposals', description: 'All proposals with status, amounts, and client info' },
+  { type: 'meetings', label: 'Meetings', description: 'All logged meetings with notes and action items' },
+  { type: 'contracts', label: 'Contracts', description: 'All contracts with status and expiration dates' },
+  { type: 'projects', label: 'Projects', description: 'All projects with status, hours, and deliverable progress' },
 ];
 
 export default function ExportPage() {
