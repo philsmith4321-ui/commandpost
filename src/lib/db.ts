@@ -457,6 +457,17 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create satisfaction_scores table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS satisfaction_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      score INTEGER NOT NULL CHECK(score >= 0 AND score <= 10),
+      notes TEXT,
+      scored_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: add budget to projects
   const hasBudget = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'budget'").get() as any;
   if (hasBudget.count === 0) {

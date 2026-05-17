@@ -66,6 +66,7 @@ export function CommandPalette() {
     { id: 'nav-aging', label: 'Invoice Aging Report', section: 'Navigation', action: () => router.push('/reports/aging') },
     { id: 'nav-budgets', label: 'Project Budgets', section: 'Navigation', action: () => router.push('/projects/budgets') },
     { id: 'nav-utilization', label: 'Utilization Dashboard', section: 'Navigation', action: () => router.push('/reports/utilization') },
+    { id: 'nav-satisfaction', label: 'Client Satisfaction / NPS', section: 'Navigation', action: () => router.push('/reports/satisfaction') },
   ];
 
   const filtered = query
