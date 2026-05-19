@@ -42,15 +42,6 @@ export interface PipelineReportData {
   topLeads: { business_name: string; stage: string; estimated_value: number }[];
 }
 
-export interface UptimeReportRow {
-  name: string;
-  url: string;
-  uptime_percent: number;
-  avg_response_ms: number;
-  incident_count: number;
-  recent_incidents: { started_at: string; resolved_at: string | null; duration_seconds: number | null }[];
-}
-
 export function getPnlData(db: Database.Database, start: string, end: string): PnlData {
   const revenue = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ? AND paid_at <= ?"
@@ -131,37 +122,3 @@ export function getPipelineReportData(db: Database.Database): PipelineReportData
   return { totalActiveLeads, totalActiveValue, conversionRate, averageDealValue, needsFollowUp, stageBreakdown, topLeads };
 }
 
-export function getUptimeReportData(db: Database.Database): UptimeReportRow[] {
-  const endpoints = db.prepare("SELECT * FROM endpoints WHERE is_active = 1 ORDER BY name ASC").all() as any[];
-
-  return endpoints.map((ep: any) => {
-    const uptimeRow = db.prepare(`
-      SELECT COUNT(*) as total, SUM(CASE WHEN is_healthy = 1 THEN 1 ELSE 0 END) as healthy
-      FROM health_checks WHERE endpoint_id = ? AND checked_at >= datetime('now', '-30 days')
-    `).get(ep.id) as { total: number; healthy: number };
-
-    const uptime_percent = uptimeRow.total > 0 ? (uptimeRow.healthy / uptimeRow.total) * 100 : 100;
-
-    const avgRow = db.prepare(`
-      SELECT COALESCE(CAST(AVG(response_time_ms) AS INTEGER), 0) as avg_ms
-      FROM health_checks WHERE endpoint_id = ? AND checked_at >= datetime('now', '-30 days')
-    `).get(ep.id) as { avg_ms: number };
-
-    const incident_count = (db.prepare(
-      "SELECT COUNT(*) as count FROM incidents WHERE endpoint_id = ?"
-    ).get(ep.id) as any).count;
-
-    const recent_incidents = db.prepare(
-      "SELECT started_at, resolved_at, duration_seconds FROM incidents WHERE endpoint_id = ? ORDER BY started_at DESC LIMIT 5"
-    ).all(ep.id) as { started_at: string; resolved_at: string | null; duration_seconds: number | null }[];
-
-    return {
-      name: ep.name,
-      url: ep.url,
-      uptime_percent: Math.round(uptime_percent * 10) / 10,
-      avg_response_ms: avgRow.avg_ms,
-      incident_count,
-      recent_incidents,
-    };
-  });
-}

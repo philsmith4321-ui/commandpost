@@ -47,11 +47,4 @@ describe('PDF document builders', () => {
     expect(React.isValidElement(doc)).toBe(true);
   });
 
-  it('buildUptimePdf returns a React element', async () => {
-    const { buildUptimePdf } = await import('@/lib/reports/uptime-pdf');
-    const doc = buildUptimePdf([
-      { name: 'API', url: 'https://api.example.com', uptime_percent: 99.9, avg_response_ms: 200, incident_count: 1, recent_incidents: [] },
-    ]);
-    expect(React.isValidElement(doc)).toBe(true);
-  });
 });

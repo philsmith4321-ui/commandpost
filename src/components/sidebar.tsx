@@ -12,7 +12,6 @@ const navItems = [
   { href: '/proposals', label: 'Proposals', icon: '▤' },
   { href: '/contracts', label: 'Contracts', icon: '⊜' },
   { href: '/finances', label: 'Finances', icon: '◇' },
-  { href: '/ops', label: 'Ops', icon: '◆' },
   { href: '/reports', label: 'Reports', icon: '◫' },
   { href: '/board', label: 'Board', icon: '⊟' },
   { href: '/templates', label: 'Templates', icon: '⊞' },

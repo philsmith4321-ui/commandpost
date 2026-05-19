@@ -105,18 +105,4 @@ describe('report queries', () => {
     expect(data.topLeads[0].business_name).toBe('Lead A');
   });
 
-  it('getUptimeReportData returns per-endpoint uptime and incident counts', async () => {
-    const { getUptimeReportData } = await import('@/lib/queries/report-queries');
-    db.prepare("INSERT INTO endpoints (name, url, check_interval_seconds, slow_threshold_ms, is_active) VALUES (?, ?, ?, ?, ?)").run('API', 'https://api.example.com', 300, 5000, 1);
-    db.prepare("INSERT INTO health_checks (endpoint_id, status_code, response_time_ms, is_healthy) VALUES (?, ?, ?, ?)").run(1, 200, 150, 1);
-    db.prepare("INSERT INTO health_checks (endpoint_id, status_code, response_time_ms, is_healthy) VALUES (?, ?, ?, ?)").run(1, 200, 250, 1);
-    db.prepare("INSERT INTO incidents (endpoint_id, started_at, resolved_at, duration_seconds) VALUES (?, ?, ?, ?)").run(1, '2026-05-01 10:00:00', '2026-05-01 10:05:00', 300);
-
-    const data = getUptimeReportData(db);
-    expect(data).toHaveLength(1);
-    expect(data[0].name).toBe('API');
-    expect(data[0].uptime_percent).toBe(100);
-    expect(data[0].avg_response_ms).toBe(200);
-    expect(data[0].incident_count).toBe(1);
-  });
 });

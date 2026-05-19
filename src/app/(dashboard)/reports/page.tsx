@@ -75,13 +75,6 @@ const reports: ReportCard[] = [
       { label: 'Download PDF', format: 'pdf', route: '/api/reports/client-health', useDates: false },
     ],
   },
-  {
-    title: 'Ops Uptime Report',
-    description: '30-day uptime, response times, and incidents per endpoint.',
-    formats: [
-      { label: 'Download PDF', format: 'pdf', route: '/api/reports/uptime', useDates: false },
-    ],
-  },
 ];
 
 export default function ReportsPage() {

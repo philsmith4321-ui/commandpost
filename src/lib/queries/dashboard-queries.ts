@@ -11,13 +11,12 @@ export interface DashboardSummary {
   needsFollowUp: number;
   outstandingInvoices: number;
   overdueInvoiceAmount: number;
-  serversDown: number;
   mrr: number;
   uninvoicedTime: number;
 }
 
 export interface ActionItem {
-  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice' | 'server_down' | 'client_needs_attention' | 'client_at_risk';
+  type: 'overdue_deliverable' | 'due_soon_deliverable' | 'missed_follow_up' | 'overdue_invoice' | 'client_needs_attention' | 'client_at_risk';
   title: string;
   link: string;
   urgency: 'red' | 'yellow';
@@ -46,13 +45,11 @@ export function getDashboardSummary(db: Database.Database): DashboardSummary {
   const outstandingInvoices = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as any).total;
   const overdueInvoiceAmount = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as any).total;
 
-  const serversDown = (db.prepare("SELECT COUNT(*) as count FROM incidents WHERE resolved_at IS NULL").get() as any).count;
-
   const mrr = getMrr(db);
 
   const uninvoicedTime = (db.prepare("SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE is_invoiced = 0").get() as any).total;
 
-  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, serversDown, mrr, uninvoicedTime };
+  return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, mrr, uninvoicedTime };
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {
@@ -120,23 +117,6 @@ export function getActionItems(db: Database.Database): ActionItem[] {
       type: 'overdue_invoice',
       title: `Overdue invoice: ${inv.invoice_number} for ${inv.client_name} — $${inv.total_amount.toLocaleString()} due ${inv.due_date}`,
       link: `/finances/invoices/${inv.id}`,
-      urgency: 'red',
-    });
-  }
-
-  // Down servers
-  const downServers = db.prepare(`
-    SELECT i.id as incident_id, i.started_at, e.id as endpoint_id, e.name as endpoint_name
-    FROM incidents i JOIN endpoints e ON i.endpoint_id = e.id
-    WHERE i.resolved_at IS NULL
-    ORDER BY i.started_at ASC
-  `).all() as any[];
-
-  for (const srv of downServers) {
-    items.push({
-      type: 'server_down',
-      title: `DOWN: ${srv.endpoint_name} since ${srv.started_at}`,
-      link: `/ops/${srv.endpoint_id}`,
       urgency: 'red',
     });
   }

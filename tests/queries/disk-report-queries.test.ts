@@ -20,10 +20,9 @@ describe('disk report queries', () => {
   });
 
   it('records and retrieves disk reports', async () => {
-    const { createEndpoint } = await import('@/lib/queries/endpoint-queries');
     const { recordDiskReport, getLatestDiskReports } = await import('@/lib/queries/disk-report-queries');
 
-    const epId = createEndpoint(db, { name: 'test-server', url: 'https://test.com', check_interval_seconds: 300, slow_threshold_ms: 5000, is_active: 1 });
+    const epId = Number(db.prepare("INSERT INTO endpoints (name, url, check_interval_seconds, slow_threshold_ms, is_active) VALUES (?, ?, ?, ?, ?)").run('test-server', 'https://test.com', 300, 5000, 1).lastInsertRowid);
     recordDiskReport(db, { endpoint_id: epId, mount_point: '/', total_gb: 50, used_gb: 42, percent_used: 84.0 });
     recordDiskReport(db, { endpoint_id: epId, mount_point: '/data', total_gb: 200, used_gb: 185, percent_used: 92.5 });
 
@@ -34,10 +33,9 @@ describe('disk report queries', () => {
   });
 
   it('returns only the latest report per mount point', async () => {
-    const { createEndpoint } = await import('@/lib/queries/endpoint-queries');
     const { recordDiskReport, getLatestDiskReports } = await import('@/lib/queries/disk-report-queries');
 
-    const epId = createEndpoint(db, { name: 'test-server', url: 'https://test.com', check_interval_seconds: 300, slow_threshold_ms: 5000, is_active: 1 });
+    const epId = Number(db.prepare("INSERT INTO endpoints (name, url, check_interval_seconds, slow_threshold_ms, is_active) VALUES (?, ?, ?, ?, ?)").run('test-server', 'https://test.com', 300, 5000, 1).lastInsertRowid);
 
     // Old report
     db.prepare("INSERT INTO disk_reports (endpoint_id, mount_point, total_gb, used_gb, percent_used, reported_at) VALUES (?, ?, ?, ?, ?, datetime('now', '-1 hour'))").run(epId, '/', 50, 30, 60.0);
@@ -50,10 +48,9 @@ describe('disk report queries', () => {
   });
 
   it('deletes old disk reports', async () => {
-    const { createEndpoint } = await import('@/lib/queries/endpoint-queries');
     const { deleteOldDiskReports } = await import('@/lib/queries/disk-report-queries');
 
-    const epId = createEndpoint(db, { name: 'test-server', url: 'https://test.com', check_interval_seconds: 300, slow_threshold_ms: 5000, is_active: 1 });
+    const epId = Number(db.prepare("INSERT INTO endpoints (name, url, check_interval_seconds, slow_threshold_ms, is_active) VALUES (?, ?, ?, ?, ?)").run('test-server', 'https://test.com', 300, 5000, 1).lastInsertRowid);
 
     // Insert old report (31 days ago)
     db.prepare("INSERT INTO disk_reports (endpoint_id, mount_point, total_gb, used_gb, percent_used, reported_at) VALUES (?, ?, ?, ?, ?, datetime('now', '-31 days'))").run(epId, '/', 50, 42, 84.0);
@@ -68,11 +65,10 @@ describe('disk report queries', () => {
   });
 
   it('gets all critical disk reports across endpoints', async () => {
-    const { createEndpoint } = await import('@/lib/queries/endpoint-queries');
     const { recordDiskReport, getCriticalDiskReports } = await import('@/lib/queries/disk-report-queries');
 
-    const ep1 = createEndpoint(db, { name: 'server-1', url: 'https://s1.com', check_interval_seconds: 300, slow_threshold_ms: 5000, is_active: 1 });
-    const ep2 = createEndpoint(db, { name: 'server-2', url: 'https://s2.com', check_interval_seconds: 300, slow_threshold_ms: 5000, is_active: 1 });
+    const ep1 = Number(db.prepare("INSERT INTO endpoints (name, url, check_interval_seconds, slow_threshold_ms, is_active) VALUES (?, ?, ?, ?, ?)").run('server-1', 'https://s1.com', 300, 5000, 1).lastInsertRowid);
+    const ep2 = Number(db.prepare("INSERT INTO endpoints (name, url, check_interval_seconds, slow_threshold_ms, is_active) VALUES (?, ?, ?, ?, ?)").run('server-2', 'https://s2.com', 300, 5000, 1).lastInsertRowid);
 
     recordDiskReport(db, { endpoint_id: ep1, mount_point: '/', total_gb: 50, used_gb: 45, percent_used: 90.0 });
     recordDiskReport(db, { endpoint_id: ep2, mount_point: '/', total_gb: 100, used_gb: 50, percent_used: 50.0 });

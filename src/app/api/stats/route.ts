@@ -20,7 +20,6 @@ export async function GET() {
     pipeline_leads: summary.pipelineLeads,
     pipeline_value: summary.pipelineValue,
     uninvoiced_time: summary.uninvoicedTime,
-    servers_down: summary.serversDown,
     generated_at: new Date().toISOString(),
   });
 }

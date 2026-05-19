@@ -15,7 +15,6 @@ const moreItems = [
   { href: '/projects', label: 'Projects', icon: '◧' },
   { href: '/proposals', label: 'Proposals', icon: '▤' },
   { href: '/contracts', label: 'Contracts', icon: '⊜' },
-  { href: '/ops', label: 'Ops', icon: '◆' },
   { href: '/reports', label: 'Reports', icon: '◫' },
   { href: '/board', label: 'Board', icon: '⊟' },
   { href: '/meetings', label: 'Meetings', icon: '◎' },
