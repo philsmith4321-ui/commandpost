@@ -18,11 +18,7 @@ const navItems = [
   { href: '/templates', label: 'Templates', icon: '⊞' },
   { href: '/meetings', label: 'Meetings', icon: '◎' },
   { href: '/calendar', label: 'Calendar', icon: '⊘' },
-  { href: '/timeline', label: 'Timeline', icon: '⊙' },
-  { href: '/notes', label: 'Notes', icon: '⊡' },
-  { href: '/goals', label: 'Goals', icon: '⊕' },
   { href: '/automations', label: 'Automations', icon: '⚡' },
-  { href: '/notifications', label: 'Notifications', icon: '⊛' },
   { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
