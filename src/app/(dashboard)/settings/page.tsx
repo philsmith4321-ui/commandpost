@@ -14,7 +14,6 @@ export default function SettingsPage() {
       <h2 className="text-2xl font-bold mb-6">Settings</h2>
 
       <div className="flex gap-2 mb-6">
-        <Link href="/settings/notifications" className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">Notification Preferences</Link>
         <Link href="/settings/system" className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">System & Backup</Link>
         <Link href="/settings/webhooks" className="px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">Webhooks</Link>
       </div>

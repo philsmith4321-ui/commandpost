@@ -57,14 +57,6 @@ export async function GET(request: NextRequest) {
     results.push({ type: 'Proposal', id: p.id, title: p.title, subtitle: p.client_name || p.lead_name, link: `/proposals/${p.id}` });
   }
 
-  // Notes
-  const notes = db.prepare(
-    "SELECT id, title, content FROM scratchpad WHERE title LIKE ? OR content LIKE ? LIMIT 5"
-  ).all(like, like) as any[];
-  for (const n of notes) {
-    results.push({ type: 'Note', id: n.id, title: n.title, subtitle: n.content?.slice(0, 60), link: `/notes/${n.id}` });
-  }
-
   // Contracts
   const contracts = db.prepare(
     "SELECT ct.id, ct.title, c.name as client_name FROM contracts ct LEFT JOIN clients c ON ct.client_id = c.id WHERE ct.title LIKE ? LIMIT 5"
