@@ -44,7 +44,7 @@ function getMonthEvents(db: ReturnType<typeof getDb>, year: number, month: numbe
     "SELECT id, title, period_end FROM goals WHERE period_end >= ? AND period_end < ? AND is_active = 1"
   ).all(start, end) as any[];
   for (const g of goals) {
-    events.push({ date: g.period_end, title: g.title, type: 'goal', link: '/goals', color: 'bg-green-600' });
+    events.push({ date: g.period_end, title: g.title, type: 'goal', link: '/calendar', color: 'bg-green-600' });
   }
 
   const proposals = db.prepare(
