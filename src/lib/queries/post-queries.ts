@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Post, PostVariant, PostWithVariants, PostStatus, VariantStatus } from '@/lib/types';
+import type { Post, PostVariant, PostWithVariants, PostStatus } from '@/lib/types';
 import { type Platform, PLATFORM_ORDER } from '@/lib/platforms';
 
 export interface CreatePostInput {
@@ -104,6 +104,3 @@ export function updatePost(db: Database.Database, id: number, input: UpdatePostI
 export function deletePost(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM posts WHERE id = ?').run(id);
 }
-
-// VariantStatus is imported for use by later tasks (Task 4+)
-type _VariantStatus = VariantStatus;
