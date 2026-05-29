@@ -608,6 +608,35 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: create posts + post_variants tables (Phase 15 content creation)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      idea TEXT,
+      image_path TEXT,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','posted','archived')),
+      scheduled_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS post_variants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL CHECK(platform IN ('x','linkedin','facebook','instagram')),
+      content TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','posted','failed')),
+      published_at TEXT,
+      platform_post_id TEXT,
+      error TEXT,
+      UNIQUE(post_id, platform)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_post_variants_post ON post_variants(post_id);
+  `);
+
   return db;
 }
 
