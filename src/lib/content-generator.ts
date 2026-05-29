@@ -69,5 +69,9 @@ export async function generatePostVariants(input: {
   const response = await askClaude(system, input.idea, 2048, 'claude-sonnet-4-6');
   if (!response) return { error: 'Generation failed. Please try again.' };
 
-  return { variants: parsePostVariants(response, input.platforms) };
+  const variants = parsePostVariants(response, input.platforms);
+  if (input.platforms.every((p) => !variants[p])) {
+    return { error: 'Generation failed. Please try again.' };
+  }
+  return { variants };
 }

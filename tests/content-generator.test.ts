@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { parsePostVariants, buildSystemPrompt } from '@/lib/content-generator';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('@/lib/claude', () => ({
+  isClaudeConfigured: () => true,
+  askClaude: vi.fn(),
+}));
+
+import { askClaude } from '@/lib/claude';
+import { parsePostVariants, buildSystemPrompt, generatePostVariants } from '@/lib/content-generator';
 
 const SAMPLE = `===X===
 Short x post #launch
@@ -41,5 +48,23 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('casual');
     expect(prompt).toContain('===X===');
     expect(prompt).toContain('===LINKEDIN===');
+  });
+});
+
+describe('generatePostVariants', () => {
+  beforeEach(() => {
+    vi.mocked(askClaude).mockReset();
+  });
+
+  it('returns an error when the response contains no delimiters', async () => {
+    vi.mocked(askClaude).mockResolvedValue("Sure! I'd be happy to write those for you.");
+    const result = await generatePostVariants({ idea: 'launch', platforms: ['x'] });
+    expect(result).toEqual({ error: 'Generation failed. Please try again.' });
+  });
+
+  it('returns variants when the response is well-formed', async () => {
+    vi.mocked(askClaude).mockResolvedValue('===X===\nHello world');
+    const result = await generatePostVariants({ idea: 'launch', platforms: ['x'] });
+    expect(result).toEqual({ variants: { x: 'Hello world' } });
   });
 });
