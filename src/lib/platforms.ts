@@ -17,5 +17,5 @@ export const PLATFORMS: Record<Platform, PlatformConfig> = {
 export const PLATFORM_ORDER: Platform[] = ['x', 'linkedin', 'facebook', 'instagram'];
 
 export function isPlatform(value: string): value is Platform {
-  return value in PLATFORMS;
+  return Object.hasOwn(PLATFORMS, value);
 }
