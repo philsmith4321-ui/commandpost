@@ -15,6 +15,9 @@ const colors: Record<string, string> = {
   contractor: 'bg-orange-500/20 text-orange-400',
   marketing: 'bg-pink-500/20 text-pink-400',
   other: 'bg-gray-500/20 text-gray-400',
+  scheduled: 'bg-blue-500/20 text-blue-400',
+  posted: 'bg-green-500/20 text-green-400',
+  archived: 'bg-gray-500/20 text-gray-400',
 };
 
 export function StatusBadge({ status }: { status: string }) {

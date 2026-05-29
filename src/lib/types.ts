@@ -1,3 +1,5 @@
+import type { Platform } from '@/lib/platforms';
+
 export type ClientStatus = 'active' | 'paused' | 'completed';
 export type ProjectStatus = 'active' | 'on-hold' | 'completed';
 export type DeliverableStatus = 'not_started' | 'in_progress' | 'delivered';
@@ -225,4 +227,34 @@ export interface NotificationPreference {
   id: number;
   notification_type: NotificationType;
   email_delivery: EmailDelivery;
+}
+
+export type PostStatus = 'draft' | 'scheduled' | 'posted' | 'archived';
+export type VariantStatus = 'draft' | 'scheduled' | 'posted' | 'failed';
+
+export interface Post {
+  id: number;
+  title: string;
+  idea: string | null;
+  image_path: string | null;
+  status: PostStatus;
+  scheduled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PostVariant {
+  id: number;
+  post_id: number;
+  platform: Platform;
+  content: string;
+  enabled: number;
+  status: VariantStatus;
+  published_at: string | null;
+  platform_post_id: string | null;
+  error: string | null;
+}
+
+export interface PostWithVariants extends Post {
+  variants: PostVariant[];
 }

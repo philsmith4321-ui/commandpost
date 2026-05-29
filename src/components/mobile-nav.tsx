@@ -21,6 +21,7 @@ const moreItems = [
   { href: '/calendar', label: 'Calendar', icon: '⊘' },
   { href: '/templates', label: 'Templates', icon: '⊞' },
   { href: '/automations', label: 'Automations', icon: '⚡' },
+  { href: '/content', label: 'Content', icon: '✎' },
   { href: '/contacts', label: 'Contacts', icon: '◉' },
   { href: '/emails', label: 'Email Log', icon: '✉' },
   { href: '/digest', label: 'Digest', icon: '◫' },

@@ -5,7 +5,8 @@ export function isClaudeConfigured(): boolean {
 export async function askClaude(
   systemPrompt: string,
   userMessage: string,
-  maxTokens: number = 1024
+  maxTokens: number = 1024,
+  model: string = 'claude-sonnet-4-20250514'
 ): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY!;
 
@@ -18,7 +19,7 @@ export async function askClaude(
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
