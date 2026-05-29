@@ -7,6 +7,9 @@ import {
   listPosts,
   updatePost,
   deletePost,
+  upsertVariant,
+  setVariantStatus,
+  syncPostPosted,
 } from '@/lib/queries/post-queries';
 
 let db: Database.Database;
@@ -100,5 +103,60 @@ describe('updatePost / deletePost', () => {
     const id = createPost(db, { title: 'A', variants: [{ platform: 'x', content: '', enabled: true }] });
     deletePost(db, id);
     expect(getPostById(db, id)).toBeUndefined();
+  });
+});
+
+describe('upsertVariant', () => {
+  it('inserts a variant row when the platform has none', () => {
+    const id = createPost(db, { title: 'A', variants: [{ platform: 'x', content: 'x', enabled: true }] });
+    upsertVariant(db, id, 'linkedin', { content: 'li text', enabled: true });
+    const post = getPostById(db, id)!;
+    expect(post.variants.map((v) => v.platform)).toEqual(['x', 'linkedin']);
+    expect(post.variants.find((v) => v.platform === 'linkedin')!.content).toBe('li text');
+  });
+
+  it('updates content and enabled on an existing variant', () => {
+    const id = createPost(db, { title: 'A', variants: [{ platform: 'x', content: 'old', enabled: true }] });
+    upsertVariant(db, id, 'x', { content: 'new', enabled: false });
+    const v = getPostById(db, id)!.variants[0];
+    expect(v.content).toBe('new');
+    expect(v.enabled).toBe(0);
+  });
+});
+
+describe('setVariantStatus / syncPostPosted', () => {
+  it('sets a variant to posted with published_at', () => {
+    const id = createPost(db, { title: 'A', variants: [{ platform: 'x', content: 'x', enabled: true }] });
+    const variantId = getPostById(db, id)!.variants[0].id;
+    setVariantStatus(db, variantId, 'posted', { published_at: '2026-06-01T10:00:00Z' });
+    const v = getPostById(db, id)!.variants[0];
+    expect(v.status).toBe('posted');
+    expect(v.published_at).toBe('2026-06-01T10:00:00Z');
+  });
+
+  it('promotes post to posted only when all enabled variants are posted', () => {
+    const id = createPost(db, {
+      title: 'A',
+      variants: [
+        { platform: 'x', content: 'x', enabled: true },
+        { platform: 'linkedin', content: 'li', enabled: true },
+      ],
+    });
+    const [vx, vli] = getPostById(db, id)!.variants;
+    setVariantStatus(db, vx.id, 'posted');
+    syncPostPosted(db, id);
+    expect(getPostById(db, id)!.status).toBe('draft'); // not all posted yet
+    setVariantStatus(db, vli.id, 'posted');
+    syncPostPosted(db, id);
+    expect(getPostById(db, id)!.status).toBe('posted');
+  });
+
+  it('does not override an archived post', () => {
+    const id = createPost(db, { title: 'A', variants: [{ platform: 'x', content: 'x', enabled: true }] });
+    updatePost(db, id, { status: 'archived' });
+    const vId = getPostById(db, id)!.variants[0].id;
+    setVariantStatus(db, vId, 'posted');
+    syncPostPosted(db, id);
+    expect(getPostById(db, id)!.status).toBe('archived');
   });
 });

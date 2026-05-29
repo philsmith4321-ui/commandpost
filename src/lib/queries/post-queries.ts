@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Post, PostVariant, PostWithVariants, PostStatus } from '@/lib/types';
+import type { Post, PostVariant, PostWithVariants, PostStatus, VariantStatus } from '@/lib/types';
 import { type Platform, PLATFORM_ORDER } from '@/lib/platforms';
 
 export interface CreatePostInput {
@@ -103,4 +103,64 @@ export function updatePost(db: Database.Database, id: number, input: UpdatePostI
 
 export function deletePost(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM posts WHERE id = ?').run(id);
+}
+
+export function upsertVariant(
+  db: Database.Database,
+  postId: number,
+  platform: Platform,
+  fields: { content?: string; enabled?: boolean; status?: VariantStatus }
+): void {
+  const existing = db
+    .prepare('SELECT id FROM post_variants WHERE post_id = ? AND platform = ?')
+    .get(postId, platform) as { id: number } | undefined;
+
+  if (existing) {
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { id: existing.id };
+    if (fields.content !== undefined) { sets.push('content = @content'); params.content = fields.content; }
+    if (fields.enabled !== undefined) { sets.push('enabled = @enabled'); params.enabled = fields.enabled ? 1 : 0; }
+    if (fields.status !== undefined) { sets.push('status = @status'); params.status = fields.status; }
+    if (sets.length > 0) {
+      db.prepare(`UPDATE post_variants SET ${sets.join(', ')} WHERE id = @id`).run(params);
+    }
+  } else {
+    db.prepare(
+      'INSERT INTO post_variants (post_id, platform, content, enabled, status) VALUES (?, ?, ?, ?, ?)'
+    ).run(postId, platform, fields.content ?? '', fields.enabled ? 1 : 0, fields.status ?? 'draft');
+  }
+}
+
+export function setVariantStatus(
+  db: Database.Database,
+  variantId: number,
+  status: VariantStatus,
+  opts?: { published_at?: string; platform_post_id?: string; error?: string | null }
+): void {
+  db.prepare(
+    `UPDATE post_variants
+     SET status = @status, published_at = @published_at, platform_post_id = @platform_post_id, error = @error
+     WHERE id = @id`
+  ).run({
+    id: variantId,
+    status,
+    published_at: opts?.published_at ?? null,
+    platform_post_id: opts?.platform_post_id ?? null,
+    error: opts?.error ?? null,
+  });
+}
+
+export function syncPostPosted(db: Database.Database, postId: number): void {
+  const post = db.prepare('SELECT status FROM posts WHERE id = ?').get(postId) as
+    | { status: PostStatus }
+    | undefined;
+  if (!post || post.status === 'archived') return;
+
+  const enabled = db
+    .prepare('SELECT status FROM post_variants WHERE post_id = ? AND enabled = 1')
+    .all(postId) as { status: VariantStatus }[];
+
+  if (enabled.length > 0 && enabled.every((v) => v.status === 'posted')) {
+    db.prepare("UPDATE posts SET status = 'posted', updated_at = datetime('now') WHERE id = ?").run(postId);
+  }
 }
