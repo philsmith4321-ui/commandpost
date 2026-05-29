@@ -159,4 +159,13 @@ describe('setVariantStatus / syncPostPosted', () => {
     syncPostPosted(db, id);
     expect(getPostById(db, id)!.status).toBe('archived');
   });
+
+  it('does not promote a post whose only variant is disabled', () => {
+    const id = createPost(db, { title: 'A', variants: [{ platform: 'x', content: 'x', enabled: true }] });
+    const vId = getPostById(db, id)!.variants[0].id;
+    setVariantStatus(db, vId, 'posted');
+    upsertVariant(db, id, 'x', { enabled: false });
+    syncPostPosted(db, id);
+    expect(getPostById(db, id)!.status).toBe('draft');
+  });
 });
