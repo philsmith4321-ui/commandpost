@@ -7,6 +7,7 @@ import { logoutAction } from '@/lib/actions/auth-actions';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '▣' },
   { href: '/content', label: 'Content', icon: '✎' },
+  { href: '/ingestion', label: 'Ingestion', icon: '⬇' },
   { href: '/clients', label: 'Clients', icon: '◉' },
   { href: '/projects', label: 'Projects', icon: '◧' },
   { href: '/pipeline', label: 'Pipeline', icon: '◈' },

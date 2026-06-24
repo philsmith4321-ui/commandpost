@@ -673,6 +673,21 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_media_clips_item ON media_clips(media_item_id);
   `);
 
+  // Migration: create kb_documents table (Ingestion → knowledge base)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kb_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      source_type TEXT NOT NULL DEFAULT 'text' CHECK(source_type IN ('website','pdf','html','text','book')),
+      source_url TEXT,
+      content TEXT NOT NULL DEFAULT '',
+      char_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_kb_documents_created ON kb_documents(created_at DESC);
+  `);
+
   return db;
 }
 

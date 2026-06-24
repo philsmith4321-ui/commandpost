@@ -305,3 +305,15 @@ export interface TranscriptSegment {
   end: number;
   text: string;
 }
+
+export type KbSourceType = 'website' | 'pdf' | 'html' | 'text' | 'book';
+
+export interface KbDocument {
+  id: number;
+  title: string;
+  source_type: KbSourceType;
+  source_url: string | null;
+  content: string;
+  char_count: number;
+  created_at: string;
+}
