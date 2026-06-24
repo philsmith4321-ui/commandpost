@@ -317,3 +317,36 @@ export interface KbDocument {
   char_count: number;
   created_at: string;
 }
+
+export interface KbChunk {
+  id: number;
+  kb_document_id: number;
+  chunk_index: number;
+  text: string;
+  embedding: string | null;
+  created_at: string;
+}
+
+export type GenContentType =
+  | 'blog_article'
+  | 'email'
+  | 'email_sequence'
+  | 'campaign_plan'
+  | 'social_linkedin'
+  | 'social_twitter'
+  | 'social_facebook';
+
+export type LengthPreference = 'short' | 'medium' | 'long';
+export type RetrievalMode = 'none' | 'keyword' | 'vector';
+
+export interface Generation {
+  id: number;
+  content_type: GenContentType;
+  topic: string;
+  length: LengthPreference;
+  source_ids: string | null;
+  source_count: number;
+  retrieval_mode: RetrievalMode;
+  result: string;
+  created_at: string;
+}

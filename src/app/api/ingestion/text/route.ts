@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { createKbDocument } from '@/lib/queries/kb-queries';
+import { indexDocument } from '@/lib/ingestion/index-document';
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -10,5 +11,6 @@ export async function POST(request: NextRequest) {
 
   const db = getDb();
   const id = createKbDocument(db, { title, source_type: 'text', content });
+  indexDocument(db, id, content);
   return NextResponse.json({ id, title, char_count: content.length });
 }

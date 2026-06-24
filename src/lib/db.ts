@@ -688,6 +688,36 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_kb_documents_created ON kb_documents(created_at DESC);
   `);
 
+  // Migration: kb_chunks (retrieval units; embedding is null until vector RAG is enabled)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kb_chunks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kb_document_id INTEGER NOT NULL REFERENCES kb_documents(id) ON DELETE CASCADE,
+      chunk_index INTEGER NOT NULL DEFAULT 0,
+      text TEXT NOT NULL,
+      embedding TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_kb_chunks_doc ON kb_chunks(kb_document_id);
+    CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedded ON kb_chunks(id) WHERE embedding IS NOT NULL;
+  `);
+
+  // Migration: generations (Generate page history)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS generations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content_type TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      length TEXT NOT NULL DEFAULT 'medium',
+      source_ids TEXT,
+      source_count INTEGER NOT NULL DEFAULT 0,
+      retrieval_mode TEXT NOT NULL DEFAULT 'none',
+      result TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_generations_created ON generations(created_at DESC);
+  `);
+
   return db;
 }
 

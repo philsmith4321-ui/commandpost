@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { getDb } from '@/lib/db';
 import { createKbDocument } from '@/lib/queries/kb-queries';
+import { indexDocument } from '@/lib/ingestion/index-document';
 import { htmlToText, pdfToText } from '@/lib/ingestion/extract';
 import type { KbSourceType } from '@/lib/types';
 
@@ -47,5 +48,6 @@ export async function POST(request: NextRequest) {
   const title = titleField || file.name.replace(/\.[^.]+$/, '');
   const db = getDb();
   const id = createKbDocument(db, { title, source_type, content });
+  indexDocument(db, id, content);
   return NextResponse.json({ id, title, char_count: content.length });
 }

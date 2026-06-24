@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { createKbDocument } from '@/lib/queries/kb-queries';
+import { indexDocument } from '@/lib/ingestion/index-document';
 import { fetchWebsite } from '@/lib/ingestion/extract';
 
 export const maxDuration = 60;
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
     const { title, content } = await fetchWebsite(url);
     const db = getDb();
     const id = createKbDocument(db, { title, source_type: 'website', source_url: url, content });
+    indexDocument(db, id, content);
     return NextResponse.json({ id, title, char_count: content.length });
   } catch (err) {
     return NextResponse.json(

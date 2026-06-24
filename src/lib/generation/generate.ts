@@ -1,0 +1,50 @@
+import { askClaude, isClaudeConfigured } from '@/lib/claude';
+import { CONTENT_TYPE_MAP, LENGTH_HINT } from '@/lib/generation/content-types';
+import type { GenContentType, LengthPreference } from '@/lib/types';
+import type { RetrievedChunk } from '@/lib/rag/retrieve';
+
+const CONTEXT_BUDGET = 14000; // chars of reference material to include
+
+function buildReference(chunks: RetrievedChunk[]): string {
+  if (!chunks.length) return '';
+  let out = '';
+  for (const c of chunks) {
+    const block = `[Source: ${c.doc_title}]\n${c.text}\n\n`;
+    if (out.length + block.length > CONTEXT_BUDGET) break;
+    out += block;
+  }
+  return out.trim();
+}
+
+export async function generateContent(opts: {
+  contentType: GenContentType;
+  topic: string;
+  length: LengthPreference;
+  chunks: RetrievedChunk[];
+}): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  if (!isClaudeConfigured()) return { ok: false, error: 'AI generation is not configured (no ANTHROPIC_API_KEY).' };
+
+  const def = CONTENT_TYPE_MAP[opts.contentType];
+  if (!def) return { ok: false, error: 'Unknown content type.' };
+  if (!opts.topic.trim()) return { ok: false, error: 'Enter a topic to generate from.' };
+
+  const reference = buildReference(opts.chunks);
+
+  const system = `You are a skilled marketing content writer.
+${def.instruction}
+${LENGTH_HINT[opts.length] ?? ''}
+
+${reference
+  ? 'Use the REFERENCE MATERIAL provided by the user as your factual grounding and as a guide to voice, tone, and terminology. Prefer facts and phrasing consistent with it. Do not invent specifics that contradict it.'
+  : 'No reference material was provided — write from general best practices for this format.'}
+
+Output only the finished content — no preamble, no explanation, no meta commentary.`;
+
+  const userMessage = reference
+    ? `Topic / brief:\n${opts.topic}\n\n----- REFERENCE MATERIAL -----\n${reference}`
+    : `Topic / brief:\n${opts.topic}`;
+
+  const text = await askClaude(system, userMessage, def.maxTokens, 'claude-sonnet-4-6');
+  if (!text) return { ok: false, error: 'Generation failed. Please try again.' };
+  return { ok: true, text: text.trim() };
+}
