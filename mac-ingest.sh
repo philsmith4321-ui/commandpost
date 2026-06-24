@@ -1,25 +1,26 @@
 #!/bin/bash
-# mac-ingest.sh — CommandPost local-transcribe + upload (same approach as PWI).
+# mac-ingest.sh — CommandPost universal ingest droplet target.
 #
-# Transcribes the file LOCALLY on the Mac with faster-whisper (fast, off the
-# small server), then uploads the media file + transcript to CommandPost. The
-# server skips Whisper, AI-extracts short-form clips, and keeps the media file
-# so clips can be cut. Opens the Video tab when done.
+# Routes a dropped file by type:
+#   • Media (audio/video) → transcribe LOCALLY on the Mac with faster-whisper,
+#     then upload media + transcript to CommandPost (Video library, clips cuttable).
+#   • Documents (pdf/txt/md/html) → upload to the CommandPost knowledge base.
+# Opens the relevant page when done.
 #
 # Usage:
 #   ./mac-ingest.sh <file> [title] [type]
-#     file:  .mp3/.wav/.m4a/.aac/.mp4/.mov/.webm/.ogg/.flac
-#     title: display title (default: filename stem)
-#     type:  podcast | radio | video | interview | other (default: podcast)
+#     media:     .mp3/.wav/.m4a/.aac/.mp4/.mov/.webm/.ogg/.flac
+#     documents: .pdf/.txt/.md/.html/.htm
+#     type: (media only) podcast | radio | video | interview | other
 
 set -uo pipefail
 
 BASE="${COMMANDPOST_URL:-https://commandpost.rekindleleads.com}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# Reuse the faster-whisper venv that already powers PWI local transcription.
 VENV="${WHISPER_VENV:-$HOME/paul-winkler-ai/transcribe-venv}"
 MODEL="${WHISPER_MODEL:-small}"
-ALLOWED="mp3 wav m4a aac mp4 mov webm ogg flac"
+MEDIA_EXTS="mp3 wav m4a aac mp4 mov webm ogg flac"
+DOC_EXTS="pdf txt md html htm"
 
 FILE="${1:-}"
 if [ -z "$FILE" ]; then echo "Usage: mac-ingest.sh <file> [title] [type]"; exit 1; fi
@@ -27,34 +28,56 @@ if [ ! -f "$FILE" ]; then echo "File not found: $FILE"; exit 1; fi
 
 NAME="$(basename "$FILE")"
 EXT="$(printf '%s' "${NAME##*.}" | tr '[:upper:]' '[:lower:]')"
-case " $ALLOWED " in
-  *" $EXT "*) ;;
-  *) echo "Unsupported file type .$EXT (allowed: $ALLOWED)"; exit 1 ;;
-esac
 TITLE="${2:-${NAME%.*}}"
 TYPE="${3:-podcast}"
 
+# ---------------------------------------------------------------- documents → KB
+case " $DOC_EXTS " in
+  *" $EXT "*)
+    echo "================================================================"
+    echo " CommandPost Ingest   (document → knowledge base)"
+    echo " File:  $NAME"
+    echo " Title: $TITLE"
+    echo "================================================================"
+    echo "▶ Uploading to $BASE …"
+    RESP="$(curl -s --fail-with-body -X POST "$BASE/api/ingestion/file" \
+      -F "file=@$FILE" -F "title=$TITLE")"
+    if [ $? -ne 0 ]; then echo "✗ Ingest failed: $RESP"; exit 1; fi
+    echo "$RESP" | python3 -c 'import sys,json
+d=json.load(sys.stdin)
+if "id" not in d: raise SystemExit(1)
+print("✓ Ingested:", d.get("title"), "-", d.get("char_count",0), "chars into the knowledge base.")' \
+      || { echo "✗ Ingest failed: $RESP"; exit 1; }
+    echo "Opening the Ingestion page…"
+    open "$BASE/ingestion"
+    exit 0
+    ;;
+esac
+
+# ------------------------------------------------------------------- media → Video
+case " $MEDIA_EXTS " in
+  *" $EXT "*) ;;
+  *) echo "Unsupported file type .$EXT"; echo "  media: $MEDIA_EXTS"; echo "  docs:  $DOC_EXTS"; exit 1 ;;
+esac
+
 if [ ! -x "$VENV/bin/python3" ]; then
   echo "✗ Whisper venv not found at $VENV"
-  echo "  Set WHISPER_VENV, or create one: python3 -m venv <dir> && <dir>/bin/pip install faster-whisper"
+  echo "  Set WHISPER_VENV, or: python3 -m venv <dir> && <dir>/bin/pip install faster-whisper"
   exit 1
 fi
 
 echo "================================================================"
-echo " CommandPost Ingest   (local transcribe → upload)"
+echo " CommandPost Ingest   (media → local transcribe → Video library)"
 echo " File:  $NAME"
 echo " Title: $TITLE"
 echo " Type:  $TYPE"
 echo "================================================================"
 
-# 1) Transcribe locally on the Mac (faster-whisper). KMP_DUPLICATE_LIB_OK works
-#    around a libomp double-load crash with ctranslate2 on macOS.
 OUT="$(mktemp -t cp-transcript).json"
 echo "▶ Transcribing locally with faster-whisper ($MODEL)…"
 KMP_DUPLICATE_LIB_OK=TRUE "$VENV/bin/python3" "$SCRIPT_DIR/transcribe_local.py" "$FILE" "$OUT" "$MODEL"
 if [ ! -s "$OUT" ]; then echo "✗ Transcription produced no output"; exit 1; fi
 
-# 2) Split the transcript JSON into upload fields.
 TXT="$(mktemp)"; SEG="$(mktemp)"
 DUR="$(python3 - "$OUT" "$TXT" "$SEG" <<'PY'
 import json, sys
@@ -65,7 +88,6 @@ print(d.get("duration") or "")
 PY
 )"
 
-# 3) Upload media file + transcript. Server skips Whisper, runs AI extraction.
 echo "▶ Uploading media + transcript to $BASE …"
 RESP="$(curl -s --fail-with-body -X POST "$BASE/api/content/video/upload" \
   -F "file=@$FILE" -F "title=$TITLE" -F "type=$TYPE" \
