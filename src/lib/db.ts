@@ -678,7 +678,7 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     CREATE TABLE IF NOT EXISTS kb_documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
-      source_type TEXT NOT NULL DEFAULT 'text' CHECK(source_type IN ('website','pdf','html','text','book')),
+      source_type TEXT NOT NULL DEFAULT 'text' CHECK(source_type IN ('website','pdf','html','text','book','system')),
       source_url TEXT,
       content TEXT NOT NULL DEFAULT '',
       char_count INTEGER NOT NULL DEFAULT 0,
@@ -687,6 +687,38 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_kb_documents_created ON kb_documents(created_at DESC);
   `);
+
+  // Migration: widen kb_documents.source_type CHECK to include 'system'.
+  // SQLite can't ALTER a CHECK constraint, so rebuild the table when the
+  // existing definition predates 'system' (data + ids preserved).
+  const kbDocsSql = (
+    db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='kb_documents'").get() as
+      | { sql?: string }
+      | undefined
+  )?.sql ?? '';
+  if (kbDocsSql && !kbDocsSql.includes("'system'")) {
+    db.pragma('foreign_keys = OFF');
+    const rebuildKbDocs = db.transaction(() => {
+      db.exec(`
+        ALTER TABLE kb_documents RENAME TO kb_documents_old;
+        CREATE TABLE kb_documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          source_type TEXT NOT NULL DEFAULT 'text' CHECK(source_type IN ('website','pdf','html','text','book','system')),
+          source_url TEXT,
+          content TEXT NOT NULL DEFAULT '',
+          char_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO kb_documents (id, title, source_type, source_url, content, char_count, created_at)
+          SELECT id, title, source_type, source_url, content, char_count, created_at FROM kb_documents_old;
+        DROP TABLE kb_documents_old;
+        CREATE INDEX IF NOT EXISTS idx_kb_documents_created ON kb_documents(created_at DESC);
+      `);
+    });
+    rebuildKbDocs();
+    db.pragma('foreign_keys = ON');
+  }
 
   // Migration: kb_chunks (retrieval units; embedding is null until vector RAG is enabled)
   db.exec(`
@@ -717,6 +749,28 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_generations_created ON generations(created_at DESC);
   `);
+
+  // Migration: avatars (target audience personas for Generate)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS avatars (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      summary TEXT,
+      description TEXT,
+      tone TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration: add avatar_id to generations
+  const hasAvatarId = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('generations') WHERE name = 'avatar_id'")
+    .get() as { count: number };
+  if (hasAvatarId.count === 0) {
+    db.exec('ALTER TABLE generations ADD COLUMN avatar_id INTEGER');
+  }
 
   return db;
 }
