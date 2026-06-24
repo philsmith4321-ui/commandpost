@@ -21,6 +21,7 @@ export async function generateContent(opts: {
   topic: string;
   length: LengthPreference;
   chunks: RetrievedChunk[];
+  audience?: string;
 }): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   if (!isClaudeConfigured()) return { ok: false, error: 'AI generation is not configured (no ANTHROPIC_API_KEY).' };
 
@@ -29,11 +30,13 @@ export async function generateContent(opts: {
   if (!opts.topic.trim()) return { ok: false, error: 'Enter a topic to generate from.' };
 
   const reference = buildReference(opts.chunks);
+  const audience = opts.audience?.trim();
 
   const system = `You are a skilled marketing content writer.
 ${def.instruction}
 ${LENGTH_HINT[opts.length] ?? ''}
 
+${audience ? `${audience}\n` : ''}
 ${reference
   ? 'Use the REFERENCE MATERIAL provided by the user as your factual grounding and as a guide to voice, tone, and terminology. Prefer facts and phrasing consistent with it. Do not invent specifics that contradict it.'
   : 'No reference material was provided — write from general best practices for this format.'}

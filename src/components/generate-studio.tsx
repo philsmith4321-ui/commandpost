@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { CONTENT_TYPES } from '@/lib/generation/content-types';
-import type { KbDocument, KbSourceType, Generation, GenContentType, LengthPreference } from '@/lib/types';
+import type { KbDocument, KbSourceType, Generation, GenContentType, LengthPreference, Avatar } from '@/lib/types';
 
 type SourceItem = Omit<KbDocument, 'content'>;
 
@@ -27,9 +27,11 @@ function typeLabel(c: GenContentType): string {
 export function GenerateStudio({
   initialSources,
   initialHistory,
+  avatars,
 }: {
   initialSources: SourceItem[];
   initialHistory: Generation[];
+  avatars: Avatar[];
 }) {
   const [sources] = useState<SourceItem[]>(initialSources);
   const [history, setHistory] = useState<Generation[]>(initialHistory);
@@ -37,6 +39,7 @@ export function GenerateStudio({
   const [contentType, setContentType] = useState<GenContentType>('blog_article');
   const [topic, setTopic] = useState('');
   const [length, setLength] = useState<LengthPreference>('medium');
+  const [avatarSel, setAvatarSel] = useState<'none' | 'all' | number>('none');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<'all' | KbSourceType>('all');
 
@@ -73,7 +76,10 @@ export function GenerateStudio({
     try {
       const res = await fetch('/api/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentType, topic, length, sourceIds: [...selected] }),
+        body: JSON.stringify({
+          contentType, topic, length, sourceIds: [...selected],
+          avatar: avatarSel === 'none' ? null : avatarSel,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Generation failed'); return; }
@@ -142,14 +148,31 @@ export function GenerateStudio({
             placeholder="What should this be about? Add any angle, audience, or key points…"
             className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none" />
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Length:</span>
-              {LENGTHS.map((l) => (
-                <button key={l.value} onClick={() => setLength(l.value)}
-                  className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
-                    length === l.value ? 'bg-indigo-600/20 text-indigo-300' : 'text-gray-400 hover:bg-gray-800'
-                  }`}>{l.label}</button>
-              ))}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Length:</span>
+                {LENGTHS.map((l) => (
+                  <button key={l.value} onClick={() => setLength(l.value)}
+                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                      length === l.value ? 'bg-indigo-600/20 text-indigo-300' : 'text-gray-400 hover:bg-gray-800'
+                    }`}>{l.label}</button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Audience:</span>
+                <select
+                  value={String(avatarSel)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setAvatarSel(v === 'none' || v === 'all' ? v : Number(v));
+                  }}
+                  className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-1 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                >
+                  <option value="none">General audience</option>
+                  {avatars.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {avatars.length >= 2 && <option value="all">All avatars</option>}
+                </select>
+              </div>
             </div>
             <span className="text-xs text-gray-500">{selected.size} source{selected.size === 1 ? '' : 's'} selected</span>
           </div>

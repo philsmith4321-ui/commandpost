@@ -347,6 +347,18 @@ export interface Generation {
   source_ids: string | null;
   source_count: number;
   retrieval_mode: RetrievalMode;
+  avatar_id: number | null;
   result: string;
   created_at: string;
+}
+
+export interface Avatar {
+  id: number;
+  name: string;
+  summary: string | null;
+  description: string | null;
+  tone: string | null;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
 }

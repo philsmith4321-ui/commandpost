@@ -4,6 +4,8 @@ import { retrieveContext } from '@/lib/rag/retrieve';
 import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
 import { isContentType } from '@/lib/generation/content-types';
+import { getAvatar, listAvatars } from '@/lib/queries/avatar-queries';
+import { avatarToAudience, blendedAudience } from '@/lib/generation/audience';
 import type { LengthPreference } from '@/lib/types';
 
 export const maxDuration = 120;
@@ -23,8 +25,20 @@ export async function POST(request: NextRequest) {
   if (!topic) return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
 
   const db = getDb();
+
+  // Resolve audience: avatar id, 'all' (blended), or none.
+  const avatarParam = body?.avatar; // number | 'all' | undefined/null
+  let audience: string | undefined;
+  let avatarId: number | null = null;
+  if (avatarParam === 'all') {
+    audience = blendedAudience(listAvatars(db, true)) || undefined;
+  } else if (Number.isFinite(Number(avatarParam))) {
+    const avatar = getAvatar(db, Number(avatarParam));
+    if (avatar) { audience = avatarToAudience(avatar); avatarId = avatar.id; }
+  }
+
   const { chunks, mode } = await retrieveContext(db, { topic, sourceIds });
-  const gen = await generateContent({ contentType, topic, length, chunks });
+  const gen = await generateContent({ contentType, topic, length, chunks, audience });
   if (!gen.ok) return NextResponse.json({ error: gen.error }, { status: 502 });
 
   const id = createGeneration(db, {
@@ -33,6 +47,7 @@ export async function POST(request: NextRequest) {
     length,
     source_ids: sourceIds,
     retrieval_mode: mode,
+    avatar_id: avatarId,
     result: gen.text,
   });
 

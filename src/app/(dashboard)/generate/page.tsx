@@ -1,6 +1,7 @@
 import { getDb } from '@/lib/db';
 import { listKbDocuments } from '@/lib/queries/kb-queries';
 import { listGenerations } from '@/lib/queries/generation-queries';
+import { listAvatars } from '@/lib/queries/avatar-queries';
 import { GenerateStudio } from '@/components/generate-studio';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,7 @@ export default async function GeneratePage() {
   const db = getDb();
   const sources = listKbDocuments(db);
   const history = listGenerations(db);
+  const avatars = listAvatars(db, true);
 
   return (
     <div className="p-4 sm:p-6">
@@ -20,7 +22,7 @@ export default async function GeneratePage() {
         </div>
       </div>
 
-      <GenerateStudio initialSources={sources} initialHistory={history} />
+      <GenerateStudio initialSources={sources} initialHistory={history} avatars={avatars} />
     </div>
   );
 }

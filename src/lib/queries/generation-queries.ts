@@ -7,14 +7,15 @@ export interface CreateGenerationInput {
   length: LengthPreference;
   source_ids: number[];
   retrieval_mode: RetrievalMode;
+  avatar_id?: number | null;
   result: string;
 }
 
 export function createGeneration(db: Database.Database, input: CreateGenerationInput): number {
   const result = db
     .prepare(
-      `INSERT INTO generations (content_type, topic, length, source_ids, source_count, retrieval_mode, result)
-       VALUES (@content_type, @topic, @length, @source_ids, @source_count, @retrieval_mode, @result)`
+      `INSERT INTO generations (content_type, topic, length, source_ids, source_count, retrieval_mode, avatar_id, result)
+       VALUES (@content_type, @topic, @length, @source_ids, @source_count, @retrieval_mode, @avatar_id, @result)`
     )
     .run({
       content_type: input.content_type,
@@ -23,6 +24,7 @@ export function createGeneration(db: Database.Database, input: CreateGenerationI
       source_ids: JSON.stringify(input.source_ids),
       source_count: input.source_ids.length,
       retrieval_mode: input.retrieval_mode,
+      avatar_id: input.avatar_id ?? null,
       result: input.result,
     });
   return Number(result.lastInsertRowid);
