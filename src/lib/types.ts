@@ -258,3 +258,50 @@ export interface PostVariant {
 export interface PostWithVariants extends Post {
   variants: PostVariant[];
 }
+
+export type MediaType = 'podcast' | 'radio' | 'video' | 'interview' | 'other';
+export type MediaSource = 'upload' | 'transcript' | 'local';
+export type MediaStatus = 'queued' | 'transcribing' | 'extracting' | 'ready' | 'error';
+export type ClipStatus = 'suggested' | 'cut' | 'discarded';
+
+export interface MediaItem {
+  id: number;
+  title: string;
+  media_type: MediaType;
+  source: MediaSource;
+  filename: string | null;
+  original_name: string | null;
+  mime_type: string | null;
+  size: number;
+  duration_seconds: number | null;
+  transcript: string | null;
+  segments: string | null;
+  status: MediaStatus;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaClip {
+  id: number;
+  media_item_id: number;
+  title: string;
+  start_seconds: number;
+  end_seconds: number;
+  transcript_excerpt: string | null;
+  reason: string | null;
+  clip_filename: string | null;
+  status: ClipStatus;
+  created_at: string;
+}
+
+export interface MediaItemWithClips extends MediaItem {
+  clips: MediaClip[];
+}
+
+/** A transcript segment with timing, as produced by Whisper. */
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}

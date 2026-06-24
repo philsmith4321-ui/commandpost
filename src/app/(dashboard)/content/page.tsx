@@ -4,7 +4,14 @@ import { listPosts } from '@/lib/queries/post-queries';
 import { PlatformBadge } from '@/components/platform-badge';
 import { StatusBadge } from '@/components/status-badge';
 
-const TABS = ['all', 'draft', 'scheduled', 'posted', 'archived'];
+const TABS: { label: string; key: string; href: string }[] = [
+  { label: 'all', key: 'all', href: '/content' },
+  { label: 'draft', key: 'draft', href: '/content?status=draft' },
+  { label: 'scheduled', key: 'scheduled', href: '/content?status=scheduled' },
+  { label: 'Video', key: 'video', href: '/content/video' },
+  { label: 'posted', key: 'posted', href: '/content?status=posted' },
+  { label: 'archived', key: 'archived', href: '/content?status=archived' },
+];
 
 export default async function ContentPage({
   searchParams,
@@ -31,13 +38,13 @@ export default async function ContentPage({
       <div className="flex gap-2 mb-6 flex-wrap">
         {TABS.map((tab) => (
           <Link
-            key={tab}
-            href={tab === 'all' ? '/content' : `/content?status=${tab}`}
+            key={tab.key}
+            href={tab.href}
             className={`px-3 py-1.5 rounded-lg text-sm capitalize transition-colors ${
-              active === tab ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:bg-gray-800'
+              active === tab.key ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:bg-gray-800'
             }`}
           >
-            {tab}
+            {tab.label}
           </Link>
         ))}
       </div>

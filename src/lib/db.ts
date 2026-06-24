@@ -637,6 +637,42 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_post_variants_post ON post_variants(post_id);
   `);
 
+  // Migration: create media_items + media_clips tables (Video / shorts extraction)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS media_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      media_type TEXT NOT NULL DEFAULT 'podcast' CHECK(media_type IN ('podcast','radio','video','interview','other')),
+      source TEXT NOT NULL DEFAULT 'upload' CHECK(source IN ('upload','transcript','local')),
+      filename TEXT,
+      original_name TEXT,
+      mime_type TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      duration_seconds REAL,
+      transcript TEXT,
+      segments TEXT,
+      status TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','transcribing','extracting','ready','error')),
+      error TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS media_clips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      media_item_id INTEGER NOT NULL REFERENCES media_items(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      start_seconds REAL NOT NULL DEFAULT 0,
+      end_seconds REAL NOT NULL DEFAULT 0,
+      transcript_excerpt TEXT,
+      reason TEXT,
+      clip_filename TEXT,
+      status TEXT NOT NULL DEFAULT 'suggested' CHECK(status IN ('suggested','cut','discarded')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_media_clips_item ON media_clips(media_item_id);
+  `);
+
   return db;
 }
 
