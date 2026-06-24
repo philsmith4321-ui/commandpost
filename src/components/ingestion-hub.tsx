@@ -13,6 +13,7 @@ const TYPE_BADGE: Record<KbSourceType, string> = {
   html: 'bg-orange-600/20 text-orange-400',
   text: 'bg-purple-600/20 text-purple-400',
   book: 'bg-green-600/20 text-green-400',
+  system: 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/40',
 };
 
 function fmtChars(n: number): string {

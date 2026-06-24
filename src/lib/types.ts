@@ -306,7 +306,7 @@ export interface TranscriptSegment {
   text: string;
 }
 
-export type KbSourceType = 'website' | 'pdf' | 'html' | 'text' | 'book';
+export type KbSourceType = 'website' | 'pdf' | 'html' | 'text' | 'book' | 'system';
 
 export interface KbDocument {
   id: number;
