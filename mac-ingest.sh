@@ -113,7 +113,7 @@ for i in $(seq 1 60); do
 for c in json.load(sys.stdin)["clips"]:
     print("   •", c["title"])'
       echo; echo "Opening the Video tab to review & cut clips…"
-      open "$BASE/content/video"; exit 0 ;;
+      open "$BASE/content"; exit 0 ;;
     error)
       echo; echo "✗ Processing error:"
       printf '%s' "$S" | python3 -c 'import sys,json;print("  ",json.load(sys.stdin).get("error"))'
@@ -121,5 +121,5 @@ for c in json.load(sys.stdin)["clips"]:
   esac
   sleep 3
 done
-echo; echo "Still processing — check $BASE/content/video"
-open "$BASE/content/video"
+echo; echo "Still processing — check $BASE/content"
+open "$BASE/content"

@@ -43,7 +43,6 @@ export function GenerateStudio({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ id: number; text: string; mode: string; used: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pushed, setPushed] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const shownSources = useMemo(
@@ -70,7 +69,7 @@ export function GenerateStudio({
 
   async function generate() {
     if (!topic.trim()) { setError('Enter a topic.'); return; }
-    setBusy(true); setError(null); setResult(null); setPushed(false); setCopied(false);
+    setBusy(true); setError(null); setResult(null); setCopied(false);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -91,12 +90,6 @@ export function GenerateStudio({
     setCopied(true); setTimeout(() => setCopied(false), 1500);
   }
 
-  async function pushToContent() {
-    if (!result) return;
-    const res = await fetch(`/api/generate/${result.id}/to-content`, { method: 'POST' });
-    if (res.ok) setPushed(true);
-  }
-
   async function openHistory(id: number) {
     const res = await fetch(`/api/generate/${id}`);
     if (!res.ok) return;
@@ -104,7 +97,7 @@ export function GenerateStudio({
     setContentType(g.content_type);
     setTopic(g.topic);
     setResult({ id: g.id, text: g.result, mode: g.retrieval_mode, used: g.source_count });
-    setPushed(false); setCopied(false); setError(null);
+    setCopied(false); setError(null);
   }
 
   async function deleteHistory(id: number) {
@@ -181,10 +174,6 @@ export function GenerateStudio({
               <div className="flex items-center gap-2">
                 <button onClick={copy} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs transition-colors">
                   {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button onClick={pushToContent} disabled={pushed}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 disabled:opacity-60 text-xs font-medium transition-colors">
-                  {pushed ? '✓ In Content drafts' : 'Push to Content draft'}
                 </button>
               </div>
             </div>

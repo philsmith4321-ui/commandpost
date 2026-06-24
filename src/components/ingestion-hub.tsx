@@ -141,7 +141,7 @@ function AudioVideoCard() {
         className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors">
         {busy ? 'Uploading…' : 'Upload & Process'}
       </button>
-      <Link href="/content/video" className="block text-center text-xs text-blue-400 hover:underline">Open Video library →</Link>
+      <Link href="/content" className="block text-center text-xs text-blue-400 hover:underline">Open Radio/Video →</Link>
       <Msg msg={msg} />
     </Card>
   );
