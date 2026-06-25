@@ -154,6 +154,7 @@ export function GenerateStudio({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">Audience:</span>
+                <span className="text-[11px] text-pink-400/80 mr-1">Master Profile: always applied</span>
                 <select
                   value={String(avatarSel)}
                   onChange={(e) => {
@@ -162,9 +163,9 @@ export function GenerateStudio({
                   }}
                   className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-1 text-xs text-white focus:border-indigo-500 focus:outline-none"
                 >
-                  <option value="none">General audience</option>
+                  <option value="none">Master only (no vertical)</option>
                   {activeAvatars.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  {activeAvatars.length >= 2 && <option value="all">All avatars</option>}
+                  {activeAvatars.length >= 2 && <option value="all">All verticals ⚠ generic</option>}
                 </select>
               </div>
             </div>
