@@ -3,8 +3,15 @@
 import { useState } from 'react';
 import type { Avatar } from '@/lib/types';
 
-const EMPTY = { name: '', summary: '', description: '', tone: '', is_active: true };
-type Draft = { name: string; summary: string; description: string; tone: string; is_active: boolean };
+const EMPTY = {
+  name: '', summary: '', description: '', tone: '', is_active: true,
+  persona: '', buying_trigger: '', proof_point: '', writing_target: '', what_tried: '',
+  pains: '', desires: '', objections: '', vocabulary: '', trust_triggers: '', channels: '',
+};
+type Draft = typeof EMPTY;
+
+const linesToArray = (s: string): string[] => s.split('\n').map((x) => x.trim()).filter(Boolean);
+const arrayToLines = (a: string[]): string => a.join('\n');
 
 export function AvatarManager({
   avatars,
@@ -25,7 +32,13 @@ export function AvatarManager({
   function startNew() { setEditingId('new'); setDraft(EMPTY); }
   function startEdit(a: Avatar) {
     setEditingId(a.id);
-    setDraft({ name: a.name, summary: a.summary ?? '', description: a.description ?? '', tone: a.tone ?? '', is_active: !!a.is_active });
+    setDraft({
+      name: a.name, summary: a.summary ?? '', description: a.description ?? '', tone: a.tone ?? '', is_active: !!a.is_active,
+      persona: a.persona ?? '', buying_trigger: a.buying_trigger ?? '', proof_point: a.proof_point ?? '',
+      writing_target: a.writing_target ?? '', what_tried: a.what_tried ?? '',
+      pains: arrayToLines(a.pains), desires: arrayToLines(a.desires), objections: arrayToLines(a.objections),
+      vocabulary: arrayToLines(a.vocabulary), trust_triggers: arrayToLines(a.trust_triggers), channels: arrayToLines(a.channels),
+    });
   }
   function cancel() { setEditingId(null); setDraft(EMPTY); }
 
@@ -37,7 +50,13 @@ export function AvatarManager({
       const res = await fetch(isNew ? '/api/avatars' : `/api/avatars/${editingId}`, {
         method: isNew ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({
+          name: draft.name, summary: draft.summary, description: draft.description, tone: draft.tone, is_active: draft.is_active,
+          persona: draft.persona, buying_trigger: draft.buying_trigger, proof_point: draft.proof_point,
+          writing_target: draft.writing_target, what_tried: draft.what_tried,
+          pains: linesToArray(draft.pains), desires: linesToArray(draft.desires), objections: linesToArray(draft.objections),
+          vocabulary: linesToArray(draft.vocabulary), trust_triggers: linesToArray(draft.trust_triggers), channels: linesToArray(draft.channels),
+        }),
       });
       if (res.ok) { cancel(); refresh(); }
     } finally { setBusy(false); }
@@ -80,6 +99,50 @@ export function AvatarManager({
           <Field label="Tone" hint="optional voice guidance for this audience">
             <input value={draft.tone} onChange={(e) => setDraft({ ...draft, tone: e.target.value })}
               placeholder="e.g. reassuring, plain-spoken, no jargon"
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Persona" hint="e.g. David, the Fiduciary">
+            <input value={draft.persona} onChange={(e) => setDraft({ ...draft, persona: e.target.value })}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Pains" hint="in their words — one per line">
+            <textarea value={draft.pains} onChange={(e) => setDraft({ ...draft, pains: e.target.value })} rows={4}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Desired outcomes" hint="one per line">
+            <textarea value={draft.desires} onChange={(e) => setDraft({ ...draft, desires: e.target.value })} rows={2}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Vertical-specific objections" hint="one per line">
+            <textarea value={draft.objections} onChange={(e) => setDraft({ ...draft, objections: e.target.value })} rows={3}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Vocabulary" hint="words/phrases — one per line">
+            <textarea value={draft.vocabulary} onChange={(e) => setDraft({ ...draft, vocabulary: e.target.value })} rows={3}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Trust triggers" hint="one per line">
+            <textarea value={draft.trust_triggers} onChange={(e) => setDraft({ ...draft, trust_triggers: e.target.value })} rows={3}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Channels" hint="one per line">
+            <textarea value={draft.channels} onChange={(e) => setDraft({ ...draft, channels: e.target.value })} rows={2}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Buying trigger">
+            <input value={draft.buying_trigger} onChange={(e) => setDraft({ ...draft, buying_trigger: e.target.value })}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="What they've tried">
+            <textarea value={draft.what_tried} onChange={(e) => setDraft({ ...draft, what_tried: e.target.value })} rows={2}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Proof point" hint="real credibility to inject">
+            <input value={draft.proof_point} onChange={(e) => setDraft({ ...draft, proof_point: e.target.value })}
+              className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
+          </Field>
+          <Field label="Writing target" hint="the one-sentence anchor instruction">
+            <textarea value={draft.writing_target} onChange={(e) => setDraft({ ...draft, writing_target: e.target.value })} rows={3}
               className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-pink-500 focus:outline-none" />
           </Field>
           <label className="flex items-center gap-2 text-sm text-gray-300">
