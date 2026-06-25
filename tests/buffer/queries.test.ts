@@ -93,7 +93,8 @@ describe('buffer queries', () => {
     } } });
     const post = await createPost({ channelId: 'c1', text: 'hi', mode: 'addToQueue', saveToDraft: true });
     expect(post.status).toBe('draft');
-    expect(mockGql.mock.calls[0][1].i.saveToDraft).toBe(true);
+    const vars = mockGql.mock.calls[0][1] as { i: Record<string, unknown> };
+    expect(vars.i.saveToDraft).toBe(true);
   });
 
   it('createPost omits saveToDraft when not set', async () => {
@@ -103,6 +104,7 @@ describe('buffer queries', () => {
       externalLink: null, allowedActions: [],
     } } });
     await createPost({ channelId: 'c1', text: 'hi', mode: 'addToQueue' });
-    expect('saveToDraft' in mockGql.mock.calls[0][1].i).toBe(false);
+    const vars = mockGql.mock.calls[0][1] as { i: Record<string, unknown> };
+    expect('saveToDraft' in vars.i).toBe(false);
   });
 });
