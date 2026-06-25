@@ -84,4 +84,27 @@ describe('buffer queries', () => {
     expect(err).toBeInstanceOf(BufferError);
     expect(err.message).toMatch(/post not found/);
   });
+
+  it('createPost forwards saveToDraft when set', async () => {
+    mockGql.mockResolvedValue({ createPost: { __typename: 'PostActionSuccess', post: {
+      id: 'd1', status: 'draft', text: 'hi', dueAt: null, sentAt: null,
+      channelId: 'c1', channelService: 'twitter', shareMode: 'addToQueue',
+      externalLink: null, allowedActions: [],
+    } } });
+    const post = await createPost({ channelId: 'c1', text: 'hi', mode: 'addToQueue', saveToDraft: true });
+    expect(post.status).toBe('draft');
+    const vars = mockGql.mock.calls[0][1] as { i: Record<string, unknown> };
+    expect(vars.i.saveToDraft).toBe(true);
+  });
+
+  it('createPost omits saveToDraft when not set', async () => {
+    mockGql.mockResolvedValue({ createPost: { __typename: 'PostActionSuccess', post: {
+      id: 'd2', status: 'scheduled', text: 'hi', dueAt: null, sentAt: null,
+      channelId: 'c1', channelService: 'twitter', shareMode: 'addToQueue',
+      externalLink: null, allowedActions: [],
+    } } });
+    await createPost({ channelId: 'c1', text: 'hi', mode: 'addToQueue' });
+    const vars = mockGql.mock.calls[0][1] as { i: Record<string, unknown> };
+    expect('saveToDraft' in vars.i).toBe(false);
+  });
 });

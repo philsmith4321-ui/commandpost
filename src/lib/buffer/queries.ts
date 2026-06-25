@@ -69,7 +69,7 @@ export async function listPosts(opts: { channelIds?: string[]; status?: string[]
   return data.posts.edges.map((e) => toPost(e.node));
 }
 
-export async function createPost(args: { channelId: string; text: string; mode: ShareMode; dueAt?: string }): Promise<BufferPost> {
+export async function createPost(args: { channelId: string; text: string; mode: ShareMode; dueAt?: string; saveToDraft?: boolean }): Promise<BufferPost> {
   const data = await bufferGql<{ createPost: { __typename: string; post?: RawPost; message?: string } }>(
     `mutation($i:CreatePostInput!){ createPost(input:$i){ ${POST_ACTION_RESULT} } }`,
     { i: {
@@ -78,6 +78,7 @@ export async function createPost(args: { channelId: string; text: string; mode: 
       schedulingType: 'automatic',
       mode: args.mode,
       ...(args.dueAt ? { dueAt: args.dueAt } : {}),
+      ...(args.saveToDraft ? { saveToDraft: true } : {}),
       assets: [],
       source: 'commandpost',
     } },

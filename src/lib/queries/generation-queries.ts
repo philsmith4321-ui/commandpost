@@ -43,3 +43,18 @@ export function getGeneration(db: Database.Database, id: number): Generation | u
 export function deleteGeneration(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM generations WHERE id = ?').run(id);
 }
+
+export function setGenerationBufferPostId(db: Database.Database, id: number, bufferPostId: string): void {
+  db.prepare('UPDATE generations SET buffer_post_id = ? WHERE id = ?').run(bufferPostId, id);
+}
+
+export function listUnpushedSocialGenerations(db: Database.Database): Generation[] {
+  return db
+    .prepare(
+      `SELECT * FROM generations
+       WHERE buffer_post_id IS NULL
+         AND content_type IN ('social_linkedin', 'social_twitter', 'social_facebook')
+       ORDER BY created_at DESC, id DESC LIMIT 100`
+    )
+    .all() as Generation[];
+}
