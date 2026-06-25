@@ -74,6 +74,31 @@ export function logTouch(
   }
 }
 
+export interface ContactPatch {
+  email?: string | null;
+  phone?: string | null;
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+}
+
+// Update a lead's contact / mailing-address fields (used by enrichment + manual edits).
+export function updateLeadContact(db: Database.Database, leadId: number, patch: ContactPatch): void {
+  const cols: (keyof ContactPatch)[] = ['email', 'phone', 'street', 'city', 'state', 'postal_code'];
+  const sets: string[] = [];
+  const params: Record<string, string | number | null> = { id: leadId };
+  for (const c of cols) {
+    if (c in patch) {
+      sets.push(`${c} = @${c}`);
+      const v = patch[c];
+      params[c] = typeof v === 'string' && v.trim() ? v.trim() : null;
+    }
+  }
+  if (sets.length === 0) return;
+  db.prepare(`UPDATE leads SET ${sets.join(', ')}, updated_at = datetime('now') WHERE id = @id`).run(params);
+}
+
 export function markReplied(db: Database.Database, leadId: number): void {
   db.prepare("UPDATE leads SET replied_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(leadId);
 }

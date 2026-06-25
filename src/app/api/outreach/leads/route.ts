@@ -8,6 +8,8 @@ import {
   markReplied,
   setFollowUp,
   addLeadNote,
+  updateLeadContact,
+  type ContactPatch,
 } from '@/lib/queries/outreach-lead-queries';
 import type { OutreachChannel } from '@/lib/types';
 
@@ -54,6 +56,15 @@ export async function POST(request: NextRequest) {
       const note = typeof body.note === 'string' ? body.note.trim() : '';
       if (!note) return NextResponse.json({ error: 'empty note' }, { status: 400 });
       addLeadNote(db, leadId, note);
+      break;
+    }
+    case 'update-contact': {
+      const fields: (keyof ContactPatch)[] = ['email', 'phone', 'street', 'city', 'state', 'postal_code'];
+      const patch: ContactPatch = {};
+      for (const f of fields) {
+        if (f in body) patch[f] = typeof body[f] === 'string' ? body[f] : null;
+      }
+      updateLeadContact(db, leadId, patch);
       break;
     }
     default:

@@ -167,6 +167,13 @@ function LeadRow({
   onAct: (leadId: number, body: Record<string, unknown>) => void;
 }) {
   const [note, setNote] = useState('');
+  const [contact, setContact] = useState({
+    street: lead.street ?? '',
+    city: lead.city ?? '',
+    state: lead.state ?? '',
+    postal_code: lead.postal_code ?? '',
+    email: lead.email ?? '',
+  });
   const letter = fmtDate(lead.letter_sent_at);
   const email = fmtDate(lead.email_sent_at);
   const replied = fmtDate(lead.replied_at);
@@ -220,14 +227,18 @@ function LeadRow({
           <td colSpan={5} className="px-3 py-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Mailing address</p>
-                <p className="text-gray-300 whitespace-pre-line">
-                  {[lead.business_name, lead.contact_person, lead.street, [lead.city, lead.state, lead.postal_code].filter(Boolean).join(', ')]
-                    .filter(Boolean)
-                    .join('\n') || 'No address on file'}
-                </p>
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Mailing address &amp; email</p>
+                <div className="space-y-1.5">
+                  <input value={contact.street} onChange={(e) => setContact({ ...contact, street: e.target.value })} placeholder="Street address" className="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500" />
+                  <div className="flex gap-1.5">
+                    <input value={contact.city} onChange={(e) => setContact({ ...contact, city: e.target.value })} placeholder="City" className="flex-1 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500" />
+                    <input value={contact.state} onChange={(e) => setContact({ ...contact, state: e.target.value })} placeholder="State" className="w-16 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500" />
+                    <input value={contact.postal_code} onChange={(e) => setContact({ ...contact, postal_code: e.target.value })} placeholder="ZIP" className="w-24 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500" />
+                  </div>
+                  <input value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} placeholder="Email" className="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500" />
+                  <button onClick={() => onAct(lead.id, { action: 'update-contact', ...contact })} className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs text-white">Save contact</button>
+                </div>
                 <div className="mt-2 text-xs text-gray-400 space-y-0.5">
-                  {lead.email && <p>✉ {lead.email}</p>}
                   {lead.phone && <p>☎ {lead.phone}</p>}
                   {lead.website && <p>🌐 {lead.website}</p>}
                   {lead.socials && <p>@ {lead.socials}</p>}
