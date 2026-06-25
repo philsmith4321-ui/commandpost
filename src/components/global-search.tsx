@@ -31,13 +31,8 @@ export function GlobalSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (query.length < 2) {
-      setResults([]);
-      setIsOpen(false);
-      return;
-    }
+    if (query.length < 2) return;
 
-    setLoading(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
@@ -47,6 +42,17 @@ export function GlobalSearch() {
       setLoading(false);
     }, 200);
   }, [query]);
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (value.length < 2) {
+      setResults([]);
+      setIsOpen(false);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -61,6 +67,7 @@ export function GlobalSearch() {
   function handleSelect(link: string) {
     setIsOpen(false);
     setQuery('');
+    setResults([]);
     router.push(link);
   }
 
@@ -69,7 +76,7 @@ export function GlobalSearch() {
       <input
         type="text"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => handleQueryChange(e.target.value)}
         placeholder="Search..."
         className="w-48 sm:w-64 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
       />

@@ -37,5 +37,5 @@ export function getLatestSnapshots(db: Database.Database): Record<string, { valu
 }
 
 export function getAllMetricNames(db: Database.Database): string[] {
-  return (db.prepare('SELECT DISTINCT metric_name FROM metric_snapshots ORDER BY metric_name').all() as any[]).map(r => r.metric_name);
+  return (db.prepare('SELECT DISTINCT metric_name FROM metric_snapshots ORDER BY metric_name').all() as { metric_name: string }[]).map(r => r.metric_name);
 }

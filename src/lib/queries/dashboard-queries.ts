@@ -29,27 +29,51 @@ export interface RecentActivity {
 }
 
 export function getDashboardSummary(db: Database.Database): DashboardSummary {
-  const activeClients = (db.prepare("SELECT COUNT(*) as count FROM clients WHERE status = 'active' AND deleted_at IS NULL").get() as any).count;
+  const activeClients = (db.prepare("SELECT COUNT(*) as count FROM clients WHERE status = 'active' AND deleted_at IS NULL").get() as { count: number }).count;
   const overdueDeliverables = (db.prepare(`
     SELECT COUNT(*) as count FROM deliverables d
     JOIN projects p ON d.project_id = p.id
     JOIN clients c ON p.client_id = c.id
     WHERE d.status != 'delivered' AND d.due_date < date('now') AND c.deleted_at IS NULL
-  `).get() as any).count;
-  const monthlyRevenue = (db.prepare("SELECT COALESCE(SUM(monthly_value), 0) as total FROM clients WHERE status = 'active' AND deleted_at IS NULL").get() as any).total;
+  `).get() as { count: number }).count;
+  const monthlyRevenue = (db.prepare("SELECT COALESCE(SUM(monthly_value), 0) as total FROM clients WHERE status = 'active' AND deleted_at IS NULL").get() as { total: number }).total;
 
-  const pipelineLeads = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost')").get() as any).count;
-  const pipelineValue = (db.prepare("SELECT COALESCE(SUM(estimated_value), 0) as total FROM leads WHERE stage NOT IN ('won','lost')").get() as any).total;
-  const needsFollowUp = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')").get() as any).count;
+  const pipelineLeads = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost')").get() as { count: number }).count;
+  const pipelineValue = (db.prepare("SELECT COALESCE(SUM(estimated_value), 0) as total FROM leads WHERE stage NOT IN ('won','lost')").get() as { total: number }).total;
+  const needsFollowUp = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')").get() as { count: number }).count;
 
-  const outstandingInvoices = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as any).total;
-  const overdueInvoiceAmount = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as any).total;
+  const outstandingInvoices = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as { total: number }).total;
+  const overdueInvoiceAmount = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as { total: number }).total;
 
   const mrr = getMrr(db);
 
-  const uninvoicedTime = (db.prepare("SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE is_invoiced = 0").get() as any).total;
+  const uninvoicedTime = (db.prepare("SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE is_invoiced = 0").get() as { total: number }).total;
 
   return { activeClients, overdueDeliverables, monthlyRevenue, pipelineLeads, pipelineValue, needsFollowUp, outstandingInvoices, overdueInvoiceAmount, mrr, uninvoicedTime };
+}
+
+interface DeliverableActionRow {
+  title: string;
+  due_date: string;
+  project_id: number;
+  project_name: string;
+  client_id: number;
+  client_name: string;
+}
+
+interface MissedFollowUpRow {
+  id: number;
+  business_name: string;
+  contact_person: string | null;
+  follow_up_date: string;
+}
+
+interface OverdueInvoiceActionRow {
+  id: number;
+  invoice_number: string;
+  total_amount: number;
+  due_date: string;
+  client_name: string;
 }
 
 export function getActionItems(db: Database.Database): ActionItem[] {
@@ -60,7 +84,7 @@ export function getActionItems(db: Database.Database): ActionItem[] {
     FROM deliverables d JOIN projects p ON d.project_id = p.id JOIN clients c ON p.client_id = c.id
     WHERE d.status != 'delivered' AND d.due_date < date('now') AND c.deleted_at IS NULL
     ORDER BY d.due_date ASC
-  `).all() as any[];
+  `).all() as DeliverableActionRow[];
 
   for (const d of overdue) {
     items.push({
@@ -76,7 +100,7 @@ export function getActionItems(db: Database.Database): ActionItem[] {
     FROM deliverables d JOIN projects p ON d.project_id = p.id JOIN clients c ON p.client_id = c.id
     WHERE d.status != 'delivered' AND d.due_date >= date('now') AND d.due_date <= date('now', '+3 days') AND c.deleted_at IS NULL
     ORDER BY d.due_date ASC
-  `).all() as any[];
+  `).all() as DeliverableActionRow[];
 
   for (const d of dueSoon) {
     items.push({
@@ -93,7 +117,7 @@ export function getActionItems(db: Database.Database): ActionItem[] {
     FROM leads
     WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')
     ORDER BY follow_up_date ASC
-  `).all() as any[];
+  `).all() as MissedFollowUpRow[];
 
   for (const lead of missedFollowUps) {
     items.push({
@@ -110,7 +134,7 @@ export function getActionItems(db: Database.Database): ActionItem[] {
     FROM invoices i JOIN clients c ON i.client_id = c.id
     WHERE i.status = 'sent' AND i.due_date < date('now')
     ORDER BY i.due_date ASC
-  `).all() as any[];
+  `).all() as OverdueInvoiceActionRow[];
 
   for (const inv of overdueInvoices) {
     items.push({
@@ -198,6 +222,25 @@ export interface UpcomingDeadline {
   link: string;
 }
 
+interface DeliverableDeadlineRow {
+  title: string;
+  due_date: string;
+  project_id: number;
+  client_id: number;
+}
+
+interface FollowUpDeadlineRow {
+  id: number;
+  business_name: string;
+  follow_up_date: string;
+}
+
+interface ContractDeadlineRow {
+  id: number;
+  title: string;
+  expires_at: string;
+}
+
 export function getUpcomingDeadlines(db: Database.Database): UpcomingDeadline[] {
   const deadlines: UpcomingDeadline[] = [];
 
@@ -207,7 +250,7 @@ export function getUpcomingDeadlines(db: Database.Database): UpcomingDeadline[] 
     FROM deliverables d JOIN projects p ON d.project_id = p.id JOIN clients c ON p.client_id = c.id
     WHERE d.status != 'delivered' AND d.due_date >= date('now') AND d.due_date <= date('now', '+7 days') AND c.deleted_at IS NULL
     ORDER BY d.due_date ASC
-  `).all() as any[];
+  `).all() as DeliverableDeadlineRow[];
 
   for (const d of deliverables) {
     deadlines.push({ type: 'deliverable', title: d.title, date: d.due_date, link: `/clients/${d.client_id}/projects/${d.project_id}` });
@@ -218,7 +261,7 @@ export function getUpcomingDeadlines(db: Database.Database): UpcomingDeadline[] 
     SELECT id, business_name, follow_up_date
     FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date >= date('now') AND follow_up_date <= date('now', '+7 days')
     ORDER BY follow_up_date ASC
-  `).all() as any[];
+  `).all() as FollowUpDeadlineRow[];
 
   for (const f of followUps) {
     deadlines.push({ type: 'follow_up', title: f.business_name, date: f.follow_up_date, link: `/pipeline/${f.id}` });
@@ -229,7 +272,7 @@ export function getUpcomingDeadlines(db: Database.Database): UpcomingDeadline[] 
     SELECT id, title, expires_at
     FROM contracts WHERE expires_at >= date('now') AND expires_at <= date('now', '+30 days')
     ORDER BY expires_at ASC
-  `).all() as any[];
+  `).all() as ContractDeadlineRow[];
 
   for (const c of contracts) {
     deadlines.push({ type: 'contract', title: c.title, date: c.expires_at, link: `/contracts` });

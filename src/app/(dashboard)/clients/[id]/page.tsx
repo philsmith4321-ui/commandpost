@@ -38,6 +38,11 @@ export default async function ClientDetailPage({
     notFound();
   }
 
+  const clientExtra = client as typeof client & {
+    is_pinned?: number;
+    portal_token?: string | null;
+  };
+
   const projects = db
     .prepare('SELECT * FROM projects WHERE client_id = ? ORDER BY created_at DESC')
     .all(Number(id)) as Project[];
@@ -71,9 +76,9 @@ export default async function ClientDetailPage({
         <StatusBadge status={client.status} />
         <form action={togglePinClientAction} className="ml-auto">
           <input type="hidden" name="client_id" value={client.id} />
-          <input type="hidden" name="is_pinned" value={(client as any).is_pinned || 0} />
-          <button type="submit" className="px-3 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors" title={(client as any).is_pinned ? 'Unpin from dashboard' : 'Pin to dashboard'}>
-            {(client as any).is_pinned ? '★' : '☆'}
+          <input type="hidden" name="is_pinned" value={clientExtra.is_pinned || 0} />
+          <button type="submit" className="px-3 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors" title={clientExtra.is_pinned ? 'Unpin from dashboard' : 'Pin to dashboard'}>
+            {clientExtra.is_pinned ? '★' : '☆'}
           </button>
         </form>
         <Link
@@ -150,7 +155,7 @@ export default async function ClientDetailPage({
 
       {/* Client Portal */}
       <div className="mb-8">
-        <PortalLinkCard clientId={client.id} token={(client as any).portal_token || null} />
+        <PortalLinkCard clientId={client.id} token={clientExtra.portal_token || null} />
       </div>
 
       {/* Recurring Invoices */}

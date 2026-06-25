@@ -128,6 +128,16 @@ export interface ProjectWithProgress {
   total_revenue: number;
 }
 
+interface ProjectProgressRow {
+  id: number;
+  client_id: number;
+  client_name: string;
+  name: string;
+  status: string;
+  start_date: string | null;
+  hourly_rate: number | null;
+}
+
 export function getProjectsWithProgress(db: Database.Database): ProjectWithProgress[] {
   const projects = db.prepare(`
     SELECT p.id, p.client_id, c.name as client_name, p.name, p.status,
@@ -135,13 +145,13 @@ export function getProjectsWithProgress(db: Database.Database): ProjectWithProgr
     FROM projects p JOIN clients c ON p.client_id = c.id
     WHERE c.deleted_at IS NULL
     ORDER BY p.status ASC, p.updated_at DESC
-  `).all() as any[];
+  `).all() as ProjectProgressRow[];
 
   return projects.map(p => {
-    const total = (db.prepare('SELECT COUNT(*) as count FROM deliverables WHERE project_id = ?').get(p.id) as any).count;
-    const completed = (db.prepare("SELECT COUNT(*) as count FROM deliverables WHERE project_id = ? AND status = 'delivered'").get(p.id) as any).count;
-    const hours = (db.prepare('SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE project_id = ?').get(p.id) as any).total / 60;
-    const revenue = (db.prepare('SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE project_id = ?').get(p.id) as any).total;
+    const total = (db.prepare('SELECT COUNT(*) as count FROM deliverables WHERE project_id = ?').get(p.id) as { count: number }).count;
+    const completed = (db.prepare("SELECT COUNT(*) as count FROM deliverables WHERE project_id = ? AND status = 'delivered'").get(p.id) as { count: number }).count;
+    const hours = (db.prepare('SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE project_id = ?').get(p.id) as { total: number }).total / 60;
+    const revenue = (db.prepare('SELECT COALESCE(SUM(duration_minutes * hourly_rate / 60.0), 0) as total FROM time_entries WHERE project_id = ?').get(p.id) as { total: number }).total;
 
     return {
       ...p,

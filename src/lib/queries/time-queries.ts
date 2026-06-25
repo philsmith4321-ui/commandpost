@@ -62,7 +62,7 @@ export function getProjectTimeSummary(db: Database.Database, projectId: number):
       COALESCE(SUM(CASE WHEN is_invoiced = 0 THEN duration_minutes ELSE 0 END), 0) as uninvoiced_minutes,
       COALESCE(SUM(CASE WHEN is_invoiced = 0 THEN duration_minutes * hourly_rate / 60.0 ELSE 0 END), 0) as uninvoiced_cost
     FROM time_entries WHERE project_id = ?
-  `).get(projectId) as any;
+  `).get(projectId) as { total_minutes: number; total_cost: number; uninvoiced_minutes: number; uninvoiced_cost: number };
 
   return {
     totalHours: row.total_minutes / 60,
@@ -78,7 +78,7 @@ export function getDeliverableHours(db: Database.Database, projectId: number): R
     FROM time_entries
     WHERE project_id = ? AND deliverable_id IS NOT NULL
     GROUP BY deliverable_id
-  `).all(projectId) as any[];
+  `).all(projectId) as { deliverable_id: number; total_minutes: number }[];
 
   const result: Record<number, number> = {};
   for (const row of rows) {
@@ -103,7 +103,7 @@ export function getTimeStats(db: Database.Database): TimeStats {
       COALESCE(SUM(CASE WHEN is_invoiced = 0 THEN duration_minutes * hourly_rate / 60.0 ELSE 0 END), 0) as uninvoiced_total,
       COALESCE(SUM(CASE WHEN is_invoiced = 0 THEN duration_minutes ELSE 0 END), 0) as uninvoiced_minutes
     FROM time_entries
-  `).get(monthStart) as any;
+  `).get(monthStart) as { month_minutes: number; uninvoiced_total: number; uninvoiced_minutes: number };
 
   return {
     hoursThisMonth: row.month_minutes / 60,
@@ -123,7 +123,7 @@ export function getTimeEntriesFiltered(
   filters: { clientId?: number; projectId?: number; startDate?: string; endDate?: string; invoiced?: boolean }
 ): TimeEntryWithDetails[] {
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: (string | number)[] = [];
 
   if (filters.clientId) {
     conditions.push('p.client_id = ?');

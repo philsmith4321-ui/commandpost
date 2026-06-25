@@ -18,11 +18,11 @@ export default async function PnlReportPage({
 
   const revenue = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ? AND paid_at <= ?"
-  ).get(start, end + 'T23:59:59') as any).total;
+  ).get(start, end + 'T23:59:59') as { total: number }).total;
 
   const invoiceCount = (db.prepare(
     "SELECT COUNT(*) as count FROM invoices WHERE status = 'paid' AND paid_at >= ? AND paid_at <= ?"
-  ).get(start, end + 'T23:59:59') as any).count;
+  ).get(start, end + 'T23:59:59') as { count: number }).count;
 
   const expensesByCategory = db.prepare(
     "SELECT category, SUM(amount) as total, COUNT(*) as count FROM expenses WHERE expense_date >= ? AND expense_date <= ? GROUP BY category ORDER BY total DESC"

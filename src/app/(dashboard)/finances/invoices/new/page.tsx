@@ -13,7 +13,7 @@ export default function NewInvoicePage() {
   const nextNumber = last ? `INV-${String(parseInt(last.invoice_number.replace('INV-', ''), 10) + 1).padStart(4, '0')}` : 'INV-0001';
 
   // Default due date: 14 days from now
-  const defaultDue = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+  const defaultDue = new Date(new Date().getTime() + 14 * 86400000).toISOString().split('T')[0];
 
   return (
     <div className="p-4 sm:p-6">

@@ -14,35 +14,35 @@ export default async function YearlyReportPage({
 
   const revenue = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND strftime('%Y', paid_at) = ?"
-  ).get(year) as any).total;
+  ).get(year) as { total: number }).total;
   const expenses = (db.prepare(
     "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE strftime('%Y', expense_date) = ?"
-  ).get(year) as any).total;
+  ).get(year) as { total: number }).total;
   const invoicesPaid = (db.prepare(
     "SELECT COUNT(*) as count FROM invoices WHERE status = 'paid' AND strftime('%Y', paid_at) = ?"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
   const invoicesSent = (db.prepare(
     "SELECT COUNT(*) as count FROM invoices WHERE sent_at IS NOT NULL AND strftime('%Y', sent_at) = ?"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
   const newClients = (db.prepare(
     "SELECT COUNT(*) as count FROM clients WHERE strftime('%Y', created_at) = ? AND deleted_at IS NULL"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
   const leadsCreated = (db.prepare(
     "SELECT COUNT(*) as count FROM leads WHERE strftime('%Y', created_at) = ?"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
   const leadsWon = (db.prepare(
     "SELECT COUNT(*) as count FROM leads WHERE stage = 'won' AND strftime('%Y', updated_at) = ?"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
   const totalMinutes = (db.prepare(
     "SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE strftime('%Y', entry_date) = ?"
-  ).get(year) as any).total;
+  ).get(year) as { total: number }).total;
   const totalHours = totalMinutes / 60;
   const proposalsSent = (db.prepare(
     "SELECT COUNT(*) as count FROM proposals WHERE strftime('%Y', created_at) = ?"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
   const proposalsAccepted = (db.prepare(
     "SELECT COUNT(*) as count FROM proposals WHERE status = 'accepted' AND strftime('%Y', accepted_at) = ?"
-  ).get(year) as any).count;
+  ).get(year) as { count: number }).count;
 
   const monthlyRevenue = db.prepare(
     "SELECT strftime('%m', paid_at) as month, SUM(total_amount) as total FROM invoices WHERE status = 'paid' AND strftime('%Y', paid_at) = ? GROUP BY strftime('%m', paid_at) ORDER BY month"

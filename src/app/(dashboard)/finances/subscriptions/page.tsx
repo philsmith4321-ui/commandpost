@@ -56,10 +56,6 @@ export default function SubscriptionsPage() {
     s + (sub.frequency === 'yearly' ? sub.amount / 12 : sub.amount), 0);
   const yearlyTotal = monthlyTotal * 12;
 
-  const upcoming = activeSubs
-    .filter(s => s.next_renewal)
-    .sort((a, b) => (a.next_renewal || '').localeCompare(b.next_renewal || ''));
-
   return (
     <div className="p-4 sm:p-6">
       <h1 className="text-2xl font-bold mb-4">Finances</h1>

@@ -21,7 +21,7 @@ export function listRecurringTasks(db: Database.Database): (RecurringTask & { cl
     LEFT JOIN projects p ON rt.project_id = p.id
     WHERE c.deleted_at IS NULL
     ORDER BY rt.title
-  `).all() as any[];
+  `).all() as (RecurringTask & { client_name: string; project_name: string | null })[];
 }
 
 export function getDueRecurringTasks(db: Database.Database): RecurringTask[] {

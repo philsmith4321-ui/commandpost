@@ -54,7 +54,7 @@ export async function generateInvoiceFromTimeAction(formData: FormData) {
   if (entries.length === 0) return;
 
   // Generate invoice number
-  const lastInvoice = db.prepare("SELECT invoice_number FROM invoices ORDER BY id DESC LIMIT 1").get() as any;
+  const lastInvoice = db.prepare("SELECT invoice_number FROM invoices ORDER BY id DESC LIMIT 1").get() as { invoice_number: string } | undefined;
   let nextNum = 1001;
   if (lastInvoice) {
     const match = lastInvoice.invoice_number.match(/(\d+)/);
@@ -66,7 +66,7 @@ export async function generateInvoiceFromTimeAction(formData: FormData) {
   const lineItems: { description: string; quantity: number; unit_price: number; amount: number }[] = [];
   for (const entry of entries) {
     const deliverableTitle = entry.deliverable_id
-      ? (db.prepare('SELECT title FROM deliverables WHERE id = ?').get(entry.deliverable_id) as any)?.title
+      ? (db.prepare('SELECT title FROM deliverables WHERE id = ?').get(entry.deliverable_id) as { title: string } | undefined)?.title
       : null;
     const desc = deliverableTitle
       ? entry.description ? `${deliverableTitle} — ${entry.description}` : deliverableTitle
@@ -98,7 +98,7 @@ export async function generateInvoiceFromTimeAction(formData: FormData) {
   // Mark entries as invoiced
   markEntriesInvoiced(db, entries.map(e => e.id), invoiceId);
 
-  const clientName = (db.prepare('SELECT name FROM clients WHERE id = ?').get(clientId) as any)?.name;
+  const clientName = (db.prepare('SELECT name FROM clients WHERE id = ?').get(clientId) as { name: string } | undefined)?.name;
   await createNotification(db, {
     type: 'time_invoiced',
     title: `Time invoiced: ${invoiceNumber}`,

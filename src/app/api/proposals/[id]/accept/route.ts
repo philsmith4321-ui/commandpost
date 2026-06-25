@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getProposalByToken, getProposalItems, updateProposalStatus } from '@/lib/queries/proposal-queries';
+import { getProposalByToken, getProposalItems } from '@/lib/queries/proposal-queries';
 import { createContract } from '@/lib/queries/contract-queries';
 import { createNotification } from '@/lib/notifications';
 import { createClient } from '@/lib/queries/client-queries';
@@ -38,7 +38,15 @@ export async function POST(
 
   if (!clientId && proposal.lead_id) {
     // Convert lead to client
-    const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(proposal.lead_id) as any;
+    const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(proposal.lead_id) as {
+      stage: string;
+      business_name: string;
+      contact_person: string | null;
+      email: string | null;
+      phone: string | null;
+      source: string | null;
+      estimated_value: number | null;
+    } | undefined;
     if (lead && lead.stage !== 'won') {
       const newClientId = createClient(db, {
         name: lead.business_name,

@@ -36,7 +36,7 @@ export function getWebhooksForEvent(db: Database.Database, event: string): Webho
   return db.prepare("SELECT * FROM webhooks WHERE enabled = 1 AND (',' || events || ',') LIKE '%,' || ? || ',%'").all(event) as WebhookRow[];
 }
 
-export async function fireWebhooks(db: Database.Database, event: string, payload: Record<string, any>): Promise<void> {
+export async function fireWebhooks(db: Database.Database, event: string, payload: Record<string, unknown>): Promise<void> {
   const hooks = getWebhooksForEvent(db, event);
   for (const hook of hooks) {
     try {

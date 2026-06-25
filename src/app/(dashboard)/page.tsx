@@ -34,8 +34,8 @@ export default function DashboardPage() {
   `).get() as { total: number; drafts: number; sent: number; accepted: number; pending_value: number };
 
   // Pipeline conversion rate
-  const totalLeads = (db.prepare("SELECT COUNT(*) as cnt FROM leads").get() as any).cnt;
-  const wonLeads = (db.prepare("SELECT COUNT(*) as cnt FROM leads WHERE stage = 'won'").get() as any).cnt;
+  const totalLeads = (db.prepare("SELECT COUNT(*) as cnt FROM leads").get() as { cnt: number }).cnt;
+  const wonLeads = (db.prepare("SELECT COUNT(*) as cnt FROM leads WHERE stage = 'won'").get() as { cnt: number }).cnt;
   const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
 
   // Expiring contracts
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const today = new Date().toISOString().split('T')[0];
   const todayMinutes = (db.prepare(
     "SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE entry_date = ?"
-  ).get(today) as any).total;
+  ).get(today) as { total: number }).total;
   const todayHours = todayMinutes / 60;
 
   // This week's revenue
@@ -59,7 +59,7 @@ export default function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekRevenue = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ?"
-  ).get(weekStart.toISOString().split('T')[0]) as any).total;
+  ).get(weekStart.toISOString().split('T')[0]) as { total: number }).total;
 
   // Upcoming follow-ups
   const followUps = db.prepare(

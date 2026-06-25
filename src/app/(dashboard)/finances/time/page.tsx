@@ -36,11 +36,8 @@ export default async function FinancesTimePage({
 
       {/* Stats */}
       {(() => {
-        const avgRate = entries.length > 0
-          ? entries.reduce((s, e: any) => s + e.hourly_rate, 0) / entries.length
-          : 0;
-        const totalHours = entries.reduce((s, e: any) => s + e.duration_minutes, 0) / 60;
-        const totalRevenue = entries.reduce((s, e: any) => s + (e.duration_minutes * e.hourly_rate / 60), 0);
+        const totalHours = entries.reduce((s, e) => s + e.duration_minutes, 0) / 60;
+        const totalRevenue = entries.reduce((s, e) => s + (e.duration_minutes * e.hourly_rate / 60), 0);
         const effectiveRate = totalHours > 0 ? totalRevenue / totalHours : 0;
 
         // Weekly breakdown for last 4 weeks
@@ -52,8 +49,8 @@ export default async function FinancesTimePage({
           start.setDate(start.getDate() - 6);
           const startStr = start.toISOString().split('T')[0];
           const endStr = end.toISOString().split('T')[0];
-          const weekEntries = entries.filter((e: any) => e.entry_date >= startStr && e.entry_date <= endStr);
-          const weekHours = weekEntries.reduce((s: number, e: any) => s + e.duration_minutes, 0) / 60;
+          const weekEntries = entries.filter((e) => e.entry_date >= startStr && e.entry_date <= endStr);
+          const weekHours = weekEntries.reduce((s, e) => s + e.duration_minutes, 0) / 60;
           weeks.push({ label: w === 0 ? 'This week' : w === 1 ? 'Last week' : `${w} weeks ago`, hours: weekHours });
         }
 

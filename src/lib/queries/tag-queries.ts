@@ -20,7 +20,7 @@ export function getClientTags(db: Database.Database, clientId: number): Tag[] {
 export function createTag(db: Database.Database, name: string, color: string): number {
   const result = db.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)').run(name, color);
   if (result.changes === 0) {
-    return (db.prepare('SELECT id FROM tags WHERE name = ?').get(name) as any).id;
+    return (db.prepare('SELECT id FROM tags WHERE name = ?').get(name) as { id: number }).id;
   }
   return Number(result.lastInsertRowid);
 }
@@ -41,5 +41,5 @@ export function getClientsByTag(db: Database.Database, tagId: number): { id: num
   return db.prepare(`
     SELECT c.id, c.name FROM clients c JOIN client_tags ct ON c.id = ct.client_id
     WHERE ct.tag_id = ? AND c.deleted_at IS NULL ORDER BY c.name
-  `).all(tagId) as any[];
+  `).all(tagId) as { id: number; name: string }[];
 }

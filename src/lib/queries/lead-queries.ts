@@ -77,7 +77,7 @@ export function listAllLeads(db: Database.Database): Lead[] {
 
 export function updateLead(db: Database.Database, id: number, input: UpdateLeadInput): void {
   const fields: string[] = [];
-  const params: any = { id };
+  const params: Record<string, string | number | null> = { id };
 
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
@@ -122,9 +122,9 @@ export function getStageHistory(db: Database.Database, leadId: number): LeadStag
 }
 
 export function getPipelineSummary(db: Database.Database): PipelineSummary {
-  const totalLeads = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost')").get() as any).count;
-  const totalValue = (db.prepare("SELECT COALESCE(SUM(estimated_value), 0) as total FROM leads WHERE stage NOT IN ('won','lost')").get() as any).total;
-  const needsFollowUp = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')").get() as any).count;
+  const totalLeads = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost')").get() as { count: number }).count;
+  const totalValue = (db.prepare("SELECT COALESCE(SUM(estimated_value), 0) as total FROM leads WHERE stage NOT IN ('won','lost')").get() as { total: number }).total;
+  const needsFollowUp = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')").get() as { count: number }).count;
   return { totalLeads, totalValue, needsFollowUp };
 }
 
@@ -191,14 +191,14 @@ export function getLeadScores(db: Database.Database): ScoredLead[] {
       : 5;
 
     // Engagement score (0-25): based on notes count
-    const noteCount = (db.prepare('SELECT COUNT(*) as count FROM lead_notes WHERE lead_id = ?').get(lead.id) as any).count;
+    const noteCount = (db.prepare('SELECT COUNT(*) as count FROM lead_notes WHERE lead_id = ?').get(lead.id) as { count: number }).count;
     const engagement = Math.min(25, noteCount * 5);
 
     // Stage score (0-25): further along = higher
     const stage = Math.round(((stageScores[lead.stage] || 0) / 80) * 25);
 
     // Recency score (0-25): recent activity = higher
-    const lastNote = db.prepare('SELECT created_at FROM lead_notes WHERE lead_id = ? ORDER BY created_at DESC LIMIT 1').get(lead.id) as any;
+    const lastNote = db.prepare('SELECT created_at FROM lead_notes WHERE lead_id = ? ORDER BY created_at DESC LIMIT 1').get(lead.id) as { created_at: string } | undefined;
     let recency = 5;
     if (lastNote) {
       const daysSince = Math.floor((Date.now() - new Date(lastNote.created_at + 'Z').getTime()) / (1000 * 60 * 60 * 24));

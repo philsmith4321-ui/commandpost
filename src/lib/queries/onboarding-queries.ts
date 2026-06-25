@@ -25,10 +25,10 @@ export interface OnboardingItem {
 }
 
 export function listOnboardingTemplates(db: Database.Database): OnboardingTemplate[] {
-  const templates = db.prepare('SELECT * FROM onboarding_templates ORDER BY name').all() as any[];
+  const templates = db.prepare('SELECT * FROM onboarding_templates ORDER BY name').all() as { id: number; name: string }[];
   return templates.map(t => ({
     ...t,
-    items: db.prepare('SELECT * FROM onboarding_template_items WHERE template_id = ? ORDER BY sort_order').all(t.id) as any[],
+    items: db.prepare('SELECT * FROM onboarding_template_items WHERE template_id = ? ORDER BY sort_order').all(t.id) as { id: number; title: string; sort_order: number }[],
   }));
 }
 
@@ -45,7 +45,7 @@ export function deleteOnboardingTemplate(db: Database.Database, id: number): voi
 }
 
 export function getClientChecklists(db: Database.Database, clientId: number): OnboardingChecklist[] {
-  const checklists = db.prepare('SELECT * FROM onboarding_checklists WHERE client_id = ? ORDER BY created_at DESC').all(clientId) as any[];
+  const checklists = db.prepare('SELECT * FROM onboarding_checklists WHERE client_id = ? ORDER BY created_at DESC').all(clientId) as { id: number; client_id: number; template_name: string; created_at: string }[];
   return checklists.map(c => {
     const items = db.prepare('SELECT * FROM onboarding_items WHERE checklist_id = ? ORDER BY sort_order').all(c.id) as OnboardingItem[];
     const done = items.filter(i => i.is_done).length;
@@ -54,22 +54,22 @@ export function getClientChecklists(db: Database.Database, clientId: number): On
 }
 
 export function startOnboarding(db: Database.Database, clientId: number, templateId: number): number {
-  const template = db.prepare('SELECT * FROM onboarding_templates WHERE id = ?').get(templateId) as any;
+  const template = db.prepare('SELECT * FROM onboarding_templates WHERE id = ?').get(templateId) as { id: number; name: string } | undefined;
   if (!template) return 0;
 
-  const items = db.prepare('SELECT * FROM onboarding_template_items WHERE template_id = ? ORDER BY sort_order').all(templateId) as any[];
+  const items = db.prepare('SELECT * FROM onboarding_template_items WHERE template_id = ? ORDER BY sort_order').all(templateId) as { title: string; sort_order: number }[];
 
   const result = db.prepare('INSERT INTO onboarding_checklists (client_id, template_name) VALUES (?, ?)').run(clientId, template.name);
   const checklistId = Number(result.lastInsertRowid);
 
   const stmt = db.prepare('INSERT INTO onboarding_items (checklist_id, title, sort_order) VALUES (?, ?, ?)');
-  items.forEach((item: any) => stmt.run(checklistId, item.title, item.sort_order));
+  items.forEach((item) => stmt.run(checklistId, item.title, item.sort_order));
 
   return checklistId;
 }
 
 export function toggleOnboardingItem(db: Database.Database, itemId: number): void {
-  const item = db.prepare('SELECT * FROM onboarding_items WHERE id = ?').get(itemId) as any;
+  const item = db.prepare('SELECT * FROM onboarding_items WHERE id = ?').get(itemId) as OnboardingItem | undefined;
   if (!item) return;
 
   if (item.is_done) {

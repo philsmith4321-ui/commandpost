@@ -1,5 +1,5 @@
 import { getDb } from '@/lib/db';
-import { listTemplates, getTemplateDeliverables } from '@/lib/queries/template-queries';
+import { listTemplates } from '@/lib/queries/template-queries';
 import { createProjectFromTemplateAction } from '@/lib/actions/template-actions';
 import type { Client } from '@/lib/types';
 

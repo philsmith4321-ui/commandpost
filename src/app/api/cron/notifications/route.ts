@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
     SELECT i.id, i.invoice_number, i.total_amount, c.name as client_name
     FROM invoices i JOIN clients c ON i.client_id = c.id
     WHERE i.status = 'sent' AND i.due_date < date('now')
-  `).all() as any[];
+  `).all() as { id: number; invoice_number: string; total_amount: number; client_name: string }[];
 
   for (const inv of overdueInvoices) {
-    if (!hasAlertBeenSentToday(db, 'invoice_overdue' as any, inv.id)) {
+    if (!hasAlertBeenSentToday(db, 'invoice_overdue', inv.id)) {
       await createNotification(db, {
         type: 'invoice_overdue',
         title: `Invoice ${inv.invoice_number} overdue`,
@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
     SELECT d.id, d.title, p.id as project_id, c.id as client_id, c.name as client_name, p.name as project_name
     FROM deliverables d JOIN projects p ON d.project_id = p.id JOIN clients c ON p.client_id = c.id
     WHERE d.status != 'delivered' AND d.due_date < date('now') AND c.deleted_at IS NULL
-  `).all() as any[];
+  `).all() as { id: number; title: string; project_id: number; client_id: number; client_name: string; project_name: string }[];
 
   for (const d of overdueDeliverables) {
-    if (!hasAlertBeenSentToday(db, 'deliverable_overdue' as any, d.id)) {
+    if (!hasAlertBeenSentToday(db, 'deliverable_overdue', d.id)) {
       await createNotification(db, {
         type: 'deliverable_overdue',
         title: `Deliverable overdue: ${d.title}`,
@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
   const followUps = db.prepare(`
     SELECT id, business_name, contact_person
     FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date <= date('now')
-  `).all() as any[];
+  `).all() as { id: number; business_name: string; contact_person: string | null }[];
 
   for (const lead of followUps) {
-    if (!hasAlertBeenSentToday(db, 'follow_up_due' as any, lead.id)) {
+    if (!hasAlertBeenSentToday(db, 'follow_up_due', lead.id)) {
       await createNotification(db, {
         type: 'follow_up_due',
         title: `Follow up: ${lead.business_name}`,

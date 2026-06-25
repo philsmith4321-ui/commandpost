@@ -97,9 +97,10 @@ export function CommandPalette() {
     }
   }, [isOpen]);
 
-  useEffect(() => {
+  function handleQueryChange(value: string) {
+    setQuery(value);
     setSelectedIndex(0);
-  }, [query]);
+  }
 
   function handleInputKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
@@ -127,7 +128,7 @@ export function CommandPalette() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={handleInputKeyDown}
             placeholder="Type a command..."
             className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-500"

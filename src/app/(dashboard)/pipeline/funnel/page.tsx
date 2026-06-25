@@ -9,7 +9,7 @@ export default function FunnelPage() {
   const stages = ['new', 'contacted', 'discovery', 'proposal', 'negotiating', 'won', 'lost'] as const;
   const stageCounts: Record<string, number> = {};
   for (const stage of stages) {
-    stageCounts[stage] = (db.prepare('SELECT COUNT(*) as count FROM leads WHERE stage = ?').get(stage) as any).count;
+    stageCounts[stage] = (db.prepare('SELECT COUNT(*) as count FROM leads WHERE stage = ?').get(stage) as { count: number }).count;
   }
 
   // Historical conversion: how many leads passed through each stage
@@ -17,10 +17,10 @@ export default function FunnelPage() {
   for (const stage of stages) {
     stageHistoryCounts[stage] = (db.prepare(
       'SELECT COUNT(DISTINCT lead_id) as count FROM lead_stage_history WHERE stage = ?'
-    ).get(stage) as any).count;
+    ).get(stage) as { count: number }).count;
   }
 
-  const totalLeads = (db.prepare('SELECT COUNT(*) as count FROM leads').get() as any).count;
+  const totalLeads = (db.prepare('SELECT COUNT(*) as count FROM leads').get() as { count: number }).count;
   const wonCount = stageCounts['won'] || 0;
   const lostCount = stageCounts['lost'] || 0;
   const overallConversion = totalLeads > 0 ? Math.round((wonCount / totalLeads) * 100) : 0;
@@ -36,7 +36,7 @@ export default function FunnelPage() {
     FROM lead_stage_history h1
     JOIN lead_stage_history h2 ON h1.lead_id = h2.lead_id
     WHERE h1.stage = 'new' AND h2.stage = 'won'
-  `).get() as any;
+  `).get() as { avg_days: number | null } | undefined;
   const avgDays = avgConversion?.avg_days ? Math.round(avgConversion.avg_days) : null;
 
   const funnelStages = ['new', 'contacted', 'discovery', 'proposal', 'negotiating'] as const;

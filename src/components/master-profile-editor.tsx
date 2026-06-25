@@ -50,14 +50,14 @@ export function MasterProfileEditor({ initialMaster }: { initialMaster: MasterPr
   return (
     <div className="bg-gray-900 border border-pink-600/40 rounded-2xl p-5 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Master Profile — "The Owner Who Built It"</h3>
+        <h3 className="font-semibold">Master Profile — &ldquo;The Owner Who Built It&rdquo;</h3>
         <span className="text-xs text-gray-500">Always applied to every piece</span>
       </div>
       <div><label className={lbl}>Core identity</label>
         <textarea className={ta} rows={3} value={identity} onChange={(e) => setIdentity(e.target.value)} /></div>
       <div><label className={lbl}>What they actually want</label>
         <textarea className={ta} rows={2} value={wants} onChange={(e) => setWants(e.target.value)} /></div>
-      <div><label className={lbl}>How they've been burned</label>
+      <div><label className={lbl}>How they&rsquo;ve been burned</label>
         <textarea className={ta} rows={2} value={burnedBy} onChange={(e) => setBurnedBy(e.target.value)} /></div>
       <div><label className={lbl}>Universal buying trigger</label>
         <textarea className={ta} rows={2} value={buyingTrigger} onChange={(e) => setBuyingTrigger(e.target.value)} /></div>

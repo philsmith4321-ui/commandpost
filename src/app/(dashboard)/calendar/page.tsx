@@ -21,35 +21,35 @@ function getMonthEvents(db: ReturnType<typeof getDb>, year: number, month: numbe
 
   const meetings = db.prepare(
     "SELECT id, title, meeting_date FROM meetings WHERE meeting_date >= ? AND meeting_date < ? ORDER BY meeting_date"
-  ).all(start, end) as any[];
+  ).all(start, end) as { id: number; title: string; meeting_date: string }[];
   for (const m of meetings) {
     events.push({ date: m.meeting_date, title: m.title, type: 'meeting', link: '/meetings', color: 'bg-blue-600' });
   }
 
   const invoices = db.prepare(
     "SELECT i.id, i.invoice_number, i.due_date FROM invoices i WHERE i.status = 'sent' AND i.due_date >= ? AND i.due_date < ?"
-  ).all(start, end) as any[];
+  ).all(start, end) as { id: number; invoice_number: string; due_date: string }[];
   for (const i of invoices) {
     events.push({ date: i.due_date, title: `Invoice ${i.invoice_number} due`, type: 'invoice_due', link: `/finances/invoices/${i.id}`, color: 'bg-yellow-600' });
   }
 
   const followups = db.prepare(
     "SELECT id, business_name, follow_up_date FROM leads WHERE follow_up_date >= ? AND follow_up_date < ? AND stage NOT IN ('won','lost')"
-  ).all(start, end) as any[];
+  ).all(start, end) as { id: number; business_name: string; follow_up_date: string }[];
   for (const f of followups) {
     events.push({ date: f.follow_up_date, title: `Follow up: ${f.business_name}`, type: 'follow_up', link: `/pipeline/${f.id}`, color: 'bg-purple-600' });
   }
 
   const goals = db.prepare(
     "SELECT id, title, period_end FROM goals WHERE period_end >= ? AND period_end < ? AND is_active = 1"
-  ).all(start, end) as any[];
+  ).all(start, end) as { id: number; title: string; period_end: string }[];
   for (const g of goals) {
     events.push({ date: g.period_end, title: g.title, type: 'goal', link: '/calendar', color: 'bg-green-600' });
   }
 
   const proposals = db.prepare(
     "SELECT id, title, valid_until FROM proposals WHERE valid_until >= ? AND valid_until < ? AND status = 'sent'"
-  ).all(start, end) as any[];
+  ).all(start, end) as { id: number; title: string; valid_until: string }[];
   for (const p of proposals) {
     events.push({ date: p.valid_until, title: `Expires: ${p.title}`, type: 'deadline', link: `/proposals/${p.id}`, color: 'bg-red-600' });
   }

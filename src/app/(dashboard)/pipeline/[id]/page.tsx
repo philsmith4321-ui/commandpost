@@ -10,11 +10,6 @@ import { ConvertToClient } from '@/components/convert-to-client';
 import { isClaudeConfigured } from '@/lib/claude';
 import { FollowUpDraft } from '@/components/follow-up-draft';
 
-const stageLabels: Record<string, string> = {
-  new: 'New', contacted: 'Contacted', discovery: 'Discovery Call',
-  proposal: 'Proposal Sent', negotiating: 'Negotiating', won: 'Won', lost: 'Lost',
-};
-
 export default async function LeadDetailPage({
   params,
 }: {

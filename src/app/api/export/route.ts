@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-function toCsv(rows: Record<string, any>[]): string {
+function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return '';
   const headers = Object.keys(rows[0]);
   const lines = [headers.join(',')];
@@ -22,7 +22,7 @@ function toCsv(rows: Record<string, any>[]): string {
 export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get('type');
   const db = getDb();
-  let rows: Record<string, any>[] = [];
+  let rows: Record<string, unknown>[] = [];
   let filename = 'export.csv';
 
   switch (type) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       rows = db.prepare(`
         SELECT id, name, contact_person, email, phone, status, monthly_value, source, created_at
         FROM clients WHERE deleted_at IS NULL ORDER BY name
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'clients.csv';
       break;
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         SELECT i.invoice_number, c.name as client, i.status, i.total_amount, i.due_date, i.sent_at, i.paid_at, i.created_at
         FROM invoices i JOIN clients c ON i.client_id = c.id
         ORDER BY i.created_at DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'invoices.csv';
       break;
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         JOIN projects p ON te.project_id = p.id
         JOIN clients c ON p.client_id = c.id
         ORDER BY te.entry_date DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'time-entries.csv';
       break;
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         SELECT e.expense_date, e.category, e.description, e.amount, COALESCE(c.name, 'N/A') as client
         FROM expenses e LEFT JOIN clients c ON e.client_id = c.id
         ORDER BY e.expense_date DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'expenses.csv';
       break;
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       rows = db.prepare(`
         SELECT business_name, contact_person, email, phone, source, stage, estimated_value, follow_up_date, created_at
         FROM leads ORDER BY created_at DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'leads.csv';
       break;
 
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         LEFT JOIN clients c ON p.client_id = c.id
         LEFT JOIN leads l ON p.lead_id = l.id
         ORDER BY p.created_at DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'proposals.csv';
       break;
 
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         JOIN clients c ON m.client_id = c.id
         LEFT JOIN projects p ON m.project_id = p.id
         ORDER BY m.meeting_date DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'meetings.csv';
       break;
 
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
         FROM contracts ct
         JOIN clients c ON ct.client_id = c.id
         ORDER BY ct.created_at DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'contracts.csv';
       break;
 
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
         FROM projects p
         JOIN clients c ON p.client_id = c.id
         ORDER BY p.created_at DESC
-      `).all() as any[];
+      `).all() as Record<string, unknown>[];
       filename = 'projects.csv';
       break;
 

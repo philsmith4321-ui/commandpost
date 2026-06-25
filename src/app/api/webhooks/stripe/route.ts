@@ -4,6 +4,24 @@ import { markInvoicePaid, setStripePaymentId } from '@/lib/queries/invoice-queri
 import { logAudit } from '@/lib/audit';
 import { createNotification } from '@/lib/notifications';
 
+interface StripeWebhookEvent {
+  type?: string;
+  data?: {
+    object?: {
+      id?: string;
+      payment_intent?: string;
+      client_reference_id?: string;
+      metadata?: { invoice_number?: string } | null;
+    };
+  };
+}
+
+interface InvoiceRow {
+  id: number;
+  invoice_number: string;
+  total_amount: number;
+}
+
 export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
@@ -11,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
-  let event: any;
+  let event: StripeWebhookEvent;
 
   try {
     event = JSON.parse(body);
@@ -29,7 +47,7 @@ export async function POST(request: Request) {
       const db = getDb();
       const invoice = db.prepare(
         "SELECT id, invoice_number, total_amount FROM invoices WHERE invoice_number = ? AND status != 'paid'"
-      ).get(invoiceNumber) as any;
+      ).get(invoiceNumber) as InvoiceRow | undefined;
 
       if (invoice) {
         setStripePaymentId(db, invoice.id, paymentId);
@@ -56,7 +74,7 @@ export async function POST(request: Request) {
       const db = getDb();
       const invoice = db.prepare(
         "SELECT id, invoice_number, total_amount FROM invoices WHERE invoice_number = ? AND status != 'paid'"
-      ).get(invoiceNumber) as any;
+      ).get(invoiceNumber) as InvoiceRow | undefined;
 
       if (invoice) {
         setStripePaymentId(db, invoice.id, paymentId);

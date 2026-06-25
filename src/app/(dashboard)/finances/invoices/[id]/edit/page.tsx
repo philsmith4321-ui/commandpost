@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getInvoiceById } from '@/lib/queries/invoice-queries';
-import { listClients } from '@/lib/queries/client-queries';
 import { updateInvoiceAction } from '@/lib/actions/invoice-actions';
 import { InvoiceLineItems } from '@/components/invoice-line-items';
 
@@ -16,8 +15,6 @@ export default async function EditInvoicePage({
   const invoice = getInvoiceById(db, Number(id));
   if (!invoice) notFound();
   if (invoice.status !== 'draft') redirect(`/finances/invoices/${id}`);
-
-  const clients = listClients(db);
 
   return (
     <div className="p-4 sm:p-6">

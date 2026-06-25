@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
 
+interface RecurringInvoiceRow {
+  id: number;
+  client_id: number;
+  invoice_number: string;
+  total_amount: number;
+  client_name: string;
+}
+
+interface InvoiceItemRow {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+}
+
 export async function GET() {
   const db = getDb();
   const today = new Date();
@@ -11,7 +26,7 @@ export async function GET() {
     SELECT i.*, c.name as client_name
     FROM invoices i JOIN clients c ON i.client_id = c.id
     WHERE i.is_recurring = 1 AND i.recurrence_day = ? AND i.status != 'void'
-  `).all(dayOfMonth) as any[];
+  `).all(dayOfMonth) as RecurringInvoiceRow[];
 
   let generated = 0;
 
@@ -23,7 +38,7 @@ export async function GET() {
 
     if (exists) continue;
 
-    const items = db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ?').all(inv.id) as any[];
+    const items = db.prepare('SELECT * FROM invoice_items WHERE invoice_id = ?').all(inv.id) as InvoiceItemRow[];
 
     const dueDate = new Date(today);
     dueDate.setDate(dueDate.getDate() + 30);

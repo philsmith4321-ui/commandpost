@@ -4,6 +4,21 @@ import { createExpenseAction, deleteExpenseAction, saveBudgetAction } from '@/li
 
 export const dynamic = 'force-dynamic';
 
+interface ExpenseRow {
+  id: number;
+  description: string;
+  amount: number;
+  category: string;
+  expense_date: string;
+  client_name: string;
+}
+
+interface CategoryTotal {
+  category: string;
+  total: number;
+  count: number;
+}
+
 export default async function ExpensesPage({
   searchParams,
 }: {
@@ -14,7 +29,7 @@ export default async function ExpensesPage({
 
   // Build query
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: string[] = [];
   if (sp.category) { conditions.push('e.category = ?'); params.push(sp.category); }
   if (sp.start) { conditions.push('e.expense_date >= ?'); params.push(sp.start); }
   if (sp.end) { conditions.push('e.expense_date <= ?'); params.push(sp.end); }
@@ -24,19 +39,19 @@ export default async function ExpensesPage({
     SELECT e.*, COALESCE(c.name, '—') as client_name
     FROM expenses e LEFT JOIN clients c ON e.client_id = c.id
     ${where} ORDER BY e.expense_date DESC LIMIT 100
-  `).all(...params) as any[];
+  `).all(...params) as ExpenseRow[];
 
   // Category totals
   const categoryTotals = db.prepare(`
     SELECT category, SUM(amount) as total, COUNT(*) as count
     FROM expenses GROUP BY category ORDER BY total DESC
-  `).all() as any[];
+  `).all() as CategoryTotal[];
 
   // Monthly total
   const monthStart = new Date().toISOString().slice(0, 7) + '-01';
   const monthTotal = (db.prepare(
     'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE expense_date >= ?'
-  ).get(monthStart) as any).total;
+  ).get(monthStart) as { total: number }).total;
 
   const clients = db.prepare("SELECT id, name FROM clients WHERE deleted_at IS NULL ORDER BY name").all() as { id: number; name: string }[];
 
@@ -72,7 +87,7 @@ export default async function ExpensesPage({
           <p className="text-xs text-gray-500 uppercase">This Month</p>
           <p className="text-xl font-bold text-white">${monthTotal.toLocaleString()}</p>
         </div>
-        {categoryTotals.slice(0, 3).map((ct: any) => (
+        {categoryTotals.slice(0, 3).map((ct) => (
           <div key={ct.category} className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
             <p className="text-xs text-gray-500 uppercase">{ct.category}</p>
             <p className="text-xl font-bold text-white">${ct.total.toLocaleString()}</p>
@@ -83,18 +98,18 @@ export default async function ExpensesPage({
 
       {/* Category Breakdown Chart */}
       {categoryTotals.length > 0 && (() => {
-        const grandTotal = categoryTotals.reduce((s: number, c: any) => s + c.total, 0);
+        const grandTotal = categoryTotals.reduce((s, c) => s + c.total, 0);
         const colors: Record<string, string> = { servers: 'bg-blue-500', software: 'bg-purple-500', contractor: 'bg-yellow-500', marketing: 'bg-green-500', other: 'bg-gray-500' };
         return (
           <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-lg">
             <h3 className="text-sm font-medium text-gray-400 mb-3">Spending by Category</h3>
             <div className="h-4 rounded-full overflow-hidden flex mb-3">
-              {categoryTotals.map((ct: any) => (
+              {categoryTotals.map((ct) => (
                 <div key={ct.category} className={`${colors[ct.category] || 'bg-gray-500'}`} style={{ width: `${(ct.total / grandTotal) * 100}%` }} title={`${ct.category}: $${ct.total.toLocaleString()}`} />
               ))}
             </div>
             <div className="flex flex-wrap gap-4">
-              {categoryTotals.map((ct: any) => (
+              {categoryTotals.map((ct) => (
                 <div key={ct.category} className="flex items-center gap-2 text-xs">
                   <div className={`w-3 h-3 rounded ${colors[ct.category] || 'bg-gray-500'}`} />
                   <span className="text-gray-400">{ct.category}</span>
@@ -205,7 +220,7 @@ export default async function ExpensesPage({
               </tr>
             </thead>
             <tbody>
-              {expenses.map((e: any) => (
+              {expenses.map((e) => (
                 <tr key={e.id} className="border-b border-gray-800/50">
                   <td className="py-2 pr-4 text-white">{e.expense_date}</td>
                   <td className="py-2 pr-4 text-gray-300">{e.description}</td>

@@ -51,7 +51,7 @@ export function getExpenseById(db: Database.Database, id: number): ExpenseWithCl
 export function listExpenses(db: Database.Database, filter?: ListExpensesFilter): ExpenseWithClient[] {
   let sql = 'SELECT e.*, c.name as client_name FROM expenses e LEFT JOIN clients c ON e.client_id = c.id';
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: string[] = [];
 
   if (filter?.category) {
     conditions.push('e.category = ?');
@@ -70,7 +70,7 @@ export function listExpenses(db: Database.Database, filter?: ListExpensesFilter)
 
 export function updateExpense(db: Database.Database, id: number, input: UpdateExpenseInput): void {
   const fields: string[] = [];
-  const params: any = { id };
+  const params: Record<string, string | number | null> = { id };
 
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
@@ -88,7 +88,7 @@ export function deleteExpense(db: Database.Database, id: number): void {
 }
 
 export function getExpenseMonthlyTotal(db: Database.Database, month: string): number {
-  return (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE strftime('%Y-%m', expense_date) = ?").get(month) as any).total;
+  return (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE strftime('%Y-%m', expense_date) = ?").get(month) as { total: number }).total;
 }
 
 export interface ExpenseCategoryBreakdown {

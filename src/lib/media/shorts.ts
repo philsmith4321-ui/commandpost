@@ -152,7 +152,8 @@ Use timestamps from the transcript. Keep end-start between 15 and 75 seconds.`;
   const parsed = parseClaudeJson(resp);
   if (!parsed) return null;
   return parsed.map((c) => {
-    let { start, end } = c;
+    const { start } = c;
+    let { end } = c;
     if (end <= start) end = start + 30;
     if (end - start > MAX_CLIP) end = start + MAX_CLIP;
     return { ...c, start: clamp(start, 0, Infinity), end: clamp(end, start + MIN_CLIP, Infinity) };

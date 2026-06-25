@@ -18,7 +18,7 @@ export default function PipelinePage() {
   for (const id of allLeadIds) {
     const latest = db.prepare(
       'SELECT entered_at FROM lead_stage_history WHERE lead_id = ? ORDER BY entered_at DESC LIMIT 1'
-    ).get(id) as any;
+    ).get(id) as { entered_at: string } | undefined;
     if (latest) stageEnteredDates[id] = latest.entered_at;
   }
 

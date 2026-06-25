@@ -40,7 +40,7 @@ export function insertNotification(db: Database.Database, input: InsertNotificat
 }
 
 export function getUnreadCount(db: Database.Database): number {
-  return (db.prepare('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0').get() as any).count;
+  return (db.prepare('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0').get() as { count: number }).count;
 }
 
 export function getRecentNotifications(db: Database.Database, limit: number): Notification[] {
@@ -52,7 +52,7 @@ export function getNotificationsFiltered(
   filters: { type?: string; isRead?: boolean; startDate?: string; endDate?: string }
 ): Notification[] {
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: (string | number)[] = [];
 
   if (filters.type) {
     conditions.push('type = ?');
@@ -110,7 +110,7 @@ export function upsertPreference(db: Database.Database, type: NotificationType, 
 
 export function getEmailDeliveryForType(db: Database.Database, type: NotificationType): EmailDelivery {
   if (FORCED_IMMEDIATE.includes(type)) return 'immediate';
-  const row = db.prepare('SELECT email_delivery FROM notification_preferences WHERE notification_type = ?').get(type) as any;
+  const row = db.prepare('SELECT email_delivery FROM notification_preferences WHERE notification_type = ?').get(type) as { email_delivery: EmailDelivery } | undefined;
   return row?.email_delivery ?? DEFAULT_PREFERENCES[type];
 }
 

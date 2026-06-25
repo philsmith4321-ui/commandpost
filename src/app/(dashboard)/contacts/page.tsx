@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
 
+interface ContactRow {
+  id: number;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string;
+}
+
 interface Contact {
   name: string;
   contact_person: string | null;
@@ -23,11 +32,11 @@ export default async function ContactsPage({
 
   const clients = db.prepare(
     "SELECT id, name, contact_person, email, phone, status FROM clients WHERE deleted_at IS NULL ORDER BY name"
-  ).all() as any[];
+  ).all() as ContactRow[];
 
   const leads = db.prepare(
     "SELECT id, business_name as name, contact_person, email, phone, stage as status FROM leads WHERE stage NOT IN ('won','lost') ORDER BY business_name"
-  ).all() as any[];
+  ).all() as ContactRow[];
 
   let contacts: Contact[] = [
     ...clients.map(c => ({ ...c, type: 'client' as const, link: `/clients/${c.id}` })),

@@ -54,7 +54,7 @@ export function getClientById(db: Database.Database, id: number): Client | undef
 
 export function listClients(db: Database.Database, filter?: ListClientsFilter): Client[] {
   let sql = 'SELECT * FROM clients WHERE deleted_at IS NULL';
-  const params: any[] = [];
+  const params: string[] = [];
 
   if (filter?.status) {
     sql += ' AND status = ?';
@@ -73,7 +73,7 @@ export function listClients(db: Database.Database, filter?: ListClientsFilter): 
 
 export function updateClient(db: Database.Database, id: number, input: UpdateClientInput): void {
   const fields: string[] = [];
-  const params: any = { id };
+  const params: Record<string, unknown> = { id };
 
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
@@ -127,10 +127,10 @@ export function getClientHealth(db: Database.Database, clientId: number): Client
   // Outstanding balance (30 points)
   const outstanding = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE client_id = ? AND status = 'sent'"
-  ).get(clientId) as any).total;
+  ).get(clientId) as { total: number }).total;
   const overdue = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE client_id = ? AND status = 'sent' AND due_date < date('now')"
-  ).get(clientId) as any).total;
+  ).get(clientId) as { total: number }).total;
 
   let balance: number;
   if (outstanding === 0) {
@@ -152,7 +152,7 @@ export function getClientHealth(db: Database.Database, clientId: number): Client
   } else {
     const daysSince = (db.prepare(
       "SELECT julianday('now') - julianday(?) as days"
-    ).get(lastActivity.created_at) as any).days;
+    ).get(lastActivity.created_at) as { days: number }).days;
     if (daysSince <= 7) {
       engagement = 30;
     } else if (daysSince <= 14) {

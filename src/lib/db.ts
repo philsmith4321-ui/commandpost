@@ -260,13 +260,13 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
   `);
 
   // Migration: add hourly_rate to projects
-  const hasHourlyRate = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'hourly_rate'").get() as any;
+  const hasHourlyRate = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'hourly_rate'").get() as { count: number };
   if (hasHourlyRate.count === 0) {
     db.exec("ALTER TABLE projects ADD COLUMN hourly_rate REAL");
   }
 
   // Migration: add portal_token to clients
-  const hasPortalToken = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'portal_token'").get() as any;
+  const hasPortalToken = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'portal_token'").get() as { count: number };
   if (hasPortalToken.count === 0) {
     db.exec("ALTER TABLE clients ADD COLUMN portal_token TEXT");
     db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_portal_token ON clients(portal_token) WHERE portal_token IS NOT NULL");
@@ -346,7 +346,7 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
   `);
 
   // Migration: add is_pinned to clients
-  const hasPinned = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'is_pinned'").get() as any;
+  const hasPinned = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('clients') WHERE name = 'is_pinned'").get() as { count: number };
   if (hasPinned.count === 0) {
     db.exec("ALTER TABLE clients ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0");
   }
@@ -439,7 +439,7 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
   `);
 
   // Migration: add last_reminder_sent to invoices
-  const hasReminder = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('invoices') WHERE name = 'last_reminder_sent'").get() as any;
+  const hasReminder = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('invoices') WHERE name = 'last_reminder_sent'").get() as { count: number };
   if (hasReminder.count === 0) {
     db.exec("ALTER TABLE invoices ADD COLUMN last_reminder_sent TEXT");
   }
@@ -504,7 +504,7 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
   `);
 
   // Migration: add budget to projects
-  const hasBudget = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'budget'").get() as any;
+  const hasBudget = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('projects') WHERE name = 'budget'").get() as { count: number };
   if (hasBudget.count === 0) {
     db.exec("ALTER TABLE projects ADD COLUMN budget REAL");
   }

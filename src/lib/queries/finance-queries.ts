@@ -34,10 +34,17 @@ export function getMonthlyRevenue(db: Database.Database): MonthlyRevenue[] {
     const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const amount = (db.prepare(
       "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND strftime('%Y-%m', paid_at) = ?"
-    ).get(month) as any).total;
+    ).get(month) as { total: number }).total;
     months.push({ month, amount });
   }
   return months;
+}
+
+interface ProfitabilityRow {
+  client_id: number;
+  client_name: string;
+  revenue: number;
+  expenses: number;
 }
 
 export function getProfitabilityByClient(db: Database.Database, period?: string): ClientProfitability[] {
@@ -68,9 +75,9 @@ export function getProfitabilityByClient(db: Database.Database, period?: string)
       WHERE c.deleted_at IS NULL
     ) WHERE revenue > 0 OR expenses > 0
     ORDER BY (revenue - expenses) DESC
-  `).all() as any[];
+  `).all() as ProfitabilityRow[];
 
-  return rows.map((r: any) => ({
+  return rows.map((r) => ({
     client_id: r.client_id,
     client_name: r.client_name,
     revenue: r.revenue,
@@ -82,8 +89,8 @@ export function getProfitabilityByClient(db: Database.Database, period?: string)
 
 export function getYtdStats(db: Database.Database): YtdStats {
   const year = String(new Date().getFullYear());
-  const revenue = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND strftime('%Y', paid_at) = ?").get(year) as any).total;
-  const expenses = (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE strftime('%Y', expense_date) = ?").get(year) as any).total;
+  const revenue = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND strftime('%Y', paid_at) = ?").get(year) as { total: number }).total;
+  const expenses = (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE strftime('%Y', expense_date) = ?").get(year) as { total: number }).total;
   return { revenue, expenses, profit: revenue - expenses };
 }
 

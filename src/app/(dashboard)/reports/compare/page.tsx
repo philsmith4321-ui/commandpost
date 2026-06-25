@@ -3,6 +3,20 @@ import { getDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+interface ClientComparison {
+  id: number;
+  name: string;
+  status: string;
+  monthly_value: number | null;
+  revenue: number;
+  invoiceCount: number;
+  hours: string;
+  projects: number;
+  meetings: number;
+  nps: number | null;
+  effectiveRate: number | null;
+}
+
 export default async function CompareClientsPage({
   searchParams,
 }: {
@@ -14,15 +28,15 @@ export default async function CompareClientsPage({
 
   const selectedIds = sp.ids ? sp.ids.split(',').map(Number).filter(Boolean) : [];
 
-  const compareData = selectedIds.map(id => {
-    const client = db.prepare("SELECT id, name, status, monthly_value FROM clients WHERE id = ?").get(id) as any;
+  const compareData = selectedIds.map((id): ClientComparison | null => {
+    const client = db.prepare("SELECT id, name, status, monthly_value FROM clients WHERE id = ?").get(id) as { id: number; name: string; status: string; monthly_value: number | null } | undefined;
     if (!client) return null;
 
-    const revenue = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE client_id = ? AND status = 'paid'").get(id) as any).total;
-    const invoiceCount = (db.prepare("SELECT COUNT(*) as count FROM invoices WHERE client_id = ? AND status = 'paid'").get(id) as any).count;
-    const hours = (db.prepare("SELECT COALESCE(SUM(te.duration_minutes), 0) as total FROM time_entries te JOIN projects p ON p.id = te.project_id WHERE p.client_id = ?").get(id) as any).total / 60;
-    const projects = (db.prepare("SELECT COUNT(*) as count FROM projects WHERE client_id = ?").get(id) as any).count;
-    const meetings = (db.prepare("SELECT COUNT(*) as count FROM meetings WHERE client_id = ?").get(id) as any).count;
+    const revenue = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE client_id = ? AND status = 'paid'").get(id) as { total: number }).total;
+    const invoiceCount = (db.prepare("SELECT COUNT(*) as count FROM invoices WHERE client_id = ? AND status = 'paid'").get(id) as { count: number }).count;
+    const hours = (db.prepare("SELECT COALESCE(SUM(te.duration_minutes), 0) as total FROM time_entries te JOIN projects p ON p.id = te.project_id WHERE p.client_id = ?").get(id) as { total: number }).total / 60;
+    const projects = (db.prepare("SELECT COUNT(*) as count FROM projects WHERE client_id = ?").get(id) as { count: number }).count;
+    const meetings = (db.prepare("SELECT COUNT(*) as count FROM meetings WHERE client_id = ?").get(id) as { count: number }).count;
     const latestScore = db.prepare("SELECT score FROM satisfaction_scores WHERE client_id = ? ORDER BY scored_at DESC LIMIT 1").get(id) as { score: number } | undefined;
     const effectiveRate = hours > 0 ? Math.round(revenue / hours) : null;
 
@@ -36,7 +50,7 @@ export default async function CompareClientsPage({
       nps: latestScore?.score ?? null,
       effectiveRate,
     };
-  }).filter(Boolean);
+  }).filter((c): c is ClientComparison => c !== null);
 
   return (
     <div className="p-4 sm:p-6">
@@ -63,7 +77,7 @@ export default async function CompareClientsPage({
             <thead>
               <tr className="border-b border-gray-800 text-left text-gray-500">
                 <th className="p-3 font-medium">Metric</th>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <th key={c.id} className="p-3 font-medium text-white">{c.name}</th>
                 ))}
               </tr>
@@ -71,7 +85,7 @@ export default async function CompareClientsPage({
             <tbody>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Status</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       c.status === 'active' ? 'bg-green-900/50 text-green-400' :
@@ -83,43 +97,43 @@ export default async function CompareClientsPage({
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Total Revenue</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-green-400 font-medium">${c.revenue.toLocaleString()}</td>
                 ))}
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Invoices Paid</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-white">{c.invoiceCount}</td>
                 ))}
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Hours Logged</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-white">{c.hours}h</td>
                 ))}
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Effective Rate</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-white">{c.effectiveRate ? `$${c.effectiveRate}/hr` : '—'}</td>
                 ))}
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Projects</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-white">{c.projects}</td>
                 ))}
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">Meetings</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-white">{c.meetings}</td>
                 ))}
               </tr>
               <tr className="border-b border-gray-800/50">
                 <td className="p-3 text-gray-400">NPS Score</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className={`p-3 font-medium ${
                     c.nps === null ? 'text-gray-500' :
                     c.nps >= 9 ? 'text-green-400' :
@@ -129,7 +143,7 @@ export default async function CompareClientsPage({
               </tr>
               <tr>
                 <td className="p-3 text-gray-400">Monthly Value</td>
-                {compareData.map((c: any) => (
+                {compareData.map((c) => (
                   <td key={c.id} className="p-3 text-white">{c.monthly_value ? `$${c.monthly_value.toLocaleString()}` : '—'}</td>
                 ))}
               </tr>

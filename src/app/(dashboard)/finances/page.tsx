@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
+import type { ExpenseCategory } from '@/lib/types';
 import { listInvoices, getInvoiceSummary } from '@/lib/queries/invoice-queries';
 import { listExpenses, getExpenseMonthlyTotal } from '@/lib/queries/expense-queries';
 import { getMonthlyRevenue, getProfitabilityByClient, getYtdStats, getRevenueByClient } from '@/lib/queries/finance-queries';
@@ -22,7 +23,6 @@ export default async function FinancesPage({
   searchParams: Promise<{ tab?: string; category?: string; month?: string; period?: string }>;
 }) {
   const { tab = 'invoices', category, month, period } = await searchParams;
-  const db = getDb();
 
   return (
     <div className="p-4 sm:p-6">
@@ -88,7 +88,7 @@ function InvoicesTab() {
 function ExpensesTab({ category, month }: { category?: string; month?: string }) {
   const db = getDb();
   const expenses = listExpenses(db, {
-    category: category as any,
+    category: category as ExpenseCategory | undefined,
     month,
   });
   const clients = listClients(db).map(c => ({ id: c.id, name: c.name }));

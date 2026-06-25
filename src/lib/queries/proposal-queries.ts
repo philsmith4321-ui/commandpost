@@ -82,7 +82,7 @@ export function listProposals(db: Database.Database, status?: string): ProposalR
     LEFT JOIN leads l ON p.lead_id = l.id
     LEFT JOIN clients c ON p.client_id = c.id
   `;
-  const params: any[] = [];
+  const params: string[] = [];
   if (status) {
     sql += ' WHERE p.status = ?';
     params.push(status);

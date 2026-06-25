@@ -99,7 +99,14 @@ export async function markLeadLostAction(formData: FormData) {
 export async function convertLeadToClientAction(formData: FormData) {
   const db = getDb();
   const leadId = Number(formData.get('lead_id'));
-  const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(leadId) as any;
+  const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(leadId) as {
+    business_name: string;
+    contact_person: string | null;
+    email: string | null;
+    phone: string | null;
+    source: string | null;
+    estimated_value: number | null;
+  } | undefined;
 
   if (!lead) return;
 

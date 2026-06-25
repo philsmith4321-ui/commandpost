@@ -45,7 +45,7 @@ export interface PipelineReportData {
 export function getPnlData(db: Database.Database, start: string, end: string): PnlData {
   const revenue = (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ? AND paid_at <= ?"
-  ).get(start, end) as any).total;
+  ).get(start, end) as { total: number }).total;
 
   const expenseRows = db.prepare(
     "SELECT category, SUM(amount) as amount FROM expenses WHERE expense_date >= ? AND expense_date <= ? GROUP BY category ORDER BY amount DESC"
@@ -92,20 +92,20 @@ export function getInvoiceExportData(db: Database.Database, start: string, end: 
 export function getPipelineReportData(db: Database.Database): PipelineReportData {
   const activeLeads = db.prepare(
     "SELECT * FROM leads WHERE stage NOT IN ('won', 'lost')"
-  ).all() as any[];
+  ).all() as { estimated_value: number | null }[];
 
   const totalActiveLeads = activeLeads.length;
-  const totalActiveValue = activeLeads.reduce((sum: number, l: any) => sum + (l.estimated_value || 0), 0);
+  const totalActiveValue = activeLeads.reduce((sum: number, l) => sum + (l.estimated_value || 0), 0);
 
-  const won = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage = 'won'").get() as any).count;
-  const lost = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage = 'lost'").get() as any).count;
+  const won = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage = 'won'").get() as { count: number }).count;
+  const lost = (db.prepare("SELECT COUNT(*) as count FROM leads WHERE stage = 'lost'").get() as { count: number }).count;
   const conversionRate = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
 
   const averageDealValue = totalActiveLeads > 0 ? totalActiveValue / totalActiveLeads : 0;
 
   const needsFollowUp = (db.prepare(
     "SELECT COUNT(*) as count FROM leads WHERE stage NOT IN ('won','lost') AND follow_up_date < date('now')"
-  ).get() as any).count;
+  ).get() as { count: number }).count;
 
   const stageBreakdown = db.prepare(`
     SELECT stage, COUNT(*) as count, COALESCE(SUM(estimated_value), 0) as value

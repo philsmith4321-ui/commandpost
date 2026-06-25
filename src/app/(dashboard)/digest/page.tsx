@@ -14,32 +14,32 @@ export default function DigestPage() {
   const paidThisWeek = db.prepare(`
     SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as count
     FROM invoices WHERE status = 'paid' AND paid_at >= ?
-  `).get(weekStartStr) as any;
+  `).get(weekStartStr) as { total: number; count: number };
 
   // New clients this week
   const newClients = db.prepare(`
     SELECT COUNT(*) as count FROM clients WHERE created_at >= ? AND deleted_at IS NULL
-  `).get(weekStartStr) as any;
+  `).get(weekStartStr) as { count: number };
 
   // Deliverables completed this week
   const completed = db.prepare(`
     SELECT COUNT(*) as count FROM deliverables WHERE status = 'delivered' AND completed_at >= ?
-  `).get(weekStartStr) as any;
+  `).get(weekStartStr) as { count: number };
 
   // Hours logged this week
   const hoursLogged = db.prepare(`
     SELECT COALESCE(SUM(duration_minutes), 0) as total FROM time_entries WHERE entry_date >= ?
-  `).get(weekStartStr) as any;
+  `).get(weekStartStr) as { total: number };
 
   // Leads won this week
   const leadsWon = db.prepare(`
     SELECT COUNT(*) as count FROM leads WHERE stage = 'won' AND updated_at >= ?
-  `).get(weekStartStr) as any;
+  `).get(weekStartStr) as { count: number };
 
   // Meetings this week
   const meetings = db.prepare(`
     SELECT COUNT(*) as count FROM meetings WHERE meeting_date >= ? AND meeting_date <= ?
-  `).get(weekStartStr, weekEndStr) as any;
+  `).get(weekStartStr, weekEndStr) as { count: number };
 
   // Upcoming next week
   const nextWeekEnd = new Date(now);
@@ -51,13 +51,13 @@ export default function DigestPage() {
     JOIN projects p ON d.project_id = p.id JOIN clients c ON p.client_id = c.id
     WHERE d.status != 'delivered' AND d.due_date >= ? AND d.due_date <= ? AND c.deleted_at IS NULL
     ORDER BY d.due_date LIMIT 10
-  `).all(weekEndStr, nextWeekStr) as any[];
+  `).all(weekEndStr, nextWeekStr) as { title: string; due_date: string; client_name: string }[];
 
   const upcomingFollowUps = db.prepare(`
     SELECT business_name, follow_up_date FROM leads
     WHERE stage NOT IN ('won','lost') AND follow_up_date >= ? AND follow_up_date <= ?
     ORDER BY follow_up_date LIMIT 10
-  `).all(weekEndStr, nextWeekStr) as any[];
+  `).all(weekEndStr, nextWeekStr) as { business_name: string; follow_up_date: string }[];
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl">
@@ -102,7 +102,7 @@ export default function DigestPage() {
           <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
             <h3 className="text-sm font-medium text-gray-400 mb-2">Deliverables Due</h3>
             <ul className="space-y-1">
-              {upcomingDeliverables.map((d: any, i: number) => (
+              {upcomingDeliverables.map((d, i) => (
                 <li key={i} className="text-sm text-white">
                   {d.title} <span className="text-xs text-gray-500">({d.client_name}, {d.due_date})</span>
                 </li>
@@ -114,7 +114,7 @@ export default function DigestPage() {
           <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
             <h3 className="text-sm font-medium text-gray-400 mb-2">Follow-ups</h3>
             <ul className="space-y-1">
-              {upcomingFollowUps.map((f: any, i: number) => (
+              {upcomingFollowUps.map((f, i) => (
                 <li key={i} className="text-sm text-white">
                   {f.business_name} <span className="text-xs text-gray-500">({f.follow_up_date})</span>
                 </li>

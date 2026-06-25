@@ -8,7 +8,6 @@ import {
   markProposalSent,
   updateProposalStatus,
   addProposalItem,
-  deleteProposalItems,
 } from '@/lib/queries/proposal-queries';
 
 export async function createProposalAction(formData: FormData) {
@@ -65,8 +64,10 @@ export async function sendProposalEmailAction(formData: FormData) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://commandpost.rekindleleads.com';
-  const token = proposal.token || db.prepare('SELECT token FROM proposals WHERE id = ?').get(id) as any;
-  const viewUrl = token?.token ? `${baseUrl}/proposals/view/${token.token}` : `${baseUrl}/api/proposals/${id}/print`;
+  const token: string | { token: string | null } | null | undefined =
+    proposal.token || (db.prepare('SELECT token FROM proposals WHERE id = ?').get(id) as { token: string | null } | undefined);
+  const tokenValue = typeof token === 'object' && token ? token.token : undefined;
+  const viewUrl = tokenValue ? `${baseUrl}/proposals/view/${tokenValue}` : `${baseUrl}/api/proposals/${id}/print`;
 
   const items = getProposalItems(db, id);
   const itemsHtml = items.map(item =>

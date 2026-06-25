@@ -51,7 +51,7 @@ function generateInvoiceNumber(db: Database.Database): string {
 }
 
 function recalcTotal(db: Database.Database, invoiceId: number): void {
-  const total = (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM invoice_items WHERE invoice_id = ?").get(invoiceId) as any).total;
+  const total = (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM invoice_items WHERE invoice_id = ?").get(invoiceId) as { total: number }).total;
   db.prepare("UPDATE invoices SET total_amount = ?, updated_at = datetime('now') WHERE id = ?").run(total, invoiceId);
 }
 
@@ -103,7 +103,7 @@ export function listInvoices(db: Database.Database, statusFilter?: string): Invo
     SELECT i.*, c.name as client_name
     FROM invoices i JOIN clients c ON i.client_id = c.id
   `;
-  const params: any[] = [];
+  const params: string[] = [];
 
   if (statusFilter === 'overdue') {
     sql += " WHERE i.status = 'sent' AND i.due_date < date('now')";
@@ -126,7 +126,7 @@ export function listInvoices(db: Database.Database, statusFilter?: string): Invo
 export function updateInvoice(db: Database.Database, id: number, input: UpdateInvoiceInput): void {
   if (input.due_date !== undefined || input.notes !== undefined || input.is_recurring !== undefined || input.recurrence_day !== undefined) {
     const fields: string[] = [];
-    const params: any = { id };
+    const params: Record<string, string | number | null> = { id };
 
     if (input.due_date !== undefined) { fields.push('due_date = @due_date'); params.due_date = input.due_date; }
     if (input.notes !== undefined) { fields.push('notes = @notes'); params.notes = input.notes; }
@@ -162,12 +162,12 @@ export function deleteInvoice(db: Database.Database, id: number): void {
 }
 
 export function getInvoiceSummary(db: Database.Database): InvoiceSummary {
-  const totalOutstanding = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as any).total;
-  const totalOverdue = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as any).total;
-  const overdueCount = (db.prepare("SELECT COUNT(*) as count FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as any).count;
+  const totalOutstanding = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent'").get() as { total: number }).total;
+  const totalOverdue = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as { total: number }).total;
+  const overdueCount = (db.prepare("SELECT COUNT(*) as count FROM invoices WHERE status = 'sent' AND due_date < date('now')").get() as { count: number }).count;
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const paidThisMonth = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ?").get(monthStart) as any).total;
+  const paidThisMonth = (db.prepare("SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE status = 'paid' AND paid_at >= ?").get(monthStart) as { total: number }).total;
   return { totalOutstanding, totalOverdue, overdueCount, paidThisMonth };
 }
 
@@ -196,7 +196,7 @@ export function getRecurringInvoices(db: Database.Database): RecurringInvoiceRow
 export function getMrr(db: Database.Database): number {
   return (db.prepare(
     "SELECT COALESCE(SUM(total_amount), 0) as total FROM invoices WHERE is_recurring = 1"
-  ).get() as any).total;
+  ).get() as { total: number }).total;
 }
 
 export interface OverdueInvoice {

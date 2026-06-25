@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
+import type { NotificationType } from '@/lib/types';
+
+interface IncomingWebhookBody {
+  type?: string;
+  title?: string;
+  message?: string;
+  link?: string;
+}
 
 export async function POST(request: Request) {
   const secret = process.env.WEBHOOK_SECRET;
@@ -11,7 +19,7 @@ export async function POST(request: Request) {
     }
   }
 
-  let body: any;
+  let body: IncomingWebhookBody;
   try {
     body = await request.json();
   } catch {
@@ -26,7 +34,7 @@ export async function POST(request: Request) {
 
   const db = getDb();
   await createNotification(db, {
-    type: type || 'webhook',
+    type: (type || 'webhook') as NotificationType,
     title,
     message: message || null,
     link: link || null,
