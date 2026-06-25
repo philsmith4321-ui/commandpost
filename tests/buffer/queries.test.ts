@@ -6,7 +6,7 @@ vi.mock('@/lib/buffer/client', async () => {
 });
 
 import { bufferGql, BufferError } from '@/lib/buffer/client';
-import { listChannels, listPosts, createPost, deletePost } from '@/lib/buffer/queries';
+import { listChannels, listPosts, createPost, deletePost, editPost } from '@/lib/buffer/queries';
 
 const mockGql = vi.mocked(bufferGql);
 
@@ -59,5 +59,29 @@ describe('buffer queries', () => {
   it('deletePost throws on VoidMutationError', async () => {
     mockGql.mockResolvedValue({ deletePost: { __typename: 'VoidMutationError', message: 'nope' } });
     await expect(deletePost('p1')).rejects.toBeInstanceOf(BufferError);
+  });
+
+  it('editPost returns post on PostActionSuccess', async () => {
+    mockGql.mockResolvedValue({ editPost: { __typename: 'PostActionSuccess', post: {
+      id: 'p9', status: 'scheduled', text: 'edited', dueAt: '2026-12-02T10:00:00.000Z',
+      sentAt: null, channelId: 'c1', channelService: 'linkedin', shareMode: 'customScheduled',
+      externalLink: null, allowedActions: ['edit'],
+    } } });
+    const post = await editPost({ id: 'p9', mode: 'customScheduled', text: 'edited', dueAt: '2026-12-02T10:00:00.000Z' });
+    expect(post.id).toBe('p9');
+    expect(post.text).toBe('edited');
+    expect(post.platform).toBe('linkedin');
+    const vars = mockGql.mock.calls[0][1] as { i: Record<string, unknown> };
+    expect(vars.i.id).toBe('p9');
+    expect(vars.i.schedulingType).toBe('automatic');
+    expect(vars.i.mode).toBe('customScheduled');
+    expect(vars.i.assets).toEqual([]);
+  });
+
+  it('editPost throws BufferError on a union error member', async () => {
+    mockGql.mockResolvedValue({ editPost: { __typename: 'NotFoundError', message: 'post not found' } });
+    const err = await editPost({ id: 'pX', mode: 'addToQueue' }).catch((e) => e);
+    expect(err).toBeInstanceOf(BufferError);
+    expect(err.message).toMatch(/post not found/);
   });
 });
