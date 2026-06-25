@@ -79,12 +79,17 @@ export function GenerateStudio({
   async function backfillToBuffer() {
     setBackfilling(true);
     setBackfillMsg(null);
-    const res = await fetch('/api/generate/backfill-buffer', { method: 'POST' });
-    const body = await res.json();
-    setBackfilling(false);
-    if (!res.ok) { setBackfillMsg(body.error ?? 'Backfill failed'); return; }
-    setBackfillMsg(`Pushed ${body.pushed}, skipped ${body.skipped}${body.failed ? `, failed ${body.failed}` : ''}`);
-    refreshHistory();
+    try {
+      const res = await fetch('/api/generate/backfill-buffer', { method: 'POST' });
+      const body = await res.json();
+      if (!res.ok) { setBackfillMsg(body.error ?? 'Backfill failed'); return; }
+      setBackfillMsg(`Pushed ${body.pushed}, skipped ${body.skipped}${body.failed ? `, failed ${body.failed}` : ''}`);
+      refreshHistory();
+    } catch {
+      setBackfillMsg('Backfill failed');
+    } finally {
+      setBackfilling(false);
+    }
   }
 
   async function generate() {
