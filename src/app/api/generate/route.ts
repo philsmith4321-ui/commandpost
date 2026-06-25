@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const draft = await draftGenerationToBuffer(contentType, gen.text);
   let buffer: { pushed: true; channel: string } | { pushed: false; reason: string };
   if (draft.pushed) {
-    setGenerationBufferPostId(db, id, draft.postId);
+    try { setGenerationBufferPostId(db, id, draft.postId); } catch { /* best-effort: never fail the generation */ }
     buffer = { pushed: true, channel: draft.channel };
   } else {
     buffer = { pushed: false, reason: draft.reason };
