@@ -5,7 +5,8 @@ import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
 import { isContentType } from '@/lib/generation/content-types';
 import { getAvatar, listAvatars } from '@/lib/queries/avatar-queries';
-import { avatarToAudience, blendedAudience } from '@/lib/generation/audience';
+import { composeAudience } from '@/lib/generation/audience';
+import { getMasterProfile } from '@/lib/queries/master-queries';
 import type { LengthPreference } from '@/lib/types';
 
 export const maxDuration = 120;
@@ -26,15 +27,19 @@ export async function POST(request: NextRequest) {
 
   const db = getDb();
 
-  // Resolve audience: avatar id, 'all' (blended), or none.
-  const avatarParam = body?.avatar; // number | 'all' | undefined/null
+  // Resolve audience: master is ALWAYS applied; pick one vertical, 'all' (generic), or none (master only).
+  const master = getMasterProfile(db);
+  const avatarParam = body?.avatar; // number | 'all' | null
   let audience: string | undefined;
   let avatarId: number | null = null;
   if (avatarParam === 'all') {
-    audience = blendedAudience(listAvatars(db, true)) || undefined;
+    audience = composeAudience(master, null, { allVerticals: listAvatars(db, true) }) || undefined;
   } else if (Number.isFinite(Number(avatarParam))) {
     const avatar = getAvatar(db, Number(avatarParam));
-    if (avatar) { audience = avatarToAudience(avatar); avatarId = avatar.id; }
+    if (avatar) { audience = composeAudience(master, avatar) || undefined; avatarId = avatar.id; }
+    else { audience = composeAudience(master, null) || undefined; }
+  } else {
+    audience = composeAudience(master, null) || undefined; // master only / general
   }
 
   const { chunks, mode } = await retrieveContext(db, { topic, sourceIds });
