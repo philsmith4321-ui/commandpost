@@ -15,8 +15,12 @@ ssh "${USER}@${HOST}" bash -s <<'REMOTE'
 set -euo pipefail
 cd /var/www/commandpost
 
-echo "Pulling latest code..."
-git pull origin main
+echo "Fetching + hard-resetting to origin/main..."
+# `npm install` rewrites package-lock.json on the server, leaving the tree dirty,
+# which makes `git pull` abort ("commit/stash before you merge"). Reset instead so
+# the deploy is always clean and never blocked by the regenerated lockfile.
+git fetch origin
+git reset --hard origin/main
 
 echo "Installing dependencies (incl. dev — required by next build)..."
 npm install
