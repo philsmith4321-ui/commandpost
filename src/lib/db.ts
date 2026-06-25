@@ -811,6 +811,14 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec('ALTER TABLE generations ADD COLUMN avatar_id INTEGER');
   }
 
+  // Migration: add buffer_post_id to generations (auto-draft to Buffer)
+  const hasGenBufferId = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('generations') WHERE name = 'buffer_post_id'")
+    .get() as { count: number };
+  if (hasGenBufferId.count === 0) {
+    db.exec('ALTER TABLE generations ADD COLUMN buffer_post_id TEXT');
+  }
+
   // Migration: Outreach (Four Lanes) — door attribution on leads + per-week tracker log
   const hasLeadLane = db
     .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = 'lane'")

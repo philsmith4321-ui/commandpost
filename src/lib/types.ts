@@ -371,6 +371,7 @@ export interface Generation {
   retrieval_mode: RetrievalMode;
   avatar_id: number | null;
   result: string;
+  buffer_post_id: string | null;
   created_at: string;
 }
 
