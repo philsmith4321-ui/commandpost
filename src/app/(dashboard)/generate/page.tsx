@@ -10,7 +10,7 @@ export default async function GeneratePage() {
   const db = getDb();
   const sources = listKbDocuments(db);
   const history = listGenerations(db);
-  const avatars = listAvatars(db, true);
+  const avatars = listAvatars(db);
 
   return (
     <div className="p-4 sm:p-6">

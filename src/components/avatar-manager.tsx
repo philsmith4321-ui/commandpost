@@ -6,15 +6,20 @@ import type { Avatar } from '@/lib/types';
 const EMPTY = { name: '', summary: '', description: '', tone: '', is_active: true };
 type Draft = { name: string; summary: string; description: string; tone: string; is_active: boolean };
 
-export function AvatarManager({ initialAvatars }: { initialAvatars: Avatar[] }) {
-  const [avatars, setAvatars] = useState<Avatar[]>(initialAvatars);
+export function AvatarManager({
+  avatars,
+  onAvatarsChange,
+}: {
+  avatars: Avatar[];
+  onAvatarsChange: (avatars: Avatar[]) => void;
+}) {
   const [editingId, setEditingId] = useState<number | 'new' | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [busy, setBusy] = useState(false);
 
   async function refresh() {
     const res = await fetch('/api/avatars', { cache: 'no-store' });
-    if (res.ok) setAvatars((await res.json()).avatars);
+    if (res.ok) onAvatarsChange((await res.json()).avatars);
   }
 
   function startNew() { setEditingId('new'); setDraft(EMPTY); }
@@ -46,7 +51,7 @@ export function AvatarManager({ initialAvatars }: { initialAvatars: Avatar[] }) 
   }
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="space-y-4">
       <div className="flex justify-end">
         <button onClick={startNew}
           className="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-sm font-medium transition-colors">

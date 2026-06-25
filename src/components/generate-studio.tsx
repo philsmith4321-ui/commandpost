@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { CONTENT_TYPES } from '@/lib/generation/content-types';
+import { AvatarManager } from '@/components/avatar-manager';
 import type { KbDocument, KbSourceType, Generation, GenContentType, LengthPreference, Avatar } from '@/lib/types';
 
 type SourceItem = Omit<KbDocument, 'content'>;
@@ -26,7 +27,7 @@ function typeLabel(c: GenContentType): string {
 export function GenerateStudio({
   initialSources,
   initialHistory,
-  avatars,
+  avatars: initialAvatars,
 }: {
   initialSources: SourceItem[];
   initialHistory: Generation[];
@@ -34,6 +35,9 @@ export function GenerateStudio({
 }) {
   const [sources] = useState<SourceItem[]>(initialSources);
   const [history, setHistory] = useState<Generation[]>(initialHistory);
+  const [avatars, setAvatars] = useState<Avatar[]>(initialAvatars);
+
+  const activeAvatars = useMemo(() => avatars.filter((a) => a.is_active), [avatars]);
 
   const [contentType, setContentType] = useState<GenContentType>('blog_article');
   const [topic, setTopic] = useState('');
@@ -159,8 +163,8 @@ export function GenerateStudio({
                   className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-1 text-xs text-white focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="none">General audience</option>
-                  {avatars.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  {avatars.length >= 2 && <option value="all">All avatars</option>}
+                  {activeAvatars.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {activeAvatars.length >= 2 && <option value="all">All avatars</option>}
                 </select>
               </div>
             </div>
@@ -208,6 +212,15 @@ export function GenerateStudio({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Audience avatars */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-gray-300">Audience avatars</h3>
+            <p className="text-xs text-gray-500">Personas you can target in the Audience selector above</p>
+          </div>
+          <AvatarManager avatars={avatars} onAvatarsChange={setAvatars} />
         </div>
 
         {/* Result */}
