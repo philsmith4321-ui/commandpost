@@ -74,6 +74,23 @@ export interface Lead {
   updated_at: string;
   converted_client_id: number | null;
   lane: string | null;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  socials: string | null;
+  replied_at: string | null;
+}
+
+export type OutreachChannel = 'letter' | 'email' | 'phone';
+
+export interface OutreachTouch {
+  id: number;
+  lead_id: number;
+  channel: OutreachChannel;
+  sent_at: string;
+  note: string | null;
+  created_at: string;
 }
 
 export interface LeadStageHistory {

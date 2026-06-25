@@ -11,6 +11,7 @@ import {
   type LaneId,
 } from '@/lib/outreach/lanes';
 import type { OutreachWeek, DerivedStats, ComputedMetric } from '@/lib/queries/outreach-queries';
+import { OutreachLeads } from '@/components/outreach-leads';
 
 // Explicit class strings so Tailwind's scanner keeps them.
 const ACCENT: Record<string, { chip: string; chipActive: string; ring: string; text: string; bar: string }> = {
@@ -37,7 +38,7 @@ interface Props {
 
 export function OutreachCockpit({ initialLane, weekStart, initialWeek, initialDerived, initialMetric }: Props) {
   const [lane, setLane] = useState<LaneId>(initialLane);
-  const [tab, setTab] = useState<'week' | 'playbook'>('week');
+  const [tab, setTab] = useState<'week' | 'leads' | 'playbook'>('week');
   const [week, setWeek] = useState<OutreachWeek>(initialWeek);
   const [derived, setDerived] = useState<DerivedStats>(initialDerived);
   const [metric, setMetric] = useState<ComputedMetric>(initialMetric);
@@ -126,7 +127,7 @@ export function OutreachCockpit({ initialLane, weekStart, initialWeek, initialDe
 
       {/* Tabs */}
       <div className="flex gap-1 mb-5 border-b border-gray-800">
-        {([['week', 'My Week'], ['playbook', 'Playbook']] as const).map(([id, label]) => (
+        {([['week', 'My Week'], ['leads', 'Leads'], ['playbook', 'Playbook']] as const).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -137,7 +138,7 @@ export function OutreachCockpit({ initialLane, weekStart, initialWeek, initialDe
         ))}
       </div>
 
-      {tab === 'week' ? (
+      {tab === 'week' && (
         <MyWeek
           def={def}
           accent={accent}
@@ -151,9 +152,9 @@ export function OutreachCockpit({ initialLane, weekStart, initialWeek, initialDe
           onMetricCommit={(key, val) => save({ metrics: { [key]: val } })}
           onCadenceToggle={onCadenceToggle}
         />
-      ) : (
-        <Playbook def={def} accent={accent} />
       )}
+      {tab === 'leads' && <OutreachLeads lane={lane} />}
+      {tab === 'playbook' && <Playbook def={def} accent={accent} />}
     </div>
   );
 }

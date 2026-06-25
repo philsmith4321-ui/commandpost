@@ -831,6 +831,34 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: mailing address + reply tracking on leads (additive, nullable) — for
+  // handwritten-letter / email outreach. Owner name reuses contact_person.
+  const addLeadCol = (col: string, decl: string) => {
+    const has = db
+      .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = ?")
+      .get(col) as { count: number };
+    if (has.count === 0) db.exec(`ALTER TABLE leads ADD COLUMN ${col} ${decl}`);
+  };
+  addLeadCol('street', 'TEXT');
+  addLeadCol('city', 'TEXT');
+  addLeadCol('state', 'TEXT');
+  addLeadCol('postal_code', 'TEXT');
+  addLeadCol('socials', 'TEXT');
+  addLeadCol('replied_at', 'TEXT');
+
+  // Migration: outreach touches — one row per letter/email/phone send against a lead.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS outreach_touches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+      channel TEXT NOT NULL CHECK(channel IN ('letter','email','phone')),
+      sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_outreach_touches_lead ON outreach_touches(lead_id);
+  `);
+
   return db;
 }
 

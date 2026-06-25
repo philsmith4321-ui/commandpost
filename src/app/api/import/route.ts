@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { importLeads, mapCsvRow } from '@/lib/queries/outreach-lead-queries';
+import { isLaneId } from '@/lib/outreach/lanes';
 
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split('\n');
+  const lines = text.replace(/\r\n?/g, '\n').trim().split('\n');
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
   return lines.slice(1).map(line => {
@@ -72,25 +74,11 @@ export async function POST(request: Request) {
       imported++;
     }
   } else if (type === 'leads') {
-    const stmt = db.prepare(
-      "INSERT INTO leads (business_name, contact_person, email, phone, website, source, estimated_value, stage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    for (const row of rows) {
-      if (!row.business_name) continue;
-      const source = ['referral', 'website', 'outbound', 'other'].includes(row.source) ? row.source : 'other';
-      const stage = ['new', 'contacted', 'discovery', 'proposal', 'negotiating', 'won', 'lost'].includes(row.stage) ? row.stage : 'new';
-      stmt.run(
-        row.business_name,
-        row.contact_person || null,
-        row.email || null,
-        row.phone || null,
-        row.website || null,
-        source,
-        row.estimated_value ? Number(row.estimated_value) : null,
-        stage
-      );
-      imported++;
-    }
+    const laneRaw = fd.get('lane');
+    const lane = typeof laneRaw === 'string' && isLaneId(laneRaw) ? laneRaw : 'hunter';
+    const mapped = rows.map(mapCsvRow);
+    const result = importLeads(db, mapped, lane);
+    return NextResponse.json({ ok: true, ...result, lane });
   } else {
     return NextResponse.json({ error: `Import type '${type}' not supported` }, { status: 400 });
   }
