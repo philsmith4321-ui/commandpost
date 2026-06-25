@@ -27,12 +27,18 @@ export default function SocialPage() {
 
   useEffect(() => {
     (async () => {
-      const statusRes = await fetch('/api/social/status');
-      const status = await statusRes.json();
-      setConfigured(status.configured);
-      setChannels(status.channels ?? []);
-      if (status.configured) await loadQueue();
-      setLoading(false);
+      try {
+        const statusRes = await fetch('/api/social/status');
+        const status = await statusRes.json();
+        setConfigured(status.configured);
+        setChannels(status.channels ?? []);
+        if (status.error) setError(status.error);
+        if (status.configured) await loadQueue();
+      } catch {
+        setError('Could not reach the server.');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [loadQueue]);
 
