@@ -220,7 +220,7 @@ export function GenerateStudio({
             <h3 className="text-sm font-semibold text-gray-300">Audience avatars</h3>
             <p className="text-xs text-gray-500">Personas you can target in the Audience selector above</p>
           </div>
-          <AvatarManager avatars={avatars} onAvatarsChange={setAvatars} />
+          <AvatarManager initialAvatars={avatars} onAvatarsChange={setAvatars} />
         </div>
 
         {/* Result */}

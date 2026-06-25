@@ -14,19 +14,24 @@ const linesToArray = (s: string): string[] => s.split('\n').map((x) => x.trim())
 const arrayToLines = (a: string[]): string => a.join('\n');
 
 export function AvatarManager({
-  avatars,
+  initialAvatars,
   onAvatarsChange,
 }: {
-  avatars: Avatar[];
-  onAvatarsChange: (avatars: Avatar[]) => void;
+  initialAvatars: Avatar[];
+  onAvatarsChange?: (avatars: Avatar[]) => void;
 }) {
+  const [avatars, setAvatars] = useState<Avatar[]>(initialAvatars);
   const [editingId, setEditingId] = useState<number | 'new' | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [busy, setBusy] = useState(false);
 
   async function refresh() {
     const res = await fetch('/api/avatars', { cache: 'no-store' });
-    if (res.ok) onAvatarsChange((await res.json()).avatars);
+    if (res.ok) {
+      const updated: Avatar[] = (await res.json()).avatars;
+      setAvatars(updated);
+      onAvatarsChange?.(updated);
+    }
   }
 
   function startNew() { setEditingId('new'); setDraft(EMPTY); }
