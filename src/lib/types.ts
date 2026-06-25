@@ -73,6 +73,7 @@ export interface Lead {
   created_at: string;
   updated_at: string;
   converted_client_id: number | null;
+  lane: string | null;
 }
 
 export interface LeadStageHistory {

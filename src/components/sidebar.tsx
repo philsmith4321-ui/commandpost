@@ -12,6 +12,7 @@ const navItems = [
   { href: '/clients', label: 'Clients', icon: '◉' },
   { href: '/projects', label: 'Projects', icon: '◧' },
   { href: '/pipeline', label: 'Pipeline', icon: '◈' },
+  { href: '/outreach', label: 'Outreach', icon: '🎯' },
   { href: '/proposals', label: 'Proposals', icon: '▤' },
   { href: '/contracts', label: 'Contracts', icon: '⊜' },
   { href: '/finances', label: 'Finances', icon: '◇' },

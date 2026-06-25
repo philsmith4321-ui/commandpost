@@ -811,6 +811,26 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec('ALTER TABLE generations ADD COLUMN avatar_id INTEGER');
   }
 
+  // Migration: Outreach (Four Lanes) — door attribution on leads + per-week tracker log
+  const hasLeadLane = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = 'lane'")
+    .get() as { count: number };
+  if (hasLeadLane.count === 0) {
+    db.exec('ALTER TABLE leads ADD COLUMN lane TEXT');
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS outreach_week (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_start TEXT NOT NULL,
+      lane TEXT NOT NULL,
+      metrics TEXT NOT NULL DEFAULT '{}',
+      cadence TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(week_start, lane)
+    );
+  `);
+
   return db;
 }
 
