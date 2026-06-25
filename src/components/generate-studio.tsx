@@ -113,11 +113,9 @@ export function GenerateStudio({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 max-w-6xl">
-      {/* Main column */}
-      <div className="space-y-5 min-w-0">
-        {/* Content type */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+    <div className="space-y-5">
+      {/* Content type */}
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
           <label className="block text-sm font-semibold text-gray-300 mb-3">Content type</label>
           <div className="space-y-4">
             {GROUPS.map((group) => (
@@ -183,6 +181,43 @@ export function GenerateStudio({
           {error && <p className="text-sm text-red-400">{error}</p>}
         </div>
 
+        {/* Knowledge sources */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-300">Knowledge sources</h3>
+            <div className="flex gap-2 text-xs">
+              <button onClick={selectAllShown} className="text-indigo-400 hover:underline">All</button>
+              <button onClick={clearAll} className="text-gray-500 hover:underline">None</button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {TYPE_FILTERS.map((f) => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-2 py-0.5 rounded text-xs capitalize transition-colors ${
+                  filter === f ? 'bg-indigo-600/20 text-indigo-300' : 'text-gray-400 hover:bg-gray-800'
+                }`}>{f}</button>
+            ))}
+          </div>
+
+          {shownSources.length === 0 ? (
+            <p className="text-xs text-gray-500">No sources{filter !== 'all' ? ' of this type' : ''}. Add some on the Ingestion page.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 max-h-[28rem] overflow-y-auto pr-1">
+              {shownSources.map((s) => (
+                <label key={s.id} className="flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-800/60 cursor-pointer">
+                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)}
+                    className="mt-0.5 accent-indigo-500" />
+                  <span className="min-w-0">
+                    <span className="block text-sm text-white truncate">{s.title}</span>
+                    <span className="block text-xs text-gray-500 capitalize">{s.source_type}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Result */}
         {result && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
@@ -222,44 +257,6 @@ export function GenerateStudio({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Sources column */}
-      <div className="lg:sticky lg:top-4 self-start bg-gray-900 border border-gray-800 rounded-2xl p-5 h-fit">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-300">Knowledge sources</h3>
-          <div className="flex gap-2 text-xs">
-            <button onClick={selectAllShown} className="text-indigo-400 hover:underline">All</button>
-            <button onClick={clearAll} className="text-gray-500 hover:underline">None</button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {TYPE_FILTERS.map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-2 py-0.5 rounded text-xs capitalize transition-colors ${
-                filter === f ? 'bg-indigo-600/20 text-indigo-300' : 'text-gray-400 hover:bg-gray-800'
-              }`}>{f}</button>
-          ))}
-        </div>
-
-        {shownSources.length === 0 ? (
-          <p className="text-xs text-gray-500">No sources{filter !== 'all' ? ' of this type' : ''}. Add some on the Ingestion page.</p>
-        ) : (
-          <div className="space-y-1 max-h-[28rem] overflow-y-auto pr-1">
-            {shownSources.map((s) => (
-              <label key={s.id} className="flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-800/60 cursor-pointer">
-                <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)}
-                  className="mt-0.5 accent-indigo-500" />
-                <span className="min-w-0">
-                  <span className="block text-sm text-white truncate">{s.title}</span>
-                  <span className="block text-xs text-gray-500 capitalize">{s.source_type}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
