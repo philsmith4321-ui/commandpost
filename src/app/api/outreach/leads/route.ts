@@ -4,6 +4,7 @@ import { isLaneId } from '@/lib/outreach/lanes';
 import {
   listLeadsByLane,
   laneLeadCounts,
+  laneFacets,
   logTouch,
   markReplied,
   setFollowUp,
@@ -11,6 +12,7 @@ import {
   updateLeadContact,
   type ContactPatch,
 } from '@/lib/queries/outreach-lead-queries';
+import { isBucketKey, type BucketKey } from '@/lib/outreach/employee-size';
 import type { OutreachChannel } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
@@ -18,11 +20,28 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const laneParam = sp.get('lane');
   const lane = isLaneId(laneParam) ? laneParam : 'hunter';
-  const stage = sp.get('stage') || undefined;
-  const uncontactedOnly = sp.get('uncontacted') === '1';
-  const leads = listLeadsByLane(db, lane, { stage, uncontactedOnly });
+
+  const sizes = (sp.get('sizes') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(isBucketKey) as BucketKey[];
+  const nearZip = (sp.get('nearZip') || '').trim() || undefined;
+  const milesRaw = Number(sp.get('withinMiles'));
+  const withinMiles = nearZip && Number.isFinite(milesRaw) && milesRaw > 0 ? milesRaw : undefined;
+
+  const leads = listLeadsByLane(db, lane, {
+    stage: sp.get('stage') || undefined,
+    uncontactedOnly: sp.get('uncontacted') === '1',
+    segment: sp.get('segment') || undefined,
+    category: sp.get('category') || undefined,
+    city: sp.get('city') || undefined,
+    sizes: sizes.length ? sizes : undefined,
+    nearZip,
+    withinMiles,
+  });
   const counts = laneLeadCounts(db, lane);
-  return NextResponse.json({ lane, leads, counts });
+  const facets = laneFacets(db, lane);
+  return NextResponse.json({ lane, leads, counts, facets });
 }
 
 const CHANNELS: OutreachChannel[] = ['letter', 'email', 'phone'];

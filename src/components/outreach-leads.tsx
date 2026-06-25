@@ -3,43 +3,85 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LaneId } from '@/lib/outreach/lanes';
 import type { OutreachLead } from '@/lib/queries/outreach-lead-queries';
+import { BUCKETS, type BucketKey } from '@/lib/outreach/employee-size';
 
 interface Counts {
   total: number;
   uncontacted: number;
   replied: number;
 }
+interface Facets {
+  segments: string[];
+  categories: string[];
+  cities: string[];
+}
 
 const fmtDate = (s: string | null) => (s ? s.slice(0, 10) : null);
+const EMPTY_FACETS: Facets = { segments: [], categories: [], cities: [] };
 
 export function OutreachLeads({ lane }: { lane: LaneId }) {
   const [leads, setLeads] = useState<OutreachLead[]>([]);
   const [counts, setCounts] = useState<Counts>({ total: 0, uncontacted: 0, replied: 0 });
+  const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'uncontacted'>('all');
+  // Search filters
+  const [segment, setSegment] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [sizes, setSizes] = useState<BucketKey[]>([]);
+  const [nearZip, setNearZip] = useState('');
+  const [withinMiles, setWithinMiles] = useState('25');
   const [expanded, setExpanded] = useState<number | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const sizesKey = sizes.join(',');
   // Awaits before any setState so it never updates state synchronously inside the effect.
   const load = useCallback(async () => {
     try {
-      const qs = filter === 'uncontacted' ? '&uncontacted=1' : '';
-      const res = await fetch(`/api/outreach/leads?lane=${lane}${qs}`);
+      const p = new URLSearchParams({ lane });
+      if (filter === 'uncontacted') p.set('uncontacted', '1');
+      if (segment) p.set('segment', segment);
+      if (category) p.set('category', category);
+      if (city) p.set('city', city);
+      if (sizesKey) p.set('sizes', sizesKey);
+      // Only apply distance once a full 5-digit ZIP is entered.
+      if (/^\d{5}$/.test(nearZip) && Number(withinMiles) > 0) {
+        p.set('nearZip', nearZip);
+        p.set('withinMiles', withinMiles);
+      }
+      const res = await fetch(`/api/outreach/leads?${p.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads);
         setCounts(data.counts);
+        setFacets(data.facets ?? EMPTY_FACETS);
       }
     } finally {
       setLoading(false);
     }
-  }, [lane, filter]);
+  }, [lane, filter, segment, category, city, sizesKey, nearZip, withinMiles]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  function toggleSize(k: BucketKey) {
+    setLoading(true);
+    setSizes((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  }
+  function clearFilters() {
+    setLoading(true);
+    setSegment('');
+    setCategory('');
+    setCity('');
+    setSizes([]);
+    setNearZip('');
+  }
+  const activeFilterCount =
+    (segment ? 1 : 0) + (category ? 1 : 0) + (city ? 1 : 0) + (sizes.length ? 1 : 0) + (/^\d{5}$/.test(nearZip) ? 1 : 0);
 
   async function act(leadId: number, body: Record<string, unknown>) {
     await fetch('/api/outreach/leads', {
@@ -108,13 +150,66 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
         </div>
       </div>
 
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/50 p-3">
+        <FilterSelect label="Segment" value={segment} options={facets.segments} onChange={(v) => { setLoading(true); setSegment(v); }} />
+        <FilterSelect label="Category" value={category} options={facets.categories} onChange={(v) => { setLoading(true); setCategory(v); }} />
+        <FilterSelect label="City" value={city} options={facets.cities} onChange={(v) => { setLoading(true); setCity(v); }} />
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">Size:</span>
+          {BUCKETS.map((b) => (
+            <button
+              key={b.key}
+              onClick={() => toggleSize(b.key)}
+              className={`px-2 py-1 rounded text-xs border ${sizes.includes(b.key) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-700 text-gray-400 hover:bg-gray-800'}`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">Within</span>
+          <input
+            type="number"
+            min={1}
+            value={withinMiles}
+            onChange={(e) => { setLoading(true); setWithinMiles(e.target.value); }}
+            className="w-14 bg-gray-950 border border-gray-700 rounded px-1.5 py-1 text-xs text-white"
+          />
+          <span className="text-xs text-gray-500">mi of</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="ZIP"
+            value={nearZip}
+            onChange={(e) => { setLoading(true); setNearZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5)); }}
+            className="w-20 bg-gray-950 border border-gray-700 rounded px-1.5 py-1 text-xs text-white"
+          />
+        </div>
+        {activeFilterCount > 0 && (
+          <button onClick={clearFilters} className="text-xs text-gray-400 hover:text-white underline">
+            Clear ({activeFilterCount})
+          </button>
+        )}
+        <span className="ml-auto text-xs text-gray-500">
+          {activeFilterCount > 0 ? `${leads.length} of ${counts.total} match` : `${counts.total} leads`}
+        </span>
+      </div>
+
       {loading ? (
         <p className="text-sm text-gray-500 py-8 text-center">Loading…</p>
       ) : leads.length === 0 ? (
-        <div className="text-center py-10 text-sm text-gray-500">
-          <p>No {lane} leads yet.</p>
-          <p className="mt-1">Upload a CSV of your scraped leads to get started — columns like <code className="text-gray-400">business_name, owner, street, city, state, zip, email</code> map automatically.</p>
-        </div>
+        activeFilterCount > 0 ? (
+          <div className="text-center py-10 text-sm text-gray-500">
+            <p>No leads match these filters.</p>
+            <button onClick={clearFilters} className="mt-2 text-blue-400 hover:text-blue-300 underline">Clear filters</button>
+          </div>
+        ) : (
+          <div className="text-center py-10 text-sm text-gray-500">
+            <p>No {lane} leads yet.</p>
+            <p className="mt-1">Upload a CSV of your scraped leads to get started — columns like <code className="text-gray-400">business_name, owner, street, city, state, zip, segment, category, employees, email</code> map automatically.</p>
+          </div>
+        )
       ) : (
         <div className="rounded-xl border border-gray-800 overflow-hidden">
           <table className="w-full text-sm">
@@ -142,6 +237,31 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
         </div>
       )}
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`bg-gray-950 border rounded px-2 py-1 text-xs ${value ? 'border-blue-600 text-white' : 'border-gray-700 text-gray-400'}`}
+    >
+      <option value="">{label}: all</option>
+      {options.map((o) => (
+        <option key={o} value={o}>{o}</option>
+      ))}
+    </select>
   );
 }
 

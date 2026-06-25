@@ -1,6 +1,8 @@
 import type Database from 'better-sqlite3';
 import type { Lead, OutreachChannel } from '@/lib/types';
 import { updateLeadStage, addLeadNote } from '@/lib/queries/lead-queries';
+import { milesBetweenZips } from '@/lib/outreach/geo';
+import { parseEmployees, bucketOf, type BucketKey } from '@/lib/outreach/employee-size';
 
 // A lead plus a derived summary of its outreach activity, for the Leads tab list.
 export interface OutreachLead extends Lead {
@@ -9,15 +11,21 @@ export interface OutreachLead extends Lead {
   touch_count: number;
 }
 
-export interface ListLeadsOptions {
+export interface LeadFilters {
   stage?: string;
   uncontactedOnly?: boolean;
+  segment?: string;
+  category?: string;
+  city?: string;
+  sizes?: BucketKey[];
+  nearZip?: string;
+  withinMiles?: number;
 }
 
 export function listLeadsByLane(
   db: Database.Database,
   lane: string,
-  opts: ListLeadsOptions = {}
+  opts: LeadFilters = {}
 ): OutreachLead[] {
   const where: string[] = ['l.lane = @lane'];
   const params: Record<string, string> = { lane };
@@ -25,10 +33,21 @@ export function listLeadsByLane(
     where.push('l.stage = @stage');
     params.stage = opts.stage;
   }
-  if (opts.uncontactedOnly) {
-    where.push("l.stage = 'new'");
+  if (opts.uncontactedOnly) where.push("l.stage = 'new'");
+  if (opts.segment) {
+    where.push('l.segment = @segment');
+    params.segment = opts.segment;
   }
-  return db
+  if (opts.category) {
+    where.push('l.category = @category');
+    params.category = opts.category;
+  }
+  if (opts.city) {
+    where.push('lower(l.city) = lower(@city)');
+    params.city = opts.city;
+  }
+
+  let rows = db
     .prepare(
       `SELECT l.*,
          (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'letter') AS letter_sent_at,
@@ -39,6 +58,39 @@ export function listLeadsByLane(
        ORDER BY (l.stage = 'new') DESC, l.updated_at DESC`
     )
     .all(params) as OutreachLead[];
+
+  // Size buckets and ZIP-distance are applied in JS (the set is small).
+  if (opts.sizes && opts.sizes.length) {
+    const set = new Set(opts.sizes);
+    rows = rows.filter((r) => {
+      const b = bucketOf(r.employee_min, r.employee_max);
+      return b != null && set.has(b);
+    });
+  }
+  if (opts.nearZip && opts.withinMiles != null) {
+    const within = opts.withinMiles;
+    rows = rows.filter((r) => {
+      const d = milesBetweenZips(r.postal_code, opts.nearZip);
+      return d != null && d <= within;
+    });
+  }
+  return rows;
+}
+
+// Distinct non-null values among a lane's leads, for the filter dropdowns.
+export function laneFacets(
+  db: Database.Database,
+  lane: string
+): { segments: string[]; categories: string[]; cities: string[] } {
+  const distinct = (col: string) =>
+    (
+      db
+        .prepare(
+          `SELECT DISTINCT ${col} AS v FROM leads WHERE lane = ? AND ${col} IS NOT NULL AND ${col} <> '' ORDER BY ${col}`
+        )
+        .all(lane) as { v: string }[]
+    ).map((r) => r.v);
+  return { segments: distinct('segment'), categories: distinct('category'), cities: distinct('city') };
 }
 
 export function laneLeadCounts(db: Database.Database, lane: string): { total: number; uncontacted: number; replied: number } {
@@ -126,6 +178,9 @@ export interface ImportLeadRow {
   postal_code?: string;
   socials?: string;
   notes?: string;
+  segment?: string;
+  category?: string;
+  employees?: string; // raw band, e.g. "51-200" / "~53 est" — parsed to min/max on insert
 }
 
 const trimOrNull = (v?: string): string | null => (v && v.trim() ? v.trim() : null);
@@ -137,8 +192,8 @@ export function importLeads(
   lane: string
 ): { imported: number; skipped: number } {
   const insert = db.prepare(
-    `INSERT INTO leads (business_name, contact_person, email, phone, website, street, city, state, postal_code, socials, source, stage, lane)
-     VALUES (@business_name, @contact_person, @email, @phone, @website, @street, @city, @state, @postal_code, @socials, 'outbound', 'new', @lane)`
+    `INSERT INTO leads (business_name, contact_person, email, phone, website, street, city, state, postal_code, socials, segment, category, employee_min, employee_max, source, stage, lane)
+     VALUES (@business_name, @contact_person, @email, @phone, @website, @street, @city, @state, @postal_code, @socials, @segment, @category, @employee_min, @employee_max, 'outbound', 'new', @lane)`
   );
   const dupByKey = db.prepare(
     "SELECT id FROM leads WHERE lower(business_name) = lower(@bn) AND lower(coalesce(street,'')) = lower(@st)"
@@ -163,6 +218,7 @@ export function importLeads(
         skipped++;
         continue;
       }
+      const { min: employee_min, max: employee_max } = parseEmployees(r.employees);
       const info = insert.run({
         business_name,
         contact_person: trimOrNull(r.contact_person),
@@ -174,6 +230,10 @@ export function importLeads(
         state: trimOrNull(r.state),
         postal_code: trimOrNull(r.postal_code),
         socials: trimOrNull(r.socials),
+        segment: trimOrNull(r.segment),
+        category: trimOrNull(r.category),
+        employee_min,
+        employee_max,
         lane,
       });
       const id = Number(info.lastInsertRowid);
@@ -199,7 +259,10 @@ const ALIASES: Record<keyof ImportLeadRow, string[]> = {
   state: ['state', 'region', 'province'],
   postal_code: ['postal_code', 'zip', 'zipcode', 'zip_code', 'postal', 'postcode'],
   socials: ['socials', 'social', 'instagram', 'facebook', 'linkedin', 'social_media'],
-  notes: ['notes', 'note', 'comment', 'comments', 'description', 'pain'],
+  notes: ['notes', 'note', 'comment', 'comments', 'description', 'pain', 'notes_/_confidence', 'notes / confidence'],
+  segment: ['segment', 'type', 'vertical'],
+  category: ['category', 'industry', 'sub-industry', 'sub_industry', 'niche'],
+  employees: ['employees', 'est. employees', 'est employees', 'employee_count', 'headcount', 'size', 'company_size', 'est._employees'],
 };
 
 export function mapCsvRow(raw: Record<string, string>): ImportLeadRow {

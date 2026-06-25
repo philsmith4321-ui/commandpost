@@ -845,6 +845,11 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
   addLeadCol('postal_code', 'TEXT');
   addLeadCol('socials', 'TEXT');
   addLeadCol('replied_at', 'TEXT');
+  // Search/filter fields: industry (segment + category) and parsed employee size.
+  addLeadCol('segment', 'TEXT');
+  addLeadCol('category', 'TEXT');
+  addLeadCol('employee_min', 'INTEGER');
+  addLeadCol('employee_max', 'INTEGER');
 
   // Migration: outreach touches — one row per letter/email/phone send against a lead.
   db.exec(`

@@ -80,6 +80,10 @@ export interface Lead {
   postal_code: string | null;
   socials: string | null;
   replied_at: string | null;
+  segment: string | null;
+  category: string | null;
+  employee_min: number | null;
+  employee_max: number | null;
 }
 
 export type OutreachChannel = 'letter' | 'email' | 'phone';
