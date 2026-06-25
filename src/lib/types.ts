@@ -352,6 +352,33 @@ export interface Generation {
   created_at: string;
 }
 
+export interface MasterObjection {
+  objection: string;
+  counter: string;
+}
+
+export interface MasterProfile {
+  id: number; // always 1
+  identity: string | null;
+  wants: string | null;
+  burned_by: string | null;
+  buying_trigger: string | null;
+  tone: string | null;
+  objections: MasterObjection[];
+  trust_builders: string[];
+  updated_at: string;
+}
+
+export interface MasterProfileInput {
+  identity?: string | null;
+  wants?: string | null;
+  burned_by?: string | null;
+  buying_trigger?: string | null;
+  tone?: string | null;
+  objections?: MasterObjection[];
+  trust_builders?: string[];
+}
+
 export interface Avatar {
   id: number;
   name: string;
@@ -361,4 +388,16 @@ export interface Avatar {
   is_active: number;
   created_at: string;
   updated_at: string;
+  // Vertical-overlay structured fields (nullable / default empty)
+  persona: string | null;
+  buying_trigger: string | null;
+  proof_point: string | null;
+  writing_target: string | null;
+  what_tried: string | null;
+  pains: string[];
+  desires: string[];
+  objections: string[];
+  vocabulary: string[];
+  trust_triggers: string[];
+  channels: string[];
 }
