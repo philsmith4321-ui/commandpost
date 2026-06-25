@@ -12,6 +12,7 @@ const primaryItems = [
 ];
 
 const moreItems = [
+  { href: '/outreach', label: 'Outreach', icon: '🎯' },
   { href: '/projects', label: 'Projects', icon: '◧' },
   { href: '/proposals', label: 'Proposals', icon: '▤' },
   { href: '/contracts', label: 'Contracts', icon: '⊜' },
