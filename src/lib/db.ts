@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import { seedMarketingAvatars } from '@/lib/seed/marketing-avatars';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'commandpost.db');
 
@@ -816,6 +817,7 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
 export function getDb(): Database.Database {
   if (!_db) {
     _db = initDb();
+    seedMarketingAvatars(_db);
   }
   return _db;
 }
