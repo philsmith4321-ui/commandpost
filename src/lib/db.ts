@@ -768,6 +768,40 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   `);
 
+  // Migration: structured vertical-overlay fields on avatars (additive, nullable)
+  const addAvatarCol = (col: string, decl: string) => {
+    const has = db
+      .prepare("SELECT COUNT(*) as count FROM pragma_table_info('avatars') WHERE name = ?")
+      .get(col) as { count: number };
+    if (has.count === 0) db.exec(`ALTER TABLE avatars ADD COLUMN ${col} ${decl}`);
+  };
+  addAvatarCol('persona', 'TEXT');
+  addAvatarCol('buying_trigger', 'TEXT');
+  addAvatarCol('proof_point', 'TEXT');
+  addAvatarCol('writing_target', 'TEXT');
+  addAvatarCol('what_tried', 'TEXT');
+  addAvatarCol('pains', "TEXT NOT NULL DEFAULT '[]'");
+  addAvatarCol('desires', "TEXT NOT NULL DEFAULT '[]'");
+  addAvatarCol('objections', "TEXT NOT NULL DEFAULT '[]'");
+  addAvatarCol('vocabulary', "TEXT NOT NULL DEFAULT '[]'");
+  addAvatarCol('trust_triggers', "TEXT NOT NULL DEFAULT '[]'");
+  addAvatarCol('channels', "TEXT NOT NULL DEFAULT '[]'");
+
+  // Migration: master_profile singleton (id is always 1)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS master_profile (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      identity TEXT,
+      wants TEXT,
+      burned_by TEXT,
+      buying_trigger TEXT,
+      tone TEXT,
+      objections TEXT NOT NULL DEFAULT '[]',
+      trust_builders TEXT NOT NULL DEFAULT '[]',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migration: add avatar_id to generations
   const hasAvatarId = db
     .prepare("SELECT COUNT(*) as count FROM pragma_table_info('generations') WHERE name = 'avatar_id'")
