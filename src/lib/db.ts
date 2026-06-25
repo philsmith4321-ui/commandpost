@@ -698,6 +698,9 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
   )?.sql ?? '';
   if (kbDocsSql && !kbDocsSql.includes("'system'")) {
     db.pragma('foreign_keys = OFF');
+    // legacy_alter_table keeps RENAME from rewriting FK references in other
+    // tables (e.g. kb_chunks) to the temp name, which would dangle on DROP.
+    db.pragma('legacy_alter_table = ON');
     const rebuildKbDocs = db.transaction(() => {
       db.exec(`
         ALTER TABLE kb_documents RENAME TO kb_documents_old;
@@ -717,6 +720,7 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
       `);
     });
     rebuildKbDocs();
+    db.pragma('legacy_alter_table = OFF');
     db.pragma('foreign_keys = ON');
   }
 
