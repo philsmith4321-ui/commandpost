@@ -73,6 +73,20 @@ export function GenerateStudio({
     if (res.ok) setHistory((await res.json()).generations);
   }
 
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
+
+  async function backfillToBuffer() {
+    setBackfilling(true);
+    setBackfillMsg(null);
+    const res = await fetch('/api/generate/backfill-buffer', { method: 'POST' });
+    const body = await res.json();
+    setBackfilling(false);
+    if (!res.ok) { setBackfillMsg(body.error ?? 'Backfill failed'); return; }
+    setBackfillMsg(`Pushed ${body.pushed}, skipped ${body.skipped}${body.failed ? `, failed ${body.failed}` : ''}`);
+    refreshHistory();
+  }
+
   async function generate() {
     if (!topic.trim()) { setError('Enter a topic.'); return; }
     setBusy(true); setError(null); setResult(null); setCopied(false);
@@ -248,13 +262,27 @@ export function GenerateStudio({
         {/* History */}
         {history.length > 0 && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">History</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-300">History</h3>
+              <div className="flex items-center gap-2">
+                {backfillMsg && <span className="text-xs text-gray-500">{backfillMsg}</span>}
+                <button onClick={backfillToBuffer} disabled={backfilling}
+                  className="text-xs px-2 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 transition-colors">
+                  {backfilling ? 'Sending…' : 'Send social to Buffer'}
+                </button>
+              </div>
+            </div>
             <div className="space-y-1.5">
               {history.map((g) => (
                 <div key={g.id} className="flex items-center justify-between gap-3 rounded-lg hover:bg-gray-800/60 px-2 py-1.5">
                   <button onClick={() => openHistory(g.id)} className="min-w-0 text-left flex-1">
                     <p className="text-sm text-white truncate">{g.topic}</p>
-                    <p className="text-xs text-gray-500">{typeLabel(g.content_type)} · {g.created_at}</p>
+                    <p className="text-xs text-gray-500">
+                      {typeLabel(g.content_type)} · {g.created_at}
+                      {g.buffer_post_id && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-green-900 text-green-300">In Buffer (draft)</span>
+                      )}
+                    </p>
                   </button>
                   <button onClick={() => deleteHistory(g.id)}
                     className="px-2 py-1 rounded text-xs text-gray-500 hover:text-red-300 shrink-0">✕</button>
