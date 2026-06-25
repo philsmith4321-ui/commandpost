@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { retrieveContext } from '@/lib/rag/retrieve';
 import { generateContent } from '@/lib/generation/generate';
-import { createGeneration } from '@/lib/queries/generation-queries';
+import { createGeneration, setGenerationBufferPostId } from '@/lib/queries/generation-queries';
+import { draftGenerationToBuffer } from '@/lib/buffer/draft';
 import { isContentType } from '@/lib/generation/content-types';
 import { getAvatar, listAvatars } from '@/lib/queries/avatar-queries';
 import { composeAudience } from '@/lib/generation/audience';
@@ -56,10 +57,21 @@ export async function POST(request: NextRequest) {
     result: gen.text,
   });
 
+  // Auto-draft social generations to Buffer (best-effort; never fails the generation).
+  const draft = await draftGenerationToBuffer(contentType, gen.text);
+  let buffer: { pushed: true; channel: string } | { pushed: false; reason: string };
+  if (draft.pushed) {
+    setGenerationBufferPostId(db, id, draft.postId);
+    buffer = { pushed: true, channel: draft.channel };
+  } else {
+    buffer = { pushed: false, reason: draft.reason };
+  }
+
   return NextResponse.json({
     id,
     result: gen.text,
     retrieval_mode: mode,
     sources_used: chunks.length,
+    buffer,
   });
 }
