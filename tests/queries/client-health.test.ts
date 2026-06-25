@@ -1,7 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type Database from 'better-sqlite3';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { existsSync, rmSync } from 'node:fs';
 
 let db: Database.Database;
+let dbPath: string;
 let initDb: typeof import('@/lib/db').initDb;
 let getClientHealth: typeof import('@/lib/queries/client-queries').getClientHealth;
 let getClientHealthSummary: typeof import('@/lib/queries/client-queries').getClientHealthSummary;
@@ -9,10 +13,19 @@ let getClientHealthSummary: typeof import('@/lib/queries/client-queries').getCli
 beforeEach(async () => {
   const dbModule = await import('../../src/lib/db');
   initDb = dbModule.initDb;
-  db = initDb(`test-client-health-${Date.now()}-${Math.random()}.db`);
+  dbPath = join(tmpdir(), `cp-test-client-health-${Date.now()}-${Math.random()}.db`);
+  db = initDb(dbPath);
   const mod = await import('../../src/lib/queries/client-queries');
   getClientHealth = mod.getClientHealth;
   getClientHealthSummary = mod.getClientHealthSummary;
+});
+
+afterEach(() => {
+  try { db?.close(); } catch { /* already closed */ }
+  for (const suffix of ['', '-wal', '-shm']) {
+    const p = dbPath + suffix;
+    if (existsSync(p)) try { rmSync(p); } catch { /* best effort */ }
+  }
 });
 
 describe('getClientHealth', () => {

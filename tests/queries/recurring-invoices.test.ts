@@ -1,7 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type Database from 'better-sqlite3';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { existsSync, rmSync } from 'node:fs';
 
 let db: Database.Database;
+let dbPath: string;
 let initDb: typeof import('@/lib/db').initDb;
 let getRecurringInvoices: typeof import('@/lib/queries/invoice-queries').getRecurringInvoices;
 let getMrr: typeof import('@/lib/queries/invoice-queries').getMrr;
@@ -10,11 +14,20 @@ let getClientRecurringInvoices: typeof import('@/lib/queries/invoice-queries').g
 beforeEach(async () => {
   const dbModule = await import('../../src/lib/db');
   initDb = dbModule.initDb;
-  db = initDb(`test-recurring-inv-${Date.now()}-${Math.random()}.db`);
+  dbPath = join(tmpdir(), `cp-test-recurring-inv-${Date.now()}-${Math.random()}.db`);
+  db = initDb(dbPath);
   const mod = await import('../../src/lib/queries/invoice-queries');
   getRecurringInvoices = mod.getRecurringInvoices;
   getMrr = mod.getMrr;
   getClientRecurringInvoices = mod.getClientRecurringInvoices;
+});
+
+afterEach(() => {
+  try { db?.close(); } catch { /* already closed */ }
+  for (const suffix of ['', '-wal', '-shm']) {
+    const p = dbPath + suffix;
+    if (existsSync(p)) try { rmSync(p); } catch { /* best effort */ }
+  }
 });
 
 describe('recurring invoice queries', () => {
