@@ -6,6 +6,7 @@ import {
   laneLeadCounts,
   laneFacets,
   logTouch,
+  clearTouch,
   markReplied,
   setFollowUp,
   addLeadNote,
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'invalid channel' }, { status: 400 });
       }
       logTouch(db, leadId, body.channel, typeof body.note === 'string' ? body.note : null);
+      break;
+    }
+    case 'clear-touch': {
+      if (!CHANNELS.includes(body.channel)) {
+        return NextResponse.json({ error: 'invalid channel' }, { status: 400 });
+      }
+      clearTouch(db, leadId, body.channel);
       break;
     }
     case 'mark-replied':

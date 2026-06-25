@@ -126,6 +126,22 @@ export function logTouch(
   }
 }
 
+// Undo a logged send: remove every touch of this channel for the lead.
+// If that leaves the lead with no touches at all, walk it back to "new"
+// (uncontacted) so the filters/counts reflect reality — handy while testing.
+export function clearTouch(db: Database.Database, leadId: number, channel: OutreachChannel): void {
+  db.prepare('DELETE FROM outreach_touches WHERE lead_id = ? AND channel = ?').run(leadId, channel);
+  const remaining = db
+    .prepare('SELECT COUNT(*) AS n FROM outreach_touches WHERE lead_id = ?')
+    .get(leadId) as { n: number };
+  const lead = db.prepare('SELECT stage FROM leads WHERE id = ?').get(leadId) as { stage: string } | undefined;
+  if (remaining.n === 0 && lead?.stage === 'contacted') {
+    updateLeadStage(db, leadId, 'new');
+  } else {
+    db.prepare("UPDATE leads SET updated_at = datetime('now') WHERE id = ?").run(leadId);
+  }
+}
+
 export interface ContactPatch {
   email?: string | null;
   phone?: string | null;

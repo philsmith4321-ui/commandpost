@@ -275,6 +275,59 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: 'sent' | '
   return <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] ${cls}`}>{children}</span>;
 }
 
+// Toggle for logging / un-logging a send on a channel. Gray = not sent (click to
+// send); green = sent (click to unsend). Lets you flip a touch on and off freely.
+function SendToggle({
+  icon,
+  label,
+  sentAt,
+  onSend,
+  onUnsend,
+}: {
+  icon: string;
+  label: string;
+  sentAt: string | null;
+  onSend: () => void;
+  onUnsend: () => void;
+}) {
+  if (sentAt) {
+    return (
+      <button
+        onClick={onUnsend}
+        title={`${label} logged ${sentAt} — click to unsend`}
+        className="group px-2 py-1 rounded bg-emerald-600/80 hover:bg-red-600 text-xs text-white"
+      >
+        <span className="group-hover:hidden">✓ {label}</span>
+        <span className="hidden group-hover:inline">✕ Unsend</span>
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onSend}
+      title={`Log a ${label.toLowerCase()} sent today`}
+      className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-white"
+    >
+      {icon} {label}
+    </button>
+  );
+}
+
+// A "sent" status badge that doubles as an unsend control: shows the send date,
+// turns red on hover to invite clicking it off. Mirrors SendToggle's behavior.
+function UnsendBadge({ label, onUnsend }: { label: string; onUnsend: () => void }) {
+  return (
+    <button
+      onClick={onUnsend}
+      title="Click to unsend"
+      className="group inline-block px-1.5 py-0.5 rounded text-[11px] bg-emerald-600/20 text-emerald-300 hover:bg-red-600/30 hover:text-red-300"
+    >
+      <span className="group-hover:hidden">{label}</span>
+      <span className="hidden group-hover:inline">✕ unsend</span>
+    </button>
+  );
+}
+
 function LeadRow({
   lead,
   expanded,
@@ -312,8 +365,18 @@ function LeadRow({
           {[lead.city, lead.state].filter(Boolean).join(', ') || '—'}
         </td>
         <td className="px-3 py-2 align-top space-x-1">
-          {letter && <Badge tone="sent">✉ {letter}</Badge>}
-          {email && <Badge tone="sent">@ {email}</Badge>}
+          {letter && (
+            <UnsendBadge
+              label={`✉ ${letter}`}
+              onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'letter' })}
+            />
+          )}
+          {email && (
+            <UnsendBadge
+              label={`@ ${email}`}
+              onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'email' })}
+            />
+          )}
           {replied && <Badge tone="reply">replied {replied}</Badge>}
           {!letter && !email && !replied && <Badge tone="muted">sourced</Badge>}
         </td>
@@ -326,20 +389,22 @@ function LeadRow({
           />
         </td>
         <td className="px-3 py-2 align-top text-right whitespace-nowrap">
-          <button
-            onClick={() => onAct(lead.id, { action: 'log-touch', channel: 'letter' })}
-            className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-white"
-            title="Log a handwritten letter sent today"
-          >
-            ✉ Letter
-          </button>
-          <button
-            onClick={() => onAct(lead.id, { action: 'log-touch', channel: 'email' })}
-            className="ml-1 px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-white"
-            title="Log an email sent today"
-          >
-            @ Email
-          </button>
+          <SendToggle
+            icon="✉"
+            label="Letter"
+            sentAt={letter}
+            onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'letter' })}
+            onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'letter' })}
+          />
+          <span className="ml-1 inline-block">
+            <SendToggle
+              icon="@"
+              label="Email"
+              sentAt={email}
+              onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'email' })}
+              onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'email' })}
+            />
+          </span>
         </td>
       </tr>
       {expanded && (
