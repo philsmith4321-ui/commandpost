@@ -6,7 +6,6 @@ import type { KbDocument, KbSourceType, Generation, GenContentType, LengthPrefer
 
 type SourceItem = Omit<KbDocument, 'content'>;
 
-const GROUPS = ['Long-form', 'Campaigns', 'Social Media'] as const;
 const LENGTHS: { value: LengthPreference; label: string }[] = [
   { value: 'short', label: 'Short' },
   { value: 'medium', label: 'Medium' },
@@ -117,24 +116,17 @@ export function GenerateStudio({
       {/* Content type */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
           <label className="block text-sm font-semibold text-gray-300 mb-3">Content type</label>
-          <div className="space-y-4">
-            {GROUPS.map((group) => (
-              <div key={group}>
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">{group}</p>
-                <div className="flex flex-wrap gap-2">
-                  {CONTENT_TYPES.filter((t) => t.group === group).map((t) => (
-                    <button key={t.value} onClick={() => setContentType(t.value)}
-                      className={`px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
-                        contentType === t.value
-                          ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                          : 'bg-gray-950 border-gray-700 text-gray-300 hover:border-gray-600'
-                      }`}>
-                      <span className="font-medium">{t.label}</span>
-                      <span className="block text-xs text-gray-500">{t.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="flex flex-wrap gap-2">
+            {CONTENT_TYPES.map((t) => (
+              <button key={t.value} onClick={() => setContentType(t.value)}
+                className={`px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
+                  contentType === t.value
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-gray-950 border-gray-700 text-gray-300 hover:border-gray-600'
+                }`}>
+                <span className="font-medium">{t.label}</span>
+                <span className="block text-xs text-gray-500">{t.desc}</span>
+              </button>
             ))}
           </div>
         </div>
