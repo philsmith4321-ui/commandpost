@@ -411,12 +411,14 @@ function SendToggle({
   icon,
   label,
   sentAt,
+  sendDate,
   onSend,
   onUnsend,
 }: {
   icon: string;
   label: string;
   sentAt: string | null;
+  sendDate?: string;
   onSend: () => void;
   onUnsend: () => void;
 }) {
@@ -435,7 +437,7 @@ function SendToggle({
   return (
     <button
       onClick={onSend}
-      title={`Log a ${label.toLowerCase()} sent today`}
+      title={sendDate ? `Log a ${label.toLowerCase()} sent on ${sendDate}` : `Log a ${label.toLowerCase()} sent today`}
       className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-white"
     >
       {icon} {label}
@@ -598,6 +600,9 @@ function LeadRow({
   onAct: (leadId: number, body: Record<string, unknown>) => void;
 }) {
   const [note, setNote] = useState('');
+  // Optional backdate for "mark sent": empty = log today, a YYYY-MM-DD = log that day.
+  const [sendDate, setSendDate] = useState('');
+  const today = new Date().toISOString().slice(0, 10);
   const [contact, setContact] = useState({
     street: lead.street ?? '',
     city: lead.city ?? '',
@@ -671,19 +676,31 @@ function LeadRow({
         </td>
         <td className="px-3 py-2 align-top text-right whitespace-nowrap">
           <div className="inline-flex flex-col gap-1 items-end">
+            <input
+              type="date"
+              value={sendDate}
+              max={today}
+              onChange={(e) => setSendDate(e.target.value)}
+              title="Date you actually sent. Leave empty to log today."
+              className={`bg-gray-950 border rounded px-1.5 py-0.5 text-[11px] ${
+                sendDate ? 'border-emerald-600 text-white' : 'border-gray-700 text-gray-500'
+              }`}
+            />
             <div className="flex gap-1 justify-end">
               <SendToggle
                 icon="✉"
                 label="Letter"
                 sentAt={letter}
-                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'letter' })}
+                sendDate={sendDate}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'letter', sentAt: sendDate || undefined })}
                 onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'letter' })}
               />
               <SendToggle
                 icon="@"
                 label="Email"
                 sentAt={email}
-                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'email' })}
+                sendDate={sendDate}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'email', sentAt: sendDate || undefined })}
                 onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'email' })}
               />
             </div>
@@ -692,14 +709,16 @@ function LeadRow({
                 icon="in"
                 label="LinkedIn"
                 sentAt={linkedin}
-                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'linkedin' })}
+                sendDate={sendDate}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'linkedin', sentAt: sendDate || undefined })}
                 onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'linkedin' })}
               />
               <SendToggle
                 icon="f"
                 label="FB"
                 sentAt={fb}
-                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'fb' })}
+                sendDate={sendDate}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'fb', sentAt: sendDate || undefined })}
                 onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'fb' })}
               />
             </div>

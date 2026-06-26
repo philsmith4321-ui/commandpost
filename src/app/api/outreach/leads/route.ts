@@ -67,7 +67,9 @@ export async function POST(request: NextRequest) {
       if (!CHANNELS.includes(body.channel)) {
         return NextResponse.json({ error: 'invalid channel' }, { status: 400 });
       }
-      logTouch(db, leadId, body.channel, typeof body.note === 'string' ? body.note : null);
+      const sentAt =
+        typeof body.sentAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.sentAt) ? body.sentAt : null;
+      logTouch(db, leadId, body.channel, typeof body.note === 'string' ? body.note : null, sentAt);
       break;
     }
     case 'clear-touch': {

@@ -115,17 +115,29 @@ export function laneLeadCounts(db: Database.Database, lane: string): { total: nu
 }
 
 // Log a letter/email/phone send. Advances a still-Sourced lead to Outreach Sent (contacted).
+// sentAt (optional YYYY-MM-DD) backdates the send; omit it to stamp the current time.
 export function logTouch(
   db: Database.Database,
   leadId: number,
   channel: OutreachChannel,
-  note?: string | null
+  note?: string | null,
+  sentAt?: string | null
 ): void {
-  db.prepare('INSERT INTO outreach_touches (lead_id, channel, note) VALUES (?, ?, ?)').run(
-    leadId,
-    channel,
-    note?.trim() ? note.trim() : null
-  );
+  const backdate = sentAt && /^\d{4}-\d{2}-\d{2}$/.test(sentAt) ? sentAt : null;
+  if (backdate) {
+    db.prepare('INSERT INTO outreach_touches (lead_id, channel, sent_at, note) VALUES (?, ?, ?, ?)').run(
+      leadId,
+      channel,
+      backdate,
+      note?.trim() ? note.trim() : null
+    );
+  } else {
+    db.prepare('INSERT INTO outreach_touches (lead_id, channel, note) VALUES (?, ?, ?)').run(
+      leadId,
+      channel,
+      note?.trim() ? note.trim() : null
+    );
+  }
   const lead = db.prepare('SELECT stage FROM leads WHERE id = ?').get(leadId) as { stage: string } | undefined;
   if (lead?.stage === 'new') {
     updateLeadStage(db, leadId, 'contacted');
