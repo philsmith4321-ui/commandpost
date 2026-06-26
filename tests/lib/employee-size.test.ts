@@ -21,7 +21,9 @@ describe('parseEmployees', () => {
 
 describe('bucketOf', () => {
   it('assigns one bucket from the midpoint', () => {
-    expect(bucketOf(20, 49)).toBe('lt50'); // mid 34
+    expect(bucketOf(5, 12)).toBe('lt20'); // mid 8.5 -> 9
+    expect(bucketOf(10, 19)).toBe('lt20'); // mid 14.5 -> 15
+    expect(bucketOf(20, 49)).toBe('20-49'); // mid 34
     expect(bucketOf(53, 53)).toBe('50-99');
     expect(bucketOf(51, 200)).toBe('100-199'); // mid 125
     expect(bucketOf(200, 400)).toBe('200-499'); // mid 300

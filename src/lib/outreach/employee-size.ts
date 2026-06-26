@@ -1,10 +1,11 @@
 // Employee-count parsing + bucketing for the lead size filter.
 // Client-safe (pure functions, no server deps) — imported by the filter UI too.
 
-export type BucketKey = 'lt50' | '50-99' | '100-199' | '200-499' | '500+';
+export type BucketKey = 'lt20' | '20-49' | '50-99' | '100-199' | '200-499' | '500+';
 
 export const BUCKETS: { key: BucketKey; label: string; min: number; max: number | null }[] = [
-  { key: 'lt50', label: '<50', min: 0, max: 49 },
+  { key: 'lt20', label: '≤19', min: 0, max: 19 },
+  { key: '20-49', label: '20–49', min: 20, max: 49 },
   { key: '50-99', label: '50–99', min: 50, max: 99 },
   { key: '100-199', label: '100–199', min: 100, max: 199 },
   { key: '200-499', label: '200–499', min: 200, max: 499 },
