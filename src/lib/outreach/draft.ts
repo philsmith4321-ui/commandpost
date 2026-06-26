@@ -6,6 +6,10 @@ import { LANES, isLaneId } from '@/lib/outreach/lanes';
 import { getOutreachPitch } from './pitch';
 
 // Per-channel shaping: the instruction handed to the model + a token budget.
+// Phil's physical mailing address, required in the cold-email footer for CAN-SPAM.
+// Single source of truth — change it here if the business address ever changes.
+export const MAILING_ADDRESS = '1004 Thistle Court, Hendersonville, TN 37075';
+
 const CHANNEL_INSTRUCTIONS: Record<Exclude<OutreachChannel, 'phone'>, { instruction: string; maxTokens: number }> = {
   letter: {
     instruction:
@@ -14,7 +18,7 @@ const CHANNEL_INSTRUCTIONS: Record<Exclude<OutreachChannel, 'phone'>, { instruct
   },
   email: {
     instruction:
-      'Channel: COLD EMAIL. Output a "Subject: ..." line first, then a blank line, then the body. The subject line carries most of the weight — make it honest and intriguing (e.g. "the honest version of an AI pitch"). Keep the body short. End with the CAN-SPAM opt-out line: "Reply \'no thanks\' and I won\'t follow up." Include the contact line: Phil Smith, RekindleLeads · rekindleleads.com · 615-969-7941.',
+      `Channel: COLD EMAIL. Output a "Subject: ..." line first, then a blank line, then the body. The subject line carries most of the weight — make it honest and intriguing (e.g. "the honest version of an AI pitch"). Keep the body short. Include the contact line: Phil Smith, RekindleLeads · rekindleleads.com · 615-969-7941. For CAN-SPAM, the footer MUST include the physical mailing address verbatim: ${MAILING_ADDRESS}. Never output a placeholder like "[Mailing address]" — always use that exact address. End with the opt-out line: "Reply 'no thanks' and I won't follow up."`,
     maxTokens: 1024,
   },
   linkedin: {
