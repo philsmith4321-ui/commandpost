@@ -29,6 +29,23 @@ const CHANNEL_INSTRUCTIONS: Record<Exclude<OutreachChannel, 'phone'>, { instruct
   },
 };
 
+// Safety net for Phil's rule #1: drafted content must never contain a long dash
+// (em/en dash) or a "--"/"---" run, which read as AI-generated. Clause-break dashes
+// become commas; numeric ranges collapse to a plain hyphen. Single in-word hyphens
+// (e.g. "highest-ROI", "30-min") are left untouched.
+export function stripLongDashes(text: string): string {
+  return text
+    .replace(/(\d)\s*[—–―]\s*(\d)/g, '$1-$2') // numeric ranges: 30–60 -> 30-60
+    .replace(/\s*[—–―]\s*/g, ', ') // em/en/horizontal-bar dash -> comma
+    .replace(/\s*-{2,}\s*/g, ', ') // runs of 2+ hyphens -> comma
+    .replace(/\s+,/g, ',') // no space before a comma
+    .replace(/,{2,}/g, ',') // collapse doubled commas
+    .replace(/,(\s*[.!?])/g, '$1') // comma immediately before end punctuation
+    .replace(/(^|\n)\s*,\s*/g, '$1') // no leading comma on a line
+    .replace(/[ \t]{2,}/g, ' ') // collapse runs of spaces
+    .trim();
+}
+
 // Build a single-channel cold-outreach draft for a lead, in Phil's voice, grounded
 // in the active lane's tone and the operator's pitch. Returns the ready-to-send
 // message, or null if generation fails (or the channel isn't draftable, e.g. phone).
@@ -47,18 +64,19 @@ export async function generateDraft(
     : '';
 
   const systemPrompt = [
-    'You are drafting cold outreach AS Phil Smith of RekindleLeads — an AI agency operator in Middle Tennessee.',
+    'You are drafting cold outreach AS Phil Smith of RekindleLeads, an AI agency operator in Middle Tennessee.',
     'Voice: anti-hype, operator-first, honest. Phil ran businesses for 38 years before building AI systems, so he sounds like an operator who has made payroll, not a marketer.',
-    'Use the pitch below as the source of truth for the offer, the tagline, and the proof numbers. Match the proof number to the recipient\'s industry (RIA/financial → cut a major time-sink ~80%; chiropractic → tripled bookings; nonprofit → 4x grants) when it fits; otherwise use the recent-client examples.',
+    'Use the pitch below as the source of truth for the offer, the tagline, and the proof numbers. Match the proof number to the recipient\'s industry (RIA/financial: cut a major time-sink ~80%; chiropractic: tripled bookings; nonprofit: 4x grants) when it fits; otherwise use the recent-client examples.',
     laneVoice,
     '',
     'PITCH (source of truth):',
     pitch,
     '',
     'OUTPUT RULES:',
+    '- CRITICAL: never use a long dash. No em dash (—), no en dash (–), and no "--" or "---". They make writing look AI-generated. Use commas, periods, or parentheses instead. Number ranges use a plain hyphen, e.g. "30-60 minutes". This rule is absolute.',
     '- Output ONLY the ready-to-send message. No preamble, no commentary, no notes, no markdown headers, no surrounding quotes.',
     '- Do NOT leave any placeholder brackets unfilled. Use the lead\'s real first name from contact_person; if no name is known, open with a natural greeting (no "[First Name]").',
-    '- Personalize lightly to the lead\'s business, industry, and city when you can — but never invent specific facts you weren\'t given.',
+    '- Personalize lightly to the lead\'s business, industry, and city when you can, but never invent specific facts you weren\'t given.',
     shape.instruction,
   ]
     .filter(Boolean)
@@ -79,5 +97,5 @@ export async function generateDraft(
   ].join('\n');
 
   const result = await askClaude(systemPrompt, userMessage, shape.maxTokens, 'claude-sonnet-4-6');
-  return result ? result.trim() : null;
+  return result ? stripLongDashes(result.trim()) : null;
 }
