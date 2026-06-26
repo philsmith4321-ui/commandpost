@@ -1,16 +1,42 @@
+import { readFileSync } from 'fs';
 import type Database from 'better-sqlite3';
-import nodemailer from 'nodemailer';
+import { JWT } from 'google-auth-library';
 import { parseEmail, dailyTarget } from '@/lib/outreach/email-queue';
 import { nextSendable, sentTodayCount, markSent, markFailed } from '@/lib/queries/outreach-email-queue-queries';
 
 export interface Transport { sendMail(mail: { from: string; to: string; subject: string; text: string }): Promise<unknown>; }
 
-// Gmail SMTP via App Password. Creds from server .env (runtime).
+const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
+
+// Encode a plain-text message as a Gmail API base64url RFC822 payload.
+function toRaw(mail: { from: string; to: string; subject: string; text: string }): string {
+  const mime =
+    `From: ${mail.from}\r\nTo: ${mail.to}\r\n` +
+    `Subject: ${mail.subject}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${mail.text}`;
+  return Buffer.from(mime).toString('base64url');
+}
+
+// Gmail API transport over HTTPS (DigitalOcean blocks SMTP ports). A service
+// account with domain-wide delegation impersonates the sending mailbox; creds
+// come from server .env (JSON key path + the mailbox to send as).
 export function buildTransport(): Transport {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com', port: 465, secure: true,
-    auth: { user: process.env.OUTREACH_SMTP_USER || '', pass: process.env.OUTREACH_SMTP_PASS || '' },
-  }) as unknown as Transport;
+  const saPath = process.env.OUTREACH_GMAIL_SA_PATH;
+  const sender = process.env.OUTREACH_GMAIL_SENDER || process.env.OUTREACH_SMTP_USER;
+  if (!saPath || !sender) throw new Error('Gmail sender not configured (OUTREACH_GMAIL_SA_PATH / OUTREACH_GMAIL_SENDER)');
+  const key = JSON.parse(readFileSync(saPath, 'utf8')) as { client_email: string; private_key: string };
+  const client = new JWT({ email: key.client_email, key: key.private_key, scopes: [GMAIL_SEND_SCOPE], subject: sender });
+  return {
+    async sendMail(mail) {
+      const { token } = await client.getAccessToken();
+      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw: toRaw(mail) }),
+      });
+      if (!res.ok) throw new Error(`gmail-api ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      return res.json();
+    },
+  };
 }
 
 const TZ = 'America/Chicago';
