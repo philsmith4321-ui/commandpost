@@ -902,6 +902,28 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     if (!has.count) db.exec(`ALTER TABLE leads ADD COLUMN ${col} TEXT`);
   }
 
+  // Migration: outreach email queue — per-lead email pipeline status + suppression.
+  // email_sent_at_q is the queue's own send-stamp (distinct from the derived
+  // email_sent_at alias that listLeadsByLane builds from outreach_touches).
+  {
+    const have = new Set(
+      (db.prepare("PRAGMA table_info(leads)").all() as { name: string }[]).map((c) => c.name)
+    );
+    const add: Array<[string, string]> = [
+      ['email_status', 'TEXT'],
+      ['email_queued_at', 'TEXT'],
+      ['email_sent_at_q', 'TEXT'],
+      ['email_error', 'TEXT'],
+      ['do_not_email', 'INTEGER NOT NULL DEFAULT 0'],
+    ];
+    for (const [name, decl] of add) {
+      if (!have.has(name)) db.exec(`ALTER TABLE leads ADD COLUMN ${name} ${decl}`);
+    }
+    db.exec(
+      "UPDATE leads SET email_status='draft' WHERE email_status IS NULL AND draft_email IS NOT NULL AND trim(draft_email) <> ''"
+    );
+  }
+
   return db;
 }
 
