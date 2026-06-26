@@ -8,6 +8,12 @@ import { parseEmployees, bucketOf, type BucketKey } from '@/lib/outreach/employe
 export interface OutreachLead extends Lead {
   letter_sent_at: string | null;
   email_sent_at: string | null;
+  linkedin_sent_at: string | null;
+  fb_sent_at: string | null;
+  draft_letter: string | null;
+  draft_email: string | null;
+  draft_linkedin: string | null;
+  draft_fb: string | null;
   touch_count: number;
 }
 
@@ -50,9 +56,11 @@ export function listLeadsByLane(
   let rows = db
     .prepare(
       `SELECT l.*,
-         (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'letter') AS letter_sent_at,
-         (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'email')  AS email_sent_at,
-         (SELECT COUNT(*)     FROM outreach_touches t WHERE t.lead_id = l.id)                          AS touch_count
+         (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'letter')   AS letter_sent_at,
+         (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'email')    AS email_sent_at,
+         (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'linkedin') AS linkedin_sent_at,
+         (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'fb')       AS fb_sent_at,
+         (SELECT COUNT(*)     FROM outreach_touches t WHERE t.lead_id = l.id)                            AS touch_count
        FROM leads l
        WHERE ${where.join(' AND ')}
        ORDER BY (l.stage = 'new') DESC, l.updated_at DESC`
@@ -140,6 +148,21 @@ export function clearTouch(db: Database.Database, leadId: number, channel: Outre
   } else {
     db.prepare("UPDATE leads SET updated_at = datetime('now') WHERE id = ?").run(leadId);
   }
+}
+
+// Persist the latest auto-drafted (or edited) outreach copy for a channel.
+// Channel is whitelisted to a fixed column name — never interpolate raw input.
+const DRAFT_COLUMNS: Record<string, string> = {
+  letter: 'draft_letter',
+  email: 'draft_email',
+  linkedin: 'draft_linkedin',
+  fb: 'draft_fb',
+};
+
+export function saveDraft(db: Database.Database, leadId: number, channel: OutreachChannel, body: string): void {
+  const col = DRAFT_COLUMNS[channel];
+  if (!col) return;
+  db.prepare(`UPDATE leads SET ${col} = ?, updated_at = datetime('now') WHERE id = ?`).run(body, leadId);
 }
 
 export interface ContactPatch {

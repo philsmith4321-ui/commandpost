@@ -86,7 +86,7 @@ export interface Lead {
   employee_max: number | null;
 }
 
-export type OutreachChannel = 'letter' | 'email' | 'phone';
+export type OutreachChannel = 'letter' | 'email' | 'phone' | 'linkedin' | 'fb';
 
 export interface OutreachTouch {
   id: number;

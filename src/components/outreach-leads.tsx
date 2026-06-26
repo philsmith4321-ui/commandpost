@@ -36,6 +36,11 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Shared outreach pitch (one global value, used to seed every draft).
+  const [pitchOpen, setPitchOpen] = useState(false);
+  const [pitch, setPitch] = useState('');
+  const [pitchSaving, setPitchSaving] = useState(false);
+  const [pitchSaved, setPitchSaved] = useState(false);
 
   const sizesKey = sizes.join(',');
   // Awaits before any setState so it never updates state synchronously inside the effect.
@@ -67,6 +72,41 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Load the shared pitch once.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/outreach/pitch');
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) setPitch(typeof data.pitch === 'string' ? data.pitch : '');
+        }
+      } catch {
+        // non-fatal — pitch box just starts empty
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function savePitch() {
+    setPitchSaving(true);
+    setPitchSaved(false);
+    try {
+      const res = await fetch('/api/outreach/pitch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pitch }),
+      });
+      if (res.ok) {
+        setPitchSaved(true);
+        setTimeout(() => setPitchSaved(false), 2000);
+      }
+    } finally {
+      setPitchSaving(false);
+    }
+  }
 
   function toggleSize(k: BucketKey) {
     setLoading(true);
@@ -148,6 +188,41 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
           </button>
           <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onImport} />
         </div>
+      </div>
+
+      {/* Shared outreach pitch */}
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50">
+        <button
+          onClick={() => setPitchOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white"
+        >
+          <span className="font-medium">Your outreach pitch</span>
+          <span className="text-xs text-gray-500">{pitchOpen ? '▾ hide' : '▸ edit'}</span>
+        </button>
+        {pitchOpen && (
+          <div className="px-3 pb-3">
+            <p className="mb-1.5 text-xs text-gray-500">
+              Shared across every lead — drafts are personalized from this.
+            </p>
+            <textarea
+              value={pitch}
+              onChange={(e) => setPitch(e.target.value)}
+              rows={8}
+              placeholder="Paste your pitch / value props / proof points here…"
+              className="w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+            />
+            <div className="mt-1.5 flex items-center gap-2">
+              <button
+                onClick={savePitch}
+                disabled={pitchSaving}
+                className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs text-white disabled:opacity-50"
+              >
+                {pitchSaving ? 'Saving…' : 'Save'}
+              </button>
+              {pitchSaved && <span className="text-xs text-emerald-400">Saved</span>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -328,6 +403,134 @@ function UnsendBadge({ label, onUnsend }: { label: string; onUnsend: () => void 
   );
 }
 
+// Per-lead auto-draft workspace. One editable draft area per channel; the open
+// channel's text is AI-generated on demand, seeded from any saved draft, edited
+// in place (persisted on blur), copied out, and manually marked sent.
+type DraftChannel = 'letter' | 'email' | 'linkedin' | 'fb';
+const DRAFT_CHANNELS: { ch: DraftChannel; label: string }[] = [
+  { ch: 'letter', label: 'Draft letter' },
+  { ch: 'email', label: 'Draft email' },
+  { ch: 'linkedin', label: 'Draft LinkedIn' },
+  { ch: 'fb', label: 'Draft FB' },
+];
+
+function DraftPanel({
+  lead,
+  onAct,
+}: {
+  lead: OutreachLead;
+  onAct: (leadId: number, body: Record<string, unknown>) => void;
+}) {
+  const [open, setOpen] = useState<DraftChannel | null>(null);
+  const [loading, setLoading] = useState<DraftChannel | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [drafts, setDrafts] = useState<Record<DraftChannel, string>>({
+    letter: lead.draft_letter ?? '',
+    email: lead.draft_email ?? '',
+    linkedin: lead.draft_linkedin ?? '',
+    fb: lead.draft_fb ?? '',
+  });
+  // Last persisted text per channel, so blur only saves real edits.
+  const savedRef = useRef<Record<DraftChannel, string>>({
+    letter: lead.draft_letter ?? '',
+    email: lead.draft_email ?? '',
+    linkedin: lead.draft_linkedin ?? '',
+    fb: lead.draft_fb ?? '',
+  });
+
+  async function openChannel(ch: DraftChannel) {
+    setCopied(false);
+    // A saved/typed draft already exists — just focus it.
+    if (drafts[ch].trim()) {
+      setOpen(ch);
+      return;
+    }
+    setOpen(ch);
+    setLoading(ch);
+    try {
+      const res = await fetch('/api/outreach/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id, action: 'draft', channel: ch }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && typeof data.draft === 'string') {
+        setDrafts((d) => ({ ...d, [ch]: data.draft }));
+        savedRef.current[ch] = data.draft;
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function persist(ch: DraftChannel) {
+    const body = drafts[ch];
+    if (body === savedRef.current[ch]) return;
+    savedRef.current[ch] = body;
+    await fetch('/api/outreach/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, action: 'save-draft', channel: ch, body }),
+    });
+  }
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked — no-op
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Drafts</p>
+      <div className="flex flex-wrap gap-1.5">
+        {DRAFT_CHANNELS.map(({ ch, label }) => (
+          <button
+            key={ch}
+            onClick={() => openChannel(ch)}
+            className={`px-2.5 py-1 rounded text-xs text-white ${
+              open === ch ? 'bg-blue-600 hover:bg-blue-500' : 'bg-gray-800 hover:bg-gray-700'
+            }`}
+          >
+            {loading === ch ? 'Drafting…' : drafts[ch].trim() ? `✎ ${label}` : label}
+          </button>
+        ))}
+      </div>
+      {open && (
+        <div className="mt-2">
+          <textarea
+            value={drafts[open]}
+            onChange={(e) => setDrafts((d) => ({ ...d, [open]: e.target.value }))}
+            onBlur={() => persist(open)}
+            placeholder={loading === open ? 'Drafting…' : 'Your draft will appear here…'}
+            rows={6}
+            className="w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+          <div className="mt-1 flex items-center gap-2">
+            <button
+              onClick={() => copy(drafts[open])}
+              disabled={!drafts[open].trim()}
+              className="px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-white disabled:opacity-40"
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+            <button
+              onClick={() => onAct(lead.id, { action: 'log-touch', channel: open })}
+              className="px-3 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-600 text-xs text-white"
+            >
+              Mark sent
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LeadRow({
   lead,
   expanded,
@@ -349,6 +552,8 @@ function LeadRow({
   });
   const letter = fmtDate(lead.letter_sent_at);
   const email = fmtDate(lead.email_sent_at);
+  const linkedin = fmtDate(lead.linkedin_sent_at);
+  const fb = fmtDate(lead.fb_sent_at);
   const replied = fmtDate(lead.replied_at);
 
   return (
@@ -377,8 +582,20 @@ function LeadRow({
               onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'email' })}
             />
           )}
+          {linkedin && (
+            <UnsendBadge
+              label={`in ${linkedin}`}
+              onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'linkedin' })}
+            />
+          )}
+          {fb && (
+            <UnsendBadge
+              label={`f ${fb}`}
+              onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'fb' })}
+            />
+          )}
           {replied && <Badge tone="reply">replied {replied}</Badge>}
-          {!letter && !email && !replied && <Badge tone="muted">sourced</Badge>}
+          {!letter && !email && !linkedin && !fb && !replied && <Badge tone="muted">sourced</Badge>}
         </td>
         <td className="px-3 py-2 align-top hidden md:table-cell">
           <input
@@ -389,22 +606,40 @@ function LeadRow({
           />
         </td>
         <td className="px-3 py-2 align-top text-right whitespace-nowrap">
-          <SendToggle
-            icon="✉"
-            label="Letter"
-            sentAt={letter}
-            onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'letter' })}
-            onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'letter' })}
-          />
-          <span className="ml-1 inline-block">
-            <SendToggle
-              icon="@"
-              label="Email"
-              sentAt={email}
-              onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'email' })}
-              onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'email' })}
-            />
-          </span>
+          <div className="inline-flex flex-col gap-1 items-end">
+            <div className="flex gap-1 justify-end">
+              <SendToggle
+                icon="✉"
+                label="Letter"
+                sentAt={letter}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'letter' })}
+                onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'letter' })}
+              />
+              <SendToggle
+                icon="@"
+                label="Email"
+                sentAt={email}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'email' })}
+                onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'email' })}
+              />
+            </div>
+            <div className="flex gap-1 justify-end">
+              <SendToggle
+                icon="in"
+                label="LinkedIn"
+                sentAt={linkedin}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'linkedin' })}
+                onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'linkedin' })}
+              />
+              <SendToggle
+                icon="f"
+                label="FB"
+                sentAt={fb}
+                onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'fb' })}
+                onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'fb' })}
+              />
+            </div>
+          </div>
         </td>
       </tr>
       {expanded && (
@@ -450,6 +685,7 @@ function LeadRow({
                     Save note
                   </button>
                 </div>
+                <DraftPanel lead={lead} onAct={onAct} />
               </div>
             </div>
           </td>

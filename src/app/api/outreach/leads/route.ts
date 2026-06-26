@@ -11,9 +11,12 @@ import {
   setFollowUp,
   addLeadNote,
   updateLeadContact,
+  saveDraft,
   type ContactPatch,
+  type OutreachLead,
 } from '@/lib/queries/outreach-lead-queries';
 import { isBucketKey, type BucketKey } from '@/lib/outreach/employee-size';
+import { generateDraft } from '@/lib/outreach/draft';
 import type { OutreachChannel } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
@@ -45,7 +48,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ lane, leads, counts, facets });
 }
 
-const CHANNELS: OutreachChannel[] = ['letter', 'email', 'phone'];
+const CHANNELS: OutreachChannel[] = ['letter', 'email', 'phone', 'linkedin', 'fb'];
+const DRAFTABLE: OutreachChannel[] = ['letter', 'email', 'linkedin', 'fb'];
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -93,6 +97,31 @@ export async function POST(request: NextRequest) {
       }
       updateLeadContact(db, leadId, patch);
       break;
+    }
+    case 'draft': {
+      if (!DRAFTABLE.includes(body.channel)) {
+        return NextResponse.json({ error: 'invalid channel' }, { status: 400 });
+      }
+      const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(leadId) as OutreachLead | undefined;
+      if (!lead) {
+        return NextResponse.json({ error: 'lead not found' }, { status: 404 });
+      }
+      const draft = await generateDraft(db, lead, body.channel);
+      if (draft == null) {
+        return NextResponse.json({ error: 'generation failed' }, { status: 502 });
+      }
+      saveDraft(db, leadId, body.channel, draft);
+      return NextResponse.json({ ok: true, draft });
+    }
+    case 'save-draft': {
+      if (!DRAFTABLE.includes(body.channel)) {
+        return NextResponse.json({ error: 'invalid channel' }, { status: 400 });
+      }
+      if (typeof body.body !== 'string') {
+        return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+      }
+      saveDraft(db, leadId, body.channel, body.body);
+      return NextResponse.json({ ok: true });
     }
     default:
       return NextResponse.json({ error: 'unknown action' }, { status: 400 });

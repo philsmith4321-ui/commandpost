@@ -872,6 +872,36 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_outreach_touches_lead ON outreach_touches(lead_id);
   `);
 
+  // Migration: allow linkedin + fb outreach channels (rebuild CHECK)
+  const touchDef = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='outreach_touches'").get() as { sql: string } | undefined;
+  if (touchDef && !touchDef.sql.includes("'linkedin'")) {
+    db.pragma('foreign_keys = OFF');
+    const rebuild = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE outreach_touches_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+          channel TEXT NOT NULL CHECK(channel IN ('letter','email','phone','linkedin','fb')),
+          sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+          note TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO outreach_touches_new SELECT * FROM outreach_touches;
+        DROP TABLE outreach_touches;
+        ALTER TABLE outreach_touches_new RENAME TO outreach_touches;
+      `);
+      db.exec("CREATE INDEX IF NOT EXISTS idx_outreach_touches_lead ON outreach_touches(lead_id);");
+    });
+    rebuild();
+    db.pragma('foreign_keys = ON');
+  }
+
+  // Migration: add per-channel outreach draft columns to leads
+  for (const col of ['draft_letter', 'draft_email', 'draft_linkedin', 'draft_fb']) {
+    const has = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = ?").get(col) as { count: number };
+    if (!has.count) db.exec(`ALTER TABLE leads ADD COLUMN ${col} TEXT`);
+  }
+
   return db;
 }
 
