@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LaneId } from '@/lib/outreach/lanes';
 import type { OutreachLead } from '@/lib/queries/outreach-lead-queries';
 import { BUCKETS, type BucketKey } from '@/lib/outreach/employee-size';
+import { contactSocialLinks } from '@/lib/outreach/social';
 
 interface Counts {
   total: number;
@@ -340,6 +341,60 @@ function FilterSelect({
   );
 }
 
+// Clickable LinkedIn / Facebook links beside a contact's name. Links straight to a
+// stored profile URL when the lead has one, otherwise opens a pre-filled name search.
+// Always opens in a new tab so it never navigates away from CommandPost.
+function SocialIcon({
+  label,
+  href,
+  direct,
+  title,
+  tone,
+}: {
+  label: string;
+  href: string;
+  direct: boolean;
+  title: string;
+  tone: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={title}
+      className={`inline-flex h-4 items-center rounded px-1 text-[10px] font-bold leading-none ${
+        direct ? `${tone} text-white` : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+      }`}
+    >
+      {label}
+      {!direct && <span className="ml-0.5 opacity-70">⌕</span>}
+    </a>
+  );
+}
+
+function ContactSocials({ name, company, socials }: { name: string; company: string | null; socials: string | null }) {
+  const links = contactSocialLinks(name, company, socials);
+  return (
+    <span className="inline-flex items-center gap-1">
+      <SocialIcon
+        label="in"
+        href={links.linkedin.href}
+        direct={links.linkedin.direct}
+        tone="bg-sky-600"
+        title={links.linkedin.direct ? `Open ${name}'s LinkedIn profile` : `Search LinkedIn for ${name}`}
+      />
+      <SocialIcon
+        label="f"
+        href={links.facebook.href}
+        direct={links.facebook.direct}
+        tone="bg-blue-700"
+        title={links.facebook.direct ? `Open ${name}'s Facebook page` : `Search Facebook for ${name}`}
+      />
+    </span>
+  );
+}
+
 function Badge({ children, tone }: { children: React.ReactNode; tone: 'sent' | 'reply' | 'muted' }) {
   const cls =
     tone === 'sent'
@@ -560,10 +615,19 @@ function LeadRow({
     <>
       <tr className="hover:bg-gray-900/50">
         <td className="px-3 py-2 align-top">
-          <button onClick={onToggle} className="text-left">
-            <span className="text-white font-medium">{lead.business_name}</span>
-            {lead.contact_person && <span className="text-gray-400"> · {lead.contact_person}</span>}
-            <span className="block text-xs text-gray-600">{expanded ? '▾ hide details' : '▸ details'}</span>
+          <div className="flex flex-wrap items-center gap-x-1">
+            <button onClick={onToggle} className="text-left text-white font-medium">
+              {lead.business_name}
+            </button>
+            {lead.contact_person && (
+              <>
+                <span className="text-gray-400">· {lead.contact_person}</span>
+                <ContactSocials name={lead.contact_person} company={lead.business_name} socials={lead.socials} />
+              </>
+            )}
+          </div>
+          <button onClick={onToggle} className="block text-left text-xs text-gray-600">
+            {expanded ? '▾ hide details' : '▸ details'}
           </button>
         </td>
         <td className="px-3 py-2 align-top text-gray-400 hidden sm:table-cell">
