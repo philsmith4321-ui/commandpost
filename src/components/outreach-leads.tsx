@@ -42,6 +42,10 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
   const [pitch, setPitch] = useState('');
   const [pitchSaving, setPitchSaving] = useState(false);
   const [pitchSaved, setPitchSaved] = useState(false);
+  // Bulk email drafting: walk the currently-loaded leads that have an email but no
+  // email draft yet, one at a time. Resumable — a re-run skips ones already drafted.
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const bulkStop = useRef(false);
 
   const sizesKey = sizes.join(',');
   // Awaits before any setState so it never updates state synchronously inside the effect.
@@ -130,6 +134,31 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ leadId, ...body }),
     });
+    load();
+  }
+
+  // Eligible = currently-loaded leads with an email address and no email draft yet.
+  const emailDraftQueue = leads.filter((l) => l.email?.trim() && !l.draft_email?.trim());
+
+  async function draftAllEmails() {
+    const queue = emailDraftQueue;
+    if (queue.length === 0 || bulk) return;
+    bulkStop.current = false;
+    setBulk({ done: 0, total: queue.length });
+    for (let i = 0; i < queue.length; i++) {
+      if (bulkStop.current) break;
+      try {
+        await fetch('/api/outreach/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId: queue[i].id, action: 'draft', channel: 'email' }),
+        });
+      } catch {
+        // Skip failures; the lead stays un-drafted and a re-run will retry it.
+      }
+      setBulk({ done: i + 1, total: queue.length });
+    }
+    setBulk(null);
     load();
   }
 
@@ -223,6 +252,44 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
               {pitchSaved && <span className="text-xs text-emerald-400">Saved</span>}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Bulk email drafting */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-800 bg-gray-900/50 px-3 py-2">
+        {bulk ? (
+          <>
+            <span className="text-sm text-gray-300">
+              Drafting emails… <span className="font-medium text-white">{bulk.done}/{bulk.total}</span>
+            </span>
+            <div className="h-1.5 w-40 overflow-hidden rounded bg-gray-800">
+              <div
+                className="h-full bg-blue-500 transition-all"
+                style={{ width: `${bulk.total ? (bulk.done / bulk.total) * 100 : 0}%` }}
+              />
+            </div>
+            <button
+              onClick={() => { bulkStop.current = true; }}
+              className="px-3 py-1 rounded-lg bg-gray-800 hover:bg-red-600 text-xs text-white"
+            >
+              Stop
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={draftAllEmails}
+              disabled={emailDraftQueue.length === 0}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm text-white disabled:opacity-40 disabled:hover:bg-emerald-600"
+            >
+              ✦ Draft all emails
+            </button>
+            <span className="text-xs text-gray-500">
+              {emailDraftQueue.length > 0
+                ? `${emailDraftQueue.length} lead${emailDraftQueue.length === 1 ? '' : 's'} in this view need an email draft (have an address, none drafted yet).`
+                : 'Every lead in this view with an email already has a draft.'}
+            </span>
+          </>
         )}
       </div>
 
