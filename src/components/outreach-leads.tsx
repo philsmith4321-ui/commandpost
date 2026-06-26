@@ -726,6 +726,12 @@ function LeadRow({
                   {lead.phone && <p>☎ {lead.phone}</p>}
                   {lead.website && <p>🌐 {lead.website}</p>}
                   {lead.socials && <p>@ {lead.socials}</p>}
+                  {lead.contact_person && (
+                    <p className="flex items-center gap-1.5 pt-0.5">
+                      <span>Find {lead.contact_person} on</span>
+                      <ContactSocials name={lead.contact_person} company={lead.business_name} socials={lead.socials} />
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="space-y-3">
