@@ -76,11 +76,14 @@ export async function POST(request: NextRequest) {
     if (v) lines.push(`${k}: ${v}`);
   }
 
+  // Keep the subject plain ASCII: the Gmail-API transport writes it straight into
+  // the MIME header (no RFC 2047 encoding), so any non-ASCII char (e.g. an em dash)
+  // shows up as mojibake. ASCII also honors Phil's no-long-dash rule.
   const subject =
     form === 'audit'
-      ? `New AI Audit Request — ${name || email}${val('company') ? ` (${val('company')})` : ''}`
-      : `New ${formLabel} — ${name || email}`;
-  const text = `New ${formLabel} submission from rekindleleads.com\n\n${lines.join('\n')}\n\n— CommandPost form intake`;
+      ? `New AI Audit Request from RekindleLeads.com`
+      : `New ${formLabel} from RekindleLeads.com`;
+  const text = `New ${formLabel} submission from RekindleLeads.com\n\n${lines.join('\n')}\n\nSent by CommandPost form intake`;
 
   const sender = process.env.OUTREACH_GMAIL_SENDER || NOTIFY_TO;
   try {
