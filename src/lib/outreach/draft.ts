@@ -79,7 +79,7 @@ export async function generateDraft(
     'OUTPUT RULES:',
     '- CRITICAL: never use a long dash. No em dash (—), no en dash (–), and no "--" or "---". They make writing look AI-generated. Use commas, periods, or parentheses instead. Number ranges use a plain hyphen, e.g. "30-60 minutes". This rule is absolute.',
     '- Output ONLY the ready-to-send message. No preamble, no commentary, no notes, no markdown headers, no surrounding quotes.',
-    '- Do NOT leave any placeholder brackets unfilled. Use the lead\'s real first name from contact_person; if no name is known, open with a natural greeting (no "[First Name]").',
+    '- Do NOT leave any placeholder brackets unfilled. Use the lead\'s real first name from contact_person. If no first name is known, open with a neutral greeting like "Hi there," and NEVER use the business or company name as the salutation (e.g. never "Acme Co," or "McCarroll,"). No "[First Name]" placeholder either.',
     '- Personalize concretely: weave in at least one specific, TRUE detail about this lead from the data given (their industry/category, their company size, or their city/state) so the message reads as written for them, not a mass blast. Keep it natural, one light touch, not a list.',
     '- Never invent specifics you were not given. Do NOT guess what they make or sell beyond the stated category, do not invent revenue, headcount precision, named people, or any claim about their website. If you only have a website URL, you may note you came across it, but make no claims about its contents.',
     shape.instruction,
