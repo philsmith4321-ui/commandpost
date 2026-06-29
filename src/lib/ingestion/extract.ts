@@ -70,8 +70,46 @@ export async function fetchWebsite(url: string): Promise<{ title: string; conten
   const html = await res.text();
   const content = htmlToText(html);
   const title = extractTitle(html) || parsed.hostname + parsed.pathname;
-  if (!content) throw new Error('No readable text found at that URL');
+
+  // Client-rendered sites (SPAs) ship an near-empty HTML shell, so a plain fetch
+  // yields little or no text. When that happens, fall back to Firecrawl, which
+  // renders JavaScript. Normal server-rendered pages never hit this path (no cost).
+  if (content.length < MIN_READABLE_CHARS) {
+    const rendered = await fetchViaFirecrawl(url);
+    if (rendered && rendered.content.length >= MIN_READABLE_CHARS) return rendered;
+    if (!content) {
+      throw new Error(
+        process.env.FIRECRAWL_API_KEY
+          ? 'No readable text found at that URL'
+          : 'This page renders its content with JavaScript. Set FIRECRAWL_API_KEY to enable rendered scraping.'
+      );
+    }
+  }
   return { title, content };
+}
+
+// Below this, a page is treated as an empty/SPA shell and we try rendering it.
+const MIN_READABLE_CHARS = 200;
+
+/** Render a JS page via Firecrawl. Returns null if no API key or the call fails. */
+async function fetchViaFirecrawl(url: string): Promise<{ title: string; content: string } | null> {
+  const key = process.env.FIRECRAWL_API_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true, waitFor: 6000 }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content: string = (data?.data?.markdown ?? '').trim();
+    if (!content) return null;
+    const title: string = data?.data?.metadata?.title?.trim() || new URL(url).hostname;
+    return { title, content };
+  } catch {
+    return null;
+  }
 }
 
 /** Extract text from a PDF buffer. */
