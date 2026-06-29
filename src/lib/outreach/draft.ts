@@ -13,8 +13,8 @@ export const MAILING_ADDRESS = '1004 Thistle Court, Hendersonville, TN 37075';
 const CHANNEL_INSTRUCTIONS: Record<Exclude<OutreachChannel, 'phone'>, { instruction: string; maxTokens: number }> = {
   letter: {
     instruction:
-      'Channel: HANDWRITTEN LETTER. Write a warm, human one-short-page note that reads like it was written by hand. Never mention automation, "AI tools," or anything that breaks the handwritten illusion. Operator voice, plain and direct. Sign off exactly with: "Phil Smith, RekindleLeads · 615-969-7941 · rekindleleads.com".',
-    maxTokens: 1024,
+      'Channel: HANDWRITTEN LETTER. Write a warm, human note that reads like it was written by hand. Keep it TIGHT and brief, roughly 120-150 words (about a third shorter than a typical one-pager), every sentence earning its place, no filler. Never mention automation, "AI tools," or anything that breaks the handwritten illusion. Operator voice, plain and direct. Sign off exactly with: "Phil Smith, RekindleLeads · 615-969-7941 · rekindleleads.com".',
+    maxTokens: 700,
   },
   email: {
     instruction:
