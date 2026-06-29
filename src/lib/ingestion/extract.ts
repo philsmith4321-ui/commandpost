@@ -36,15 +36,21 @@ export function extractTitle(html: string): string | null {
 
 /** Fetch a URL and extract its readable text + title. */
 export async function fetchWebsite(url: string): Promise<{ title: string; content: string }> {
+  // Accept bare domains (e.g. "rekindleleads.com") by defaulting to https://.
+  let normalized = url.trim();
+  if (normalized && !/^[a-z][a-z0-9+.-]*:\/\//i.test(normalized)) {
+    normalized = `https://${normalized}`;
+  }
   let parsed: URL;
   try {
-    parsed = new URL(url);
+    parsed = new URL(normalized);
   } catch {
     throw new Error('Invalid URL');
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('URL must start with http:// or https://');
   }
+  url = parsed.href;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25000);
