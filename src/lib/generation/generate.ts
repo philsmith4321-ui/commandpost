@@ -1,4 +1,5 @@
 import { askClaude, isClaudeConfigured } from '@/lib/claude';
+import { stripLongDashes } from '@/lib/outreach/draft';
 import { CONTENT_TYPE_MAP, LENGTH_HINT } from '@/lib/generation/content-types';
 import type { GenContentType, LengthPreference } from '@/lib/types';
 import type { RetrievedChunk } from '@/lib/rag/retrieve';
@@ -41,6 +42,8 @@ ${reference
   ? 'Use the REFERENCE MATERIAL provided by the user as your factual grounding and as a guide to voice, tone, and terminology. Prefer facts and phrasing consistent with it. Do not invent specifics that contradict it.'
   : 'No reference material was provided — write from general best practices for this format.'}
 
+CRITICAL punctuation rule: never use a long dash. No em dash (—), no en dash (–), and no "--" or "---". They make writing look AI-generated. Use commas, periods, or parentheses instead. Number ranges use a plain hyphen, e.g. "30-60 minutes". This rule is absolute.
+
 Output only the finished content — no preamble, no explanation, no meta commentary.`;
 
   const userMessage = reference
@@ -49,5 +52,5 @@ Output only the finished content — no preamble, no explanation, no meta commen
 
   const text = await askClaude(system, userMessage, def.maxTokens, 'claude-sonnet-4-6');
   if (!text) return { ok: false, error: 'Generation failed. Please try again.' };
-  return { ok: true, text: text.trim() };
+  return { ok: true, text: stripLongDashes(text) };
 }

@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { askClaude, isClaudeConfigured } from '@/lib/claude';
+import { stripLongDashes } from '@/lib/outreach/draft';
 import { chunksForDocuments } from '@/lib/queries/kb-queries';
 import { isContentType } from '@/lib/generation/content-types';
 import { getSetting, setSetting } from '@/lib/queries/settings-queries';
@@ -46,8 +47,8 @@ export function parseIdeas(text: string): ContentIdea[] {
     const o = item as Record<string, unknown>;
     if (typeof o.title !== 'string' || !o.title.trim()) continue;
     out.push({
-      title: o.title.trim(),
-      hook: typeof o.hook === 'string' ? o.hook.trim() : '',
+      title: stripLongDashes(o.title.trim()),
+      hook: typeof o.hook === 'string' ? stripLongDashes(o.hook.trim()) : '',
       contentType: isContentType(o.contentType) ? o.contentType : 'blog_article',
     });
     if (out.length >= 15) break;
