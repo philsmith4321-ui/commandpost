@@ -7,19 +7,26 @@ interface SeqLead {
   replied_at: string | null; sequence_enrolled_at: string | null;
   steps_sent: number; last_sent_at: string | null; pending_error: string | null;
 }
+interface EligibleLead {
+  id: number; business_name: string | null; contact_person: string | null; email: string | null;
+  city: string | null; state: string | null; category: string | null;
+}
 
 export default function OutreachSequence() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [enrolled, setEnrolled] = useState<SeqLead[]>([]);
-  const [eligible, setEligible] = useState(0);
+  const [eligible, setEligible] = useState<EligibleLead[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [search, setSearch] = useState('');
+  const [picked, setPicked] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/outreach/sequence');
     if (res.ok) {
       const d = await res.json();
-      setSteps(d.steps); setEnrolled(d.enrolled); setEligible(d.eligibleCount);
+      setSteps(d.steps); setEnrolled(d.enrolled); setEligible(d.eligible ?? []);
     }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -30,6 +37,27 @@ export default function OutreachSequence() {
       await fetch('/api/outreach/sequence', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       await load();
     } finally { setBusy(false); }
+  }
+
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? eligible.filter((l) =>
+        [l.business_name, l.contact_person, l.email, l.city, l.category]
+          .some((f) => (f ?? '').toLowerCase().includes(q)))
+    : eligible;
+
+  function togglePick(id: number) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function enrollPicked() {
+    if (!picked.size) return;
+    await act({ action: 'enroll-many', leadIds: [...picked] });
+    setPicked(new Set());
   }
 
   const total = steps.length || 5;
@@ -51,12 +79,58 @@ export default function OutreachSequence() {
             className="px-3 py-1.5 rounded-lg text-sm bg-gray-800 text-gray-300 hover:bg-gray-700">
             {showTemplates ? 'Hide templates' : 'View templates'}
           </button>
-          <button disabled={busy || eligible === 0} onClick={() => act({ action: 'enroll-all' })}
+          <button disabled={eligible.length === 0 && !showPicker} onClick={() => setShowPicker((s) => !s)}
             className="px-3 py-1.5 rounded-lg text-sm bg-blue-600 text-white disabled:opacity-40 hover:bg-blue-500">
-            Enroll all eligible ({eligible})
+            {showPicker ? 'Close picker' : `Add companies (${eligible.length} eligible)`}
           </button>
         </div>
       </div>
+
+      {showPicker && (
+        <div className="mb-6 rounded-xl border border-gray-800 bg-gray-900/50 p-3">
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, contact, email, city, category…"
+              className="flex-1 px-3 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white placeholder-gray-600"
+            />
+            <button disabled={busy || picked.size === 0} onClick={enrollPicked}
+              className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 text-white disabled:opacity-40 hover:bg-emerald-500 whitespace-nowrap">
+              Enroll selected ({picked.size})
+            </button>
+            <button disabled={busy || filtered.length === 0}
+              onClick={() => setPicked(new Set(filtered.map((l) => l.id)))}
+              className="px-3 py-1.5 rounded-lg text-sm bg-gray-800 text-gray-300 hover:bg-gray-700 whitespace-nowrap">
+              Select all shown
+            </button>
+          </div>
+          <div className="max-h-80 overflow-y-auto rounded-lg border border-gray-800">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-800">
+                {filtered.map((l) => (
+                  <tr key={l.id} onClick={() => togglePick(l.id)}
+                    className={`cursor-pointer ${picked.has(l.id) ? 'bg-blue-950/60' : 'bg-gray-900/40 hover:bg-gray-800/60'}`}>
+                    <td className="px-3 py-2 w-8">
+                      <input type="checkbox" readOnly checked={picked.has(l.id)} className="accent-blue-500" />
+                    </td>
+                    <td className="px-3 py-2 text-white">
+                      {l.business_name}
+                      {l.contact_person ? <span className="text-gray-500"> · {l.contact_person}</span> : null}
+                    </td>
+                    <td className="px-3 py-2 text-gray-400">{l.email}</td>
+                    <td className="px-3 py-2 text-gray-500">{[l.city, l.state].filter(Boolean).join(', ') || '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">{l.category || '—'}</td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td className="px-3 py-4 text-gray-500 text-center">No eligible companies match.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {showTemplates && (
         <div className="mb-4 space-y-3">

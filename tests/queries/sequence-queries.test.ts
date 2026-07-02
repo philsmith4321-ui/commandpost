@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import {
-  enroll, unenroll, enrollAllEligible, listEnrolled, eligibleCount,
+  enroll, unenroll, enrollAllEligible, listEnrolled, listEligible, eligibleCount,
   nextDueSequenceSend, recordSequenceSend, recordSequenceFailure,
   retrySequenceStep, sequenceSentTodayCount,
 } from '@/lib/queries/sequence-queries';
@@ -12,6 +12,7 @@ function freshDb() {
   db.exec(`
     CREATE TABLE leads (
       id INTEGER PRIMARY KEY, business_name TEXT, contact_person TEXT, email TEXT,
+      city TEXT, state TEXT, category TEXT,
       stage TEXT DEFAULT 'new', replied_at TEXT,
       do_not_email INTEGER NOT NULL DEFAULT 0, sequence_enrolled_at TEXT, updated_at TEXT
     );
@@ -58,6 +59,14 @@ describe('enrollment', () => {
     expect(eligibleCount(db)).toBe(1);
     expect(enrollAllEligible(db)).toBe(1);
     expect(listEnrolled(db).map((l) => l.id)).toEqual([1]);
+  });
+
+  it('listEligible returns pickable leads A-Z and drops them once enrolled', () => {
+    expect(listEligible(db).map((l) => l.business_name)).toEqual(['Acme HVAC', 'Beta Roofing']);
+    enroll(db, 1);
+    expect(listEligible(db).map((l) => l.id)).toEqual([2]);
+    db.prepare("UPDATE leads SET replied_at=datetime('now') WHERE id=2").run();
+    expect(listEligible(db)).toEqual([]);
   });
 });
 

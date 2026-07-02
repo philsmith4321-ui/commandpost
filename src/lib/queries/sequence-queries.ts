@@ -49,6 +49,20 @@ export function eligibleCount(db: Database.Database): number {
       AND do_not_email = 0 AND replied_at IS NULL`).get() as { n: number }).n;
 }
 
+export interface EligibleLead {
+  id: number; business_name: string | null; contact_person: string | null;
+  email: string | null; city: string | null; state: string | null; category: string | null;
+}
+
+// Every lead the operator could hand-pick into the sequence, A-Z by name.
+export function listEligible(db: Database.Database): EligibleLead[] {
+  return db.prepare(`SELECT id, business_name, contact_person, email, city, state, category
+    FROM leads
+    WHERE sequence_enrolled_at IS NULL AND email IS NOT NULL AND trim(email) <> ''
+      AND do_not_email = 0 AND replied_at IS NULL
+    ORDER BY business_name COLLATE NOCASE, id`).all() as EligibleLead[];
+}
+
 // Sends made by the sequence today (counts toward the shared daily cap).
 // sent_at is a UTC stamp, so convert it to localtime before comparing dates.
 export function sequenceSentTodayCount(db: Database.Database): number {
