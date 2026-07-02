@@ -15,6 +15,9 @@ export interface OutreachLead extends Lead {
   draft_linkedin: string | null;
   draft_fb: string | null;
   touch_count: number;
+  do_not_email: number | null;
+  sequence_enrolled_at: string | null;
+  sequence_steps_sent: number;
 }
 
 export interface LeadFilters {
@@ -60,7 +63,8 @@ export function listLeadsByLane(
          (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'email')    AS email_sent_at,
          (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'linkedin') AS linkedin_sent_at,
          (SELECT MAX(sent_at) FROM outreach_touches t WHERE t.lead_id = l.id AND t.channel = 'fb')       AS fb_sent_at,
-         (SELECT COUNT(*)     FROM outreach_touches t WHERE t.lead_id = l.id)                            AS touch_count
+         (SELECT COUNT(*)     FROM outreach_touches t WHERE t.lead_id = l.id)                            AS touch_count,
+         (SELECT COUNT(*)     FROM sequence_sends s  WHERE s.lead_id = l.id AND s.ok = 1)                AS sequence_steps_sent
        FROM leads l
        WHERE ${where.join(' AND ')}
        ORDER BY (l.stage = 'new') DESC, l.updated_at DESC`

@@ -140,6 +140,21 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
   // Eligible = currently-loaded leads with an email address and no email draft yet.
   const emailDraftQueue = leads.filter((l) => l.email?.trim() && !l.draft_email?.trim());
 
+  // Sequence actions post to the sequence API, then refresh the list.
+  async function seqAct(body: Record<string, unknown>) {
+    await fetch('/api/outreach/sequence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    load();
+  }
+
+  // Leads in the current view that could be enrolled in the 5-email sequence.
+  const seqEligible = leads.filter(
+    (l) => l.email?.trim() && !l.sequence_enrolled_at && !l.replied_at && !l.do_not_email
+  );
+
   async function draftAllEmails() {
     const queue = emailDraftQueue;
     if (queue.length === 0 || bulk) return;
@@ -289,6 +304,14 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
                 ? `${emailDraftQueue.length} lead${emailDraftQueue.length === 1 ? '' : 's'} in this view need an email draft (have an address, none drafted yet).`
                 : 'Every lead in this view with an email already has a draft.'}
             </span>
+            <button
+              onClick={() => seqAct({ action: 'enroll-many', leadIds: seqEligible.map((l) => l.id) })}
+              disabled={seqEligible.length === 0}
+              title="Start every eligible lead in this filtered view on the 5-email drip"
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm text-white disabled:opacity-40 disabled:hover:bg-blue-600"
+            >
+              ⚡ Enroll shown in sequence ({seqEligible.length})
+            </button>
           </>
         )}
       </div>
@@ -373,6 +396,7 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
                   expanded={expanded === l.id}
                   onToggle={() => setExpanded(expanded === l.id ? null : l.id)}
                   onAct={act}
+                  onSeq={seqAct}
                 />
               ))}
             </tbody>
@@ -660,11 +684,13 @@ function LeadRow({
   expanded,
   onToggle,
   onAct,
+  onSeq,
 }: {
   lead: OutreachLead;
   expanded: boolean;
   onToggle: () => void;
   onAct: (leadId: number, body: Record<string, unknown>) => void;
+  onSeq: (body: Record<string, unknown>) => void;
 }) {
   const [note, setNote] = useState('');
   // Optional backdate for "mark sent": empty = log today, a YYYY-MM-DD = log that day.
@@ -788,6 +814,26 @@ function LeadRow({
                 onSend={() => onAct(lead.id, { action: 'log-touch', channel: 'fb', sentAt: sendDate || undefined })}
                 onUnsend={() => onAct(lead.id, { action: 'clear-touch', channel: 'fb' })}
               />
+            </div>
+            <div className="flex gap-1 justify-end">
+              {lead.sequence_enrolled_at ? (
+                <button
+                  onClick={() => onSeq({ action: 'unenroll', leadId: lead.id })}
+                  title={`In the 5-email sequence (${lead.sequence_steps_sent}/5 sent) — click to stop`}
+                  className="group px-2 py-1 rounded bg-blue-600/80 hover:bg-red-600 text-xs text-white"
+                >
+                  <span className="group-hover:hidden">⚡ Seq {lead.sequence_steps_sent}/5</span>
+                  <span className="hidden group-hover:inline">✕ Stop</span>
+                </button>
+              ) : lead.email?.trim() && !lead.replied_at && !lead.do_not_email ? (
+                <button
+                  onClick={() => onSeq({ action: 'enroll', leadId: lead.id })}
+                  title="Start this lead on the 5-email drip sequence"
+                  className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-white"
+                >
+                  ⚡ Sequence
+                </button>
+              ) : null}
             </div>
           </div>
         </td>
