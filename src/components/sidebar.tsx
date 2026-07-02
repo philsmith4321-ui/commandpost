@@ -15,6 +15,7 @@ const navItems = [
   { href: '/pipeline', label: 'Pipeline', icon: '◈' },
   { href: '/outreach', label: 'Outreach', icon: '🎯' },
   { href: '/outreach/email-queue', label: 'Email Queue', icon: '✉' },
+  { href: '/outreach/linkedin-queue', label: 'LinkedIn Queue', icon: 'in' },
   { href: '/proposals', label: 'Proposals', icon: '▤' },
   { href: '/contracts', label: 'Contracts', icon: '⊜' },
   { href: '/finances', label: 'Finances', icon: '◇' },
