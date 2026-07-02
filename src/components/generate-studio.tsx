@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CONTENT_TYPES } from '@/lib/generation/content-types';
 import { AvatarManager } from '@/components/avatar-manager';
 import type { KbDocument, KbSourceType, Generation, GenContentType, LengthPreference, Avatar } from '@/lib/types';
@@ -50,6 +50,40 @@ export function GenerateStudio({
   const [result, setResult] = useState<{ id: number; text: string; mode: string; used: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Content ideas: the last generated batch persists server-side, so the list
+  // survives reloads; "New ideas" regenerates from the knowledge base.
+  const [ideas, setIdeas] = useState<{ title: string; hook: string; contentType: GenContentType }[]>([]);
+  const [ideasBusy, setIdeasBusy] = useState(false);
+  const [ideasError, setIdeasError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/generate/ideas')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.ideas?.length) setIdeas(d.ideas); })
+      .catch(() => { /* section just stays empty */ });
+  }, []);
+
+  async function suggestIdeas() {
+    setIdeasBusy(true);
+    setIdeasError(null);
+    try {
+      const res = await fetch('/api/generate/ideas', { method: 'POST' });
+      const d = await res.json();
+      if (!res.ok) setIdeasError(d.error || 'Idea generation failed.');
+      else setIdeas(d.ideas);
+    } catch {
+      setIdeasError('Idea generation failed.');
+    } finally {
+      setIdeasBusy(false);
+    }
+  }
+
+  function useIdea(idea: { title: string; contentType: GenContentType }) {
+    setTopic(idea.title);
+    setContentType(idea.contentType);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   const shownSources = useMemo(
     () => (filter === 'all' ? sources : sources.filter((s) => s.source_type === filter)),
@@ -195,6 +229,36 @@ export function GenerateStudio({
             {busy ? 'Generating…' : '✦ Generate'}
           </button>
           {error && <p className="text-sm text-red-400">{error}</p>}
+        </div>
+
+        {/* Content ideas */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-semibold text-gray-300">Content ideas</label>
+            <button onClick={suggestIdeas} disabled={ideasBusy}
+              className="px-3 py-1.5 rounded-lg text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 disabled:opacity-50 transition-colors">
+              {ideasBusy ? 'Thinking…' : ideas.length ? '↻ New ideas' : '✨ Suggest ideas'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Pulled from your knowledge base. Click one to load it into the brief above.
+          </p>
+          {ideasError && <p className="text-sm text-red-400 mb-2">{ideasError}</p>}
+          {ideas.length === 0 && !ideasBusy && !ideasError && (
+            <p className="text-sm text-gray-600">No ideas yet — hit ✨ Suggest ideas.</p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {ideas.map((idea, i) => (
+              <button key={i} onClick={() => useIdea(idea)}
+                className="text-left rounded-xl bg-gray-950 border border-gray-800 hover:border-indigo-500 p-3 transition-colors group">
+                <span className="block text-sm text-gray-200 group-hover:text-white">{idea.title}</span>
+                {idea.hook && <span className="block text-xs text-gray-500 mt-1">{idea.hook}</span>}
+                <span className="inline-block mt-2 px-1.5 py-0.5 rounded text-[11px] bg-indigo-600/15 text-indigo-300">
+                  {typeLabel(idea.contentType)}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Knowledge sources */}
