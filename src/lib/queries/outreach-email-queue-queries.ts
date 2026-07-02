@@ -46,9 +46,12 @@ export function setDoNotEmail(db: Database.Database, id: number, on: boolean) {
   db.prepare(`UPDATE leads SET do_not_email=?, updated_at=datetime('now') WHERE id=?`).run(on ? 1 : 0, id);
 }
 
+// email_sent_at_q is a UTC stamp (markSent uses datetime('now')), so convert it
+// to localtime before comparing dates; comparing raw UTC against the local date
+// undercounts sends after ~7pm Central.
 export function sentTodayCount(db: Database.Database): number {
   return (db.prepare(
-    `SELECT COUNT(*) n FROM leads WHERE email_status=? AND date(email_sent_at_q)=date('now','localtime')`
+    `SELECT COUNT(*) n FROM leads WHERE email_status=? AND date(email_sent_at_q,'localtime')=date('now','localtime')`
   ).get(EMAIL_STATUS.SENT) as { n: number }).n;
 }
 

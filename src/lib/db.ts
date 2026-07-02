@@ -924,6 +924,27 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     );
   }
 
+  // Migration: 5-email drip sequence — enrollment stamp on leads plus a per-step
+  // send log. ok=0 rows are failed attempts that block the step until retried.
+  {
+    const has = db
+      .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = 'sequence_enrolled_at'")
+      .get() as { count: number };
+    if (!has.count) db.exec('ALTER TABLE leads ADD COLUMN sequence_enrolled_at TEXT');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sequence_sends (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+        step INTEGER NOT NULL,
+        ok INTEGER NOT NULL DEFAULT 1,
+        error TEXT,
+        sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(lead_id, step, ok)
+      );
+      CREATE INDEX IF NOT EXISTS idx_sequence_sends_lead ON sequence_sends(lead_id);
+    `);
+  }
+
   return db;
 }
 

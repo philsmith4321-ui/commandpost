@@ -3,6 +3,10 @@ import type Database from 'better-sqlite3';
 import { JWT } from 'google-auth-library';
 import { parseEmail, dailyTarget } from '@/lib/outreach/email-queue';
 import { nextSendable, sentTodayCount, markSent, markFailed } from '@/lib/queries/outreach-email-queue-queries';
+import { getEmailSequence, renderSequenceEmail } from '@/lib/outreach/sequence';
+import {
+  nextDueSequenceSend, recordSequenceSend, recordSequenceFailure, sequenceSentTodayCount,
+} from '@/lib/queries/sequence-queries';
 
 export interface Transport { sendMail(mail: { from: string; to: string; subject: string; text: string }): Promise<unknown>; }
 
@@ -56,10 +60,12 @@ export async function sendOneTick(db: Database.Database, opts: TickOpts): Promis
   const { dow, hour, isoDate } = centralParts(opts.now);
   if (dow === 0 || dow === 6) return { sent: false, reason: 'weekend' };
   if (hour < 9 || hour >= 17) return { sent: false, reason: 'outside-hours' };
-  if (sentTodayCount(db) >= dailyTarget(isoDate)) return { sent: false, reason: 'daily-cap' };
+  // Single-draft queue and drip sequence share one daily cap.
+  if (sentTodayCount(db) + sequenceSentTodayCount(db) >= dailyTarget(isoDate))
+    return { sent: false, reason: 'daily-cap' };
 
   const lead = nextSendable(db);
-  if (!lead) return { sent: false, reason: 'empty' };
+  if (!lead) return sendOneSequenceTick(db, opts);
   const { subject, body } = parseEmail(lead.draft_email || '');
   try {
     await opts.transport.sendMail({ from: opts.from, to: lead.email as string, subject, text: body });
@@ -69,6 +75,29 @@ export async function sendOneTick(db: Database.Database, opts: TickOpts): Promis
     return { sent: true, leadId: lead.id };
   } catch (e) {
     markFailed(db, lead.id, e instanceof Error ? e.message : String(e));
+    return { sent: false, reason: 'error', leadId: lead.id };
+  }
+}
+
+// Drip-sequence leg of the tick: runs only when the single-draft queue is empty,
+// so hand-reviewed emails always go first. Sends the oldest-enrolled lead's due
+// step; a failure is logged to sequence_sends (ok=0) which parks that lead until
+// the operator retries, so one bad address can't wedge the whole sequence.
+async function sendOneSequenceTick(db: Database.Database, opts: TickOpts): Promise<TickResult> {
+  const steps = getEmailSequence(db);
+  const due = nextDueSequenceSend(db, steps);
+  if (!due) return { sent: false, reason: 'empty' };
+  const { lead, step } = due;
+  const { subject, body } = renderSequenceEmail(step, lead);
+  try {
+    await opts.transport.sendMail({ from: opts.from, to: lead.email as string, subject, text: body });
+    recordSequenceSend(db, lead.id, step.step);
+    db.prepare("INSERT INTO outreach_touches (lead_id, channel, note) VALUES (?, 'email', ?)")
+      .run(lead.id, `sequence step ${step.step} auto-sent`);
+    db.prepare("UPDATE leads SET stage='contacted' WHERE id=? AND stage='new'").run(lead.id);
+    return { sent: true, leadId: lead.id };
+  } catch (e) {
+    recordSequenceFailure(db, lead.id, step.step, e instanceof Error ? e.message : String(e));
     return { sent: false, reason: 'error', leadId: lead.id };
   }
 }

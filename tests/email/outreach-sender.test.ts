@@ -8,9 +8,15 @@ function freshDb() {
     id INTEGER PRIMARY KEY, business_name TEXT, contact_person TEXT, email TEXT,
     stage TEXT DEFAULT 'new', replied_at TEXT, draft_email TEXT,
     email_status TEXT, email_queued_at TEXT, email_sent_at_q TEXT, email_error TEXT,
-    do_not_email INTEGER NOT NULL DEFAULT 0, updated_at TEXT
+    do_not_email INTEGER NOT NULL DEFAULT 0, sequence_enrolled_at TEXT, updated_at TEXT
   )`);
   db.exec(`CREATE TABLE outreach_touches (id INTEGER PRIMARY KEY, lead_id INTEGER, channel TEXT, sent_at TEXT DEFAULT (datetime('now')), note TEXT, created_at TEXT DEFAULT (datetime('now')))`);
+  db.exec(`CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)`);
+  db.exec(`CREATE TABLE sequence_sends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, lead_id INTEGER NOT NULL, step INTEGER NOT NULL,
+    ok INTEGER NOT NULL DEFAULT 1, error TEXT, sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(lead_id, step, ok)
+  )`);
   const ins = db.prepare("INSERT INTO leads (business_name,email,draft_email,email_status,email_queued_at) VALUES (?,?,?,?,datetime('now'))");
   ins.run('A', 'a@x.com', 'Subject: hi A\n\nbody A', 'queued');
   ins.run('B', 'b@x.com', 'Subject: hi B\n\nbody B', 'queued');
@@ -58,5 +64,57 @@ describe('sendOneTick', () => {
     const r = await sendOneTick(db, { transport: boom, now: fakeNow, from: 'p@r.com' });
     expect(r.sent).toBe(false); expect(r.reason).toBe('error');
     expect((db.prepare("SELECT email_status FROM leads WHERE id=1").get() as { email_status: string }).email_status).toBe('failed');
+  });
+});
+
+describe('sendOneTick sequence leg', () => {
+  let db: Database.Database;
+  let sent: Array<{ from: string; to: string; subject: string; text: string }>;
+  const transport: Transport = { sendMail: async (m) => { sent.push(m); return { messageId: 'x' }; } };
+  beforeEach(() => {
+    db = freshDb(); sent = [];
+    // drain the single-draft queue so the sequence leg runs
+    db.prepare("UPDATE leads SET email_status='skipped'").run();
+    db.prepare(`INSERT INTO leads (business_name, contact_person, email, sequence_enrolled_at)
+      VALUES ('Acme HVAC', 'Brett Boston', 'brett@acme.com', datetime('now'))`).run();
+  });
+
+  it('sends step 1 to an enrolled lead when the queue is empty, logs touch + advances stage', async () => {
+    const r = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r.sent).toBe(true);
+    expect(sent[0].to).toBe('brett@acme.com');
+    expect(sent[0].subject).toBe('the honest version of an AI pitch');
+    expect(sent[0].text.startsWith('Brett,')).toBe(true);
+    expect(sent[0].text).toContain('at Acme HVAC?');
+    const lead = db.prepare("SELECT stage FROM leads WHERE email='brett@acme.com'").get() as { stage: string };
+    expect(lead.stage).toBe('contacted');
+    const touch = db.prepare("SELECT note FROM outreach_touches ORDER BY id DESC LIMIT 1").get() as { note: string };
+    expect(touch.note).toBe('sequence step 1 auto-sent');
+    // step 2 not due yet
+    const r2 = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r2.sent).toBe(false); expect(r2.reason).toBe('empty');
+  });
+
+  it('queued single drafts always go before sequence sends', async () => {
+    db.prepare("UPDATE leads SET email_status='queued', email_queued_at=datetime('now') WHERE id=1").run();
+    const r = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r.sent).toBe(true);
+    expect(sent[0].to).toBe('a@x.com');
+  });
+
+  it('sequence sends count toward the shared daily cap', async () => {
+    for (let i = 0; i < 15; i++) db.prepare("INSERT INTO sequence_sends (lead_id, step) VALUES (99, ?)").run(i + 1);
+    const r = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r.sent).toBe(false); expect(r.reason).toBe('daily-cap');
+  });
+
+  it('a sequence failure parks the lead (no retry loop)', async () => {
+    const boom: Transport = { sendMail: async () => { throw new Error('gmail down'); } };
+    const r = await sendOneTick(db, { transport: boom, now: fakeNow, from: 'p@r.com' });
+    expect(r.sent).toBe(false); expect(r.reason).toBe('error');
+    const r2 = await sendOneTick(db, { transport: boom, now: fakeNow, from: 'p@r.com' });
+    expect(r2.sent).toBe(false); expect(r2.reason).toBe('empty');
+    const fail = db.prepare('SELECT ok, error FROM sequence_sends').get() as { ok: number; error: string };
+    expect(fail.ok).toBe(0); expect(fail.error).toContain('gmail down');
   });
 });
