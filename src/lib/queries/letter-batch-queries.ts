@@ -13,12 +13,15 @@ export interface LetterLead {
 const SELECT = `SELECT id, business_name, contact_person, street, city, state, postal_code,
   draft_letter, email_queued_at, lane, segment, category, employee_min, employee_max, website FROM leads`;
 
-// A lead earns a handwritten letter once it has entered the email queue
-// (queued now OR already auto-emailed — leads keep their spot after the email
-// sends) and has a business name plus a complete mailing address.
+// A lead earns a handwritten letter once it has entered the email pipeline —
+// the single-draft queue (queued now OR already auto-emailed; leads keep their
+// spot after the email sends) OR the 5-email drip sequence, which is where
+// bulk launches actually live — and has a business name plus a complete
+// mailing address. Oldest pipeline entry goes first.
 export function eligibleLetterLeads(db: Database.Database, limit: number): LetterLead[] {
   return db.prepare(`${SELECT}
-    WHERE email_status IN ('queued','sent') AND email_queued_at IS NOT NULL
+    WHERE ((email_status IN ('queued','sent') AND email_queued_at IS NOT NULL)
+        OR sequence_enrolled_at IS NOT NULL)
       AND letter_status IS NULL
       AND COALESCE(do_not_email, 0) = 0
       AND business_name IS NOT NULL AND trim(business_name) <> ''
@@ -26,7 +29,7 @@ export function eligibleLetterLeads(db: Database.Database, limit: number): Lette
       AND city IS NOT NULL AND trim(city) <> ''
       AND state IS NOT NULL AND trim(state) <> ''
       AND postal_code IS NOT NULL AND trim(postal_code) <> ''
-    ORDER BY email_queued_at, id LIMIT ?`).all(limit) as LetterLead[];
+    ORDER BY COALESCE(email_queued_at, sequence_enrolled_at), id LIMIT ?`).all(limit) as LetterLead[];
 }
 
 export function saveLetterDraft(db: Database.Database, id: number, text: string): void {

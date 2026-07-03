@@ -12,7 +12,7 @@ function freshDb() {
       street TEXT, city TEXT, state TEXT, postal_code TEXT,
       lane TEXT, segment TEXT, category TEXT,
       employee_min INTEGER, employee_max INTEGER, website TEXT,
-      email_status TEXT, email_queued_at TEXT,
+      email_status TEXT, email_queued_at TEXT, sequence_enrolled_at TEXT,
       do_not_email INTEGER NOT NULL DEFAULT 0,
       draft_letter TEXT, letter_status TEXT, letter_sent_at_q TEXT,
       letter_batch_date TEXT, updated_at TEXT
@@ -43,6 +43,12 @@ function freshDb() {
   ins.run('Zeta Cafe', 'Lou Poe', '3 Ash Ln', 'Smyrna', 'TN', '37167', 'queued', '2026-06-05 10:00:00', 0, 'sent');
   // 7: queued but blank business name — NOT eligible
   ins.run('  ', 'Max Orr', '8 Fir Ct', 'Hermitage', 'TN', '37076', 'queued', '2026-06-06 10:00:00', 0, null);
+  // 8: never in the single-draft queue but ENROLLED in the drip sequence
+  // (production's "queued for email" state) — eligible, entered EARLIEST
+  db.prepare(`INSERT INTO leads
+    (business_name, contact_person, street, city, state, postal_code, sequence_enrolled_at)
+    VALUES (?,?,?,?,?,?,?)`)
+    .run('Theta Vet', 'Sue Day', '5 Birch Blvd', 'Mt. Juliet', 'TN', '37122', '2026-05-30 09:00:00');
   return db;
 }
 
@@ -50,12 +56,12 @@ describe('eligibleLetterLeads', () => {
   let db: Database.Database;
   beforeEach(() => { db = freshDb(); });
 
-  it('returns only queue-entered, mailable, unlettered leads, oldest-queued first', () => {
-    expect(eligibleLetterLeads(db, 10).map((l) => l.id)).toEqual([1, 2]);
+  it('returns queue-entered OR sequence-enrolled, mailable, unlettered leads, oldest first', () => {
+    expect(eligibleLetterLeads(db, 10).map((l) => l.id)).toEqual([8, 1, 2]);
   });
 
   it('honors the limit', () => {
-    expect(eligibleLetterLeads(db, 1).map((l) => l.id)).toEqual([1]);
+    expect(eligibleLetterLeads(db, 1).map((l) => l.id)).toEqual([8]);
   });
 });
 
@@ -63,14 +69,14 @@ describe('saveLetterDraft', () => {
   it('stores the draft text', () => {
     const db = freshDb();
     saveLetterDraft(db, 1, 'Dear Brett...');
-    expect(eligibleLetterLeads(db, 10)[0].draft_letter).toBe('Dear Brett...');
+    expect(eligibleLetterLeads(db, 10).find((l) => l.id === 1)?.draft_letter).toBe('Dear Brett...');
   });
 });
 
 describe('markLetterBatchSent', () => {
   it('stamps status/date and logs a letter touch per lead, removing them from the pool', () => {
     const db = freshDb();
-    markLetterBatchSent(db, [1, 2], '2026-07-03');
+    markLetterBatchSent(db, [8, 1, 2], '2026-07-03');
     expect(eligibleLetterLeads(db, 10)).toEqual([]);
     const row = db.prepare('SELECT letter_status, letter_sent_at_q, letter_batch_date FROM leads WHERE id=1')
       .get() as { letter_status: string; letter_sent_at_q: string; letter_batch_date: string };
@@ -79,6 +85,6 @@ describe('markLetterBatchSent', () => {
     expect(row.letter_batch_date).toBe('2026-07-03');
     const touches = db.prepare("SELECT lead_id FROM outreach_touches WHERE channel='letter' ORDER BY lead_id")
       .all() as { lead_id: number }[];
-    expect(touches.map((t) => t.lead_id)).toEqual([1, 2]);
+    expect(touches.map((t) => t.lead_id)).toEqual([1, 2, 8]);
   });
 });

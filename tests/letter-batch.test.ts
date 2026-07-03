@@ -69,7 +69,7 @@ function tickDb() {
       street TEXT, city TEXT, state TEXT, postal_code TEXT,
       lane TEXT, segment TEXT, category TEXT,
       employee_min INTEGER, employee_max INTEGER, website TEXT,
-      email_status TEXT, email_queued_at TEXT,
+      email_status TEXT, email_queued_at TEXT, sequence_enrolled_at TEXT,
       do_not_email INTEGER NOT NULL DEFAULT 0,
       draft_letter TEXT, letter_status TEXT, letter_sent_at_q TEXT,
       letter_batch_date TEXT, updated_at TEXT
