@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { getLeadById, listLeadNotes, getStageHistory } from '@/lib/queries/lead-queries';
-import { deleteLeadAction, markLeadLostAction } from '@/lib/actions/lead-actions';
+import { markLeadLostAction } from '@/lib/actions/lead-actions';
+import { DeleteLeadButton } from '@/components/delete-lead-button';
 import { StatusBadge } from '@/components/status-badge';
 import { LeadNotes } from '@/components/lead-notes';
 import { StageHistory } from '@/components/stage-history';
@@ -132,14 +133,7 @@ export default async function LeadDetailPage({
 
       {/* Delete */}
       <div className="mt-12 pt-6 border-t border-gray-800">
-        <form action={deleteLeadAction}>
-          <input type="hidden" name="id" value={lead.id} />
-          <button type="submit"
-            className="px-4 py-2 text-sm text-red-400 border border-red-900 rounded-lg hover:bg-red-900/20 transition-colors"
-            onClick={(e) => { if (!confirm('Delete this lead?')) e.preventDefault(); }}>
-            Delete Lead
-          </button>
-        </form>
+        <DeleteLeadButton leadId={lead.id} />
       </div>
     </div>
   );
