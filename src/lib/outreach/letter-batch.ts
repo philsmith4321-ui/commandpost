@@ -1,5 +1,11 @@
-import type { LetterLead } from '@/lib/queries/letter-batch-queries';
-import { MAILING_ADDRESS } from '@/lib/outreach/draft';
+import type Database from 'better-sqlite3';
+import type { OutreachLead } from '@/lib/queries/outreach-lead-queries';
+import type { Transport } from '@/lib/email/outreach-sender';
+import { generateDraft, MAILING_ADDRESS } from '@/lib/outreach/draft';
+import { getSetting, setSetting } from '@/lib/queries/settings-queries';
+import {
+  eligibleLetterLeads, saveLetterDraft, markLetterBatchSent, type LetterLead,
+} from '@/lib/queries/letter-batch-queries';
 
 export const LETTER_BATCH_SIZE = 10;
 export const LETTER_BATCH_ENABLED_KEY = 'letter_batch_enabled';
@@ -70,4 +76,85 @@ export function composeLetterBatchEmail(
     '',
   ].join('\n');
   return { subject, text };
+}
+
+export interface LetterTickOpts {
+  transport: Transport;
+  now: Date;
+  from: string;
+  // dryRun sends the composed batch (to `to` or the configured recipient)
+  // without marking any lead or the daily guard — the format-test path.
+  dryRun?: boolean;
+  to?: string;
+  // Test seam; production uses generateDraft. LetterLead carries every field
+  // generateDraft actually reads, so the cast below is safe at runtime.
+  draftFn?: (db: Database.Database, lead: LetterLead, channel: 'letter') => Promise<string | null>;
+}
+
+export interface LetterTickResult {
+  sent: number;
+  skippedDrafts: number;
+  recipient: string | null;
+  dryRun: boolean;
+  leadIds: number[];
+  reason?: 'disabled' | 'already-sent-today' | 'empty' | 'error';
+  error?: string;
+}
+
+// One daily batch: pull up to 10 eligible leads, draft any missing letters,
+// email the assignment sheet, and (real runs only) mark everything included.
+export async function runLetterBatchTick(
+  db: Database.Database, opts: LetterTickOpts
+): Promise<LetterTickResult> {
+  const dryRun = !!opts.dryRun;
+  const { isoDate, label } = centralDateParts(opts.now);
+  const none = (reason: LetterTickResult['reason']): LetterTickResult =>
+    ({ sent: 0, skippedDrafts: 0, recipient: null, dryRun, leadIds: [], reason });
+
+  if (!dryRun) {
+    if (getSetting(db, LETTER_BATCH_ENABLED_KEY) !== '1') return none('disabled');
+    if (getSetting(db, LETTER_LAST_BATCH_DATE_KEY) === isoDate) return none('already-sent-today');
+  }
+
+  const candidates = eligibleLetterLeads(db, LETTER_BATCH_SIZE);
+  if (candidates.length === 0) return none('empty');
+
+  const draft = opts.draftFn
+    ?? ((d: Database.Database, l: LetterLead, channel: 'letter') =>
+      generateDraft(d, l as unknown as OutreachLead, channel));
+
+  // Draft any missing letters; a failed draft defers that lead to a later
+  // batch (letter_status stays NULL) rather than wedging today's email.
+  const ready: LetterLead[] = [];
+  let skippedDrafts = 0;
+  for (const candidate of candidates) {
+    if (candidate.draft_letter?.trim()) { ready.push(candidate); continue; }
+    let text: string | null = null;
+    try { text = await draft(db, candidate, 'letter'); } catch { text = null; }
+    if (text?.trim()) {
+      saveLetterDraft(db, candidate.id, text.trim());
+      ready.push({ ...candidate, draft_letter: text.trim() });
+    } else {
+      skippedDrafts++;
+    }
+  }
+  if (ready.length === 0) return { ...none('empty'), skippedDrafts };
+
+  const recipient = opts.to || getSetting(db, LETTER_BATCH_RECIPIENT_KEY) || DEFAULT_LETTER_RECIPIENT;
+  const { subject, text } = composeLetterBatchEmail(ready, label);
+  try {
+    await opts.transport.sendMail({ from: opts.from, to: recipient, subject, text });
+  } catch (e) {
+    return {
+      ...none('error'), skippedDrafts, recipient,
+      error: (e instanceof Error ? e.message : String(e)).slice(0, 500),
+    };
+  }
+
+  const leadIds = ready.map((l) => l.id);
+  if (!dryRun) {
+    markLetterBatchSent(db, leadIds, isoDate);
+    setSetting(db, LETTER_LAST_BATCH_DATE_KEY, isoDate);
+  }
+  return { sent: ready.length, skippedDrafts, recipient, dryRun, leadIds };
 }
