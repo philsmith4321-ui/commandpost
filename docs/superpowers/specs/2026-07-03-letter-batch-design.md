@@ -39,7 +39,7 @@ Migration in `src/lib/db.ts` adds to `leads`:
 | Column | Type | Meaning |
 |---|---|---|
 | `letter_status` | TEXT | `NULL` = never batched; `'sent'` = included in a batch emailed to Caroline; `'skipped'` reserved for future manual exclusion |
-| `letter_sent_at` | TEXT | UTC timestamp of the batch email that included this lead |
+| `letter_sent_at_q` | TEXT | UTC timestamp of the batch email that included this lead. The `_q` suffix avoids colliding with the derived `letter_sent_at` alias that `listLeadsByLane` builds from `outreach_touches` (same collision `email_sent_at_q` solved) |
 | `letter_batch_date` | TEXT | Central-time date (`YYYY-MM-DD`) of that batch |
 
 `app_settings` keys:
@@ -92,8 +92,10 @@ summary (count, skipped-draft failures, recipient, dryRun).
 ### Scheduling
 
 Crontab entry on the droplet (same pattern as the existing send-tick):
-fires 13:00 UTC daily; the endpoint itself verifies it is morning in
-America/Chicago, so DST never doubles or skips a day. Runs 7 days/week.
+fires 13:00 UTC daily (7–8 AM Central depending on DST). The endpoint does
+NOT gate on hour-of-day — the `letter_last_batch_date` guard already makes
+it once-per-day idempotent, and an hour gate would silently skip a batch if
+the cron ever fired late. Runs 7 days/week.
 The `letter_batch_enabled` flag is the real on/off switch, so the cron can
 be installed immediately without risk of premature sends.
 
