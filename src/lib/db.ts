@@ -945,6 +945,24 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     `);
   }
 
+  // Migration: handwritten-letter batch queue — parallels the email queue's
+  // per-lead status columns. letter_sent_at_q (not letter_sent_at) because
+  // listLeadsByLane already derives a letter_sent_at alias from
+  // outreach_touches; same collision email_sent_at_q solved.
+  {
+    const have = new Set(
+      (db.prepare("PRAGMA table_info(leads)").all() as { name: string }[]).map((c) => c.name)
+    );
+    const add: Array<[string, string]> = [
+      ['letter_status', 'TEXT'],
+      ['letter_sent_at_q', 'TEXT'],
+      ['letter_batch_date', 'TEXT'],
+    ];
+    for (const [name, decl] of add) {
+      if (!have.has(name)) db.exec(`ALTER TABLE leads ADD COLUMN ${name} ${decl}`);
+    }
+  }
+
   return db;
 }
 
