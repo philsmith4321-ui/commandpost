@@ -18,7 +18,7 @@ const CHANNEL_INSTRUCTIONS: Record<Exclude<OutreachChannel, 'phone'>, { instruct
   },
   email: {
     instruction:
-      `Channel: COLD EMAIL. Output a "Subject: ..." line first, then a blank line, then the body. The subject line carries most of the weight — make it honest and intriguing (e.g. "the honest version of an AI pitch"). Keep the body short. Include the contact line: Phil Smith, RekindleLeads · rekindleleads.com · 615-969-7941. For CAN-SPAM, the footer MUST include the physical mailing address verbatim: ${MAILING_ADDRESS}. Never output a placeholder like "[Mailing address]" — always use that exact address. End with the opt-out line: "Reply 'no thanks' and I won't follow up."`,
+      `Channel: COLD EMAIL. Output a "Subject: ..." line first, then a blank line, then the body. The subject line carries most of the weight — make it honest and intriguing (e.g. "the honest version of an AI pitch"). Keep the body short. Sign off exactly with these three lines: "Phil Smith" on the first line, "rekindleleads.com" on the second line, "615-969-7941" on the third line. For CAN-SPAM, the footer MUST include the physical mailing address verbatim: ${MAILING_ADDRESS}. Never output a placeholder like "[Mailing address]" — always use that exact address. End with the opt-out line: "Reply 'no thanks' and I won't follow up."`,
     maxTokens: 1024,
   },
   linkedin: {

@@ -12,7 +12,8 @@ export interface SequenceStep {
 }
 
 const FOOTER = `Phil Smith
-RekindleLeads.com, 615-969-7941
+rekindleleads.com
+615-969-7941
 Reply "no thanks" and I won't follow up.`;
 
 // Phil's 5-email cold sequence (2026-07-06, audit-only rewrite, Phil's call).
