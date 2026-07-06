@@ -1,8 +1,15 @@
 import type Database from 'better-sqlite3';
 
+// Values written outside the app (e.g. sqlite3 readfile() in an ops session) can
+// land as BLOBs, which better-sqlite3 returns as Buffers.
+function asText(value: string | Buffer | null | undefined): string | null {
+  if (value == null) return null;
+  return typeof value === 'string' ? value : value.toString('utf8');
+}
+
 export function getSetting(db: Database.Database, key: string): string | null {
-  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
-  return row?.value ?? null;
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string | Buffer } | undefined;
+  return asText(row?.value);
 }
 
 export function setSetting(db: Database.Database, key: string, value: string): void {
@@ -10,9 +17,9 @@ export function setSetting(db: Database.Database, key: string, value: string): v
 }
 
 export function getAllSettings(db: Database.Database): Record<string, string> {
-  const rows = db.prepare('SELECT key, value FROM app_settings ORDER BY key').all() as { key: string; value: string }[];
+  const rows = db.prepare('SELECT key, value FROM app_settings ORDER BY key').all() as { key: string; value: string | Buffer }[];
   const result: Record<string, string> = {};
-  for (const row of rows) result[row.key] = row.value;
+  for (const row of rows) result[row.key] = asText(row.value) ?? '';
   return result;
 }
 
