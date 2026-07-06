@@ -15,9 +15,12 @@ const FOOTER = `Phil Smith
 RekindleLeads.com, 615-969-7941
 Reply "no thanks" and I won't follow up.`;
 
-// Phil's approved 5-email cold sequence (2026-07-01, pitch kit v5 aligned).
-// Cold touches earn a reply; the audit appears only in step 4, guarantee first,
-// price withheld until the prospect engages. No em or en dashes anywhere.
+// Phil's 5-email cold sequence (2026-07-06, audit-only rewrite, Phil's call).
+// Every email pitches exactly one thing: the paid, guaranteed AI Opportunity
+// Audit ($1,000; free if it doesn't surface $10k in opportunity; 30% credits
+// toward a build). No individual builds (voice agents, reactivation, etc.) are
+// pitched cold; those come after the audit, based on what the report finds.
+// No em or en dashes anywhere.
 export const DEFAULT_EMAIL_SEQUENCE: SequenceStep[] = [
   {
     step: 1,
@@ -27,59 +30,57 @@ export const DEFAULT_EMAIL_SEQUENCE: SequenceStep[] = [
 
 You've probably been pitched "AI" by someone who has never run a business. I did it in the other order. I spent 38 years operating companies and nonprofits before I started building AI systems for businesses here in Middle Tennessee.
 
-So I care less about what's trendy and more about what earns its keep. And I'll tell you straight when AI isn't the answer yet.
+Here's how I work, straight. I run an AI Opportunity Audit. It's a paid, structured deep-dive that ends in a real report and a three-tier roadmap within 5 business days, not a sales call. It's $1,000, and it's guaranteed. If it doesn't surface at least $10,000 in opportunity over the next 12 months, it's free. If you decide to build, 30% of the fee comes off the build.
 
-I build the thing too, not just advise. Custom software, agents, automations, not a chatbot wrapper. One client, a multi-location healthcare practice, tripled its consultation booking rate. Another cut content production time about 80%.
-
-Worth a short conversation about where that would actually pay off at [Company]? Just reply and I'll send a couple of times.
+Worth a look for [Company]? Just reply "tell me more" and I'll send the details.
 
 ${FOOTER}`,
   },
   {
     step: 2,
     dayOffset: 3,
-    subject: "who answers when you can't pick up?",
+    subject: 'why I charge for what others give away',
     body: `[First Name],
 
-Quick question about [Company]: what happens to a call that comes in while your hands are full?
+Plenty of people will offer [Company] a free AI consultation. I don't, and here's why.
 
-Here's what I see over and over in home services. The customer doesn't leave a voicemail. They call the next name on the list, and the business that answers first wins the job. You paid to make that phone ring, and a competitor got the work.
+A free assessment is a sales call with a costume on. The advice always points at whatever the seller wants to build. I charge $1,000 for my AI Opportunity Audit because the report is the product: a structured deep-dive into your operation and a three-tier roadmap, in your hands within 5 business days.
 
-I build systems that answer every call, day or night, book the job, and text you the details. Not a robot reading a script, an actual conversation. One saved job a month usually covers the whole thing.
+And it's guaranteed. If it doesn't surface at least $10,000 in opportunity over the next 12 months, it's free.
 
-If you'd like, reply and I'll show you roughly how many calls a shop your size is losing. Takes five minutes.
+Reply "tell me more" and I'll send the details.
 
 ${FOOTER}`,
   },
   {
     step: 3,
     dayOffset: 7,
-    subject: "the cheapest customer you'll ever get",
+    subject: 'what the audit actually looks like',
     body: `[First Name],
 
-The cheapest customer you'll ever get is one who already knows you.
+A quick, concrete picture of the AI Opportunity Audit, since "audit" can mean anything these days.
 
-Every business I've walked into has the same asset gathering dust: old quotes that never closed, past customers who haven't been back, leads that went quiet. That list is worth real money, and most owners never touch it because follow-up is tedious and nobody has time.
+I spend real time in your operation: how work comes in, where hours leak, what's being retyped, chased, or dropped. Within 5 business days you get a written report and a three-tier roadmap: what to do first, what to do next, and what to skip because it wouldn't earn its keep at [Company].
 
-That's exactly the kind of work I automate. Systems that follow up with every old lead and past customer, personally and politely, until they book or say no. No new ad spend. Just revenue recovered from work you already did.
+The roadmap is yours to keep. Build with me, build with someone else, or build nothing. It's $1,000, and if the report doesn't surface at least $10,000 in opportunity over the next 12 months, it's free. If you do build with me, 30% of the fee comes off the build.
 
-Curious what's sitting in your list at [Company]? Reply and I'll walk you through how I'd find out.
+Reply "tell me more" and I'll send the details.
 
 ${FOOTER}`,
   },
   {
     step: 4,
     dayOffset: 11,
-    subject: 'sometimes the answer is "don\'t buy AI yet"',
+    subject: 'what if the audit turns up nothing?',
     body: `[First Name],
 
-Something I tell owners that surprises them: sometimes AI isn't the answer yet, and I'd rather say so than sell you something that won't earn its keep.
+The question I'd be asking in your chair: what if the audit turns up nothing?
 
-So here's how I work, straight. I start with an AI Opportunity Audit. It's a structured deep-dive into your operation that ends in a real report and a three-tier roadmap within 5 business days, not a sales call. And it's guaranteed: if it doesn't surface at least $10,000 in opportunity over the next 12 months, documented in the report, you don't pay a dime. If you build with me after, 30% of the audit fee comes off the build.
+Then you don't pay. That's the whole guarantee. If my AI Opportunity Audit doesn't surface at least $10,000 in opportunity over the next 12 months, documented in the report, the $1,000 fee is refunded. I can offer that because in 38 years of running businesses I never walked into one that didn't have at least that much sitting in missed follow-up, retyped paperwork, or slow handoffs.
 
-I only take on a few of these a month because I do them myself.
+Worst case, it costs you nothing and you learn where you stand. Best case, the roadmap pays for itself many times over, and 30% of the fee comes off the build if you move forward.
 
-If [Company] might be worth a look, just reply "tell me more" and I'll send the details.
+If [Company] is worth a look, reply "tell me more."
 
 ${FOOTER}`,
   },
@@ -95,11 +96,11 @@ If the timing's wrong, no problem at all. Business owners' plates are full, I ra
 
 Two things before I go:
 
-1. If a slow season, a missed-call problem, or a pile of old leads ever makes you think "there's got to be a better way," my number is below. That's usually when a 15-minute call is worth it.
+1. The offer stands whenever you're ready: an AI Opportunity Audit for $1,000, a real report and three-tier roadmap in 5 business days, free if it doesn't surface at least $10,000 in opportunity.
 
-2. If this isn't for you but you know an owner wrestling with phones, follow-up, or too much paperwork, I'd count it a favor if you passed my name along.
+2. If it's not for [Company] but you know an owner who's stretched thin, I'd count it a favor if you passed my name along.
 
-Either way, I'm rooting for [Company]. No hype, just results.
+Either way, I'm rooting for you. No hype, just results.
 
 ${FOOTER}`,
   },

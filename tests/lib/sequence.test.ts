@@ -17,18 +17,18 @@ describe('default sequence', () => {
     expect(DEFAULT_EMAIL_SEQUENCE.map((s) => s.dayOffset)).toEqual([0, 3, 7, 11, 15]);
   });
 
-  it('obeys the pitch rules: no long dashes, no price, opt-out everywhere, no mailing address', () => {
+  it('obeys the pitch rules: no long dashes, audit-only offer, opt-out everywhere, no mailing address', () => {
     for (const s of DEFAULT_EMAIL_SEQUENCE) {
       const text = s.subject + s.body;
       expect(text).not.toMatch(/[—–]/); // em/en dash
-      expect(text).not.toContain('$1,000');
       expect(text).not.toContain('Thistle Court');
       expect(s.body).toContain('Reply "no thanks"');
+      // Phil's rule (2026-07-06): every email pitches the audit and only the
+      // audit, with the full terms: price, $10k guarantee.
+      expect(s.body).toContain('AI Opportunity Audit');
+      expect(s.body).toContain('$1,000');
+      expect(s.body).toContain('$10,000');
     }
-    // audit enters exactly once, at step 4, guarantee-first
-    const auditSteps = DEFAULT_EMAIL_SEQUENCE.filter((s) => s.body.includes('AI Opportunity Audit'));
-    expect(auditSteps.map((s) => s.step)).toEqual([4]);
-    expect(auditSteps[0].body).toContain('$10,000');
   });
 });
 
@@ -59,7 +59,7 @@ describe('renderSequenceEmail', () => {
   it('merges first name and company', () => {
     const { body } = renderSequenceEmail(step, { business_name: 'Acme HVAC', contact_person: 'Brett Boston' });
     expect(body.startsWith('Brett,')).toBe(true);
-    expect(body).toContain('at Acme HVAC?');
+    expect(body).toContain('for Acme HVAC?');
     expect(body).not.toContain('[First Name]');
     expect(body).not.toContain('[Company]');
   });
@@ -72,7 +72,7 @@ describe('renderSequenceEmail', () => {
 
   it('falls back to "your business" when business name is blank', () => {
     const { body } = renderSequenceEmail(step, { business_name: '  ', contact_person: 'Jo Smith' });
-    expect(body).toContain('at your business?');
+    expect(body).toContain('for your business?');
   });
 
   it('rejects junk contact names', () => {

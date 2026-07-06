@@ -85,7 +85,7 @@ describe('sendOneTick sequence leg', () => {
     expect(sent[0].to).toBe('brett@acme.com');
     expect(sent[0].subject).toBe('the honest version of an AI pitch');
     expect(sent[0].text.startsWith('Brett,')).toBe(true);
-    expect(sent[0].text).toContain('at Acme HVAC?');
+    expect(sent[0].text).toContain('for Acme HVAC?');
     const lead = db.prepare("SELECT stage FROM leads WHERE email='brett@acme.com'").get() as { stage: string };
     expect(lead.stage).toBe('contacted');
     const touch = db.prepare("SELECT note FROM outreach_touches ORDER BY id DESC LIMIT 1").get() as { note: string };
