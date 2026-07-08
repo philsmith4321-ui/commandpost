@@ -25,7 +25,7 @@ const wordCount = (t: string) => t.trim().split(/\s+/).length;
 
 function composeEmail(leads: LetterLead[]): { subject: string; text: string } {
   const n = leads.length;
-  const subject = `Handwritten letter drafts — batch 3 of 7 REVISED (${n} companies)`;
+  const subject = `Handwritten letter drafts — batch 3 of 7 REVISED v2 (${n} companies)`;
   const sections = leads.map((lead, i) => [
     DIVIDER,
     `LETTER ${i + 1} of ${n} — ${(lead.business_name ?? '').trim()}`,
@@ -43,7 +43,7 @@ function composeEmail(leads: LetterLead[]): { subject: string; text: string } {
   const text = [
     'Hi Phil!',
     '',
-    `Revised batch 3 of 7: the same ${n} companies from the July 6 email, redrafted with per-company research woven in and shortened to fit a 5x7 card. These replace the July 6 versions.`,
+    `Revised batch 3 of 7 (v2, use THIS one and ignore any earlier "REVISED" email from today): the same ${n} companies from the July 6 email, redrafted with per-company research woven in and shortened to fit a 5x7 card. These replace the July 6 versions.`,
     '',
     'Return address for every envelope:',
     'Phil Smith',

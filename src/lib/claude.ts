@@ -77,8 +77,17 @@ export async function askClaudeWithWebSearch(
 
     const data = await response.json();
     const blocks: Array<{ type: string; text?: string }> = data.content ?? [];
-    const textBlocks = blocks.filter((b) => b.type === 'text' && typeof b.text === 'string');
-    return textBlocks.length ? textBlocks[textBlocks.length - 1].text! : null;
+    // The final answer is every text block AFTER the last tool block: with web
+    // search the answer arrives split across many citation-bearing text blocks,
+    // so taking only the last one keeps just a tail fragment (often a bare URL).
+    // Text before/between tool calls is preamble ("I'll search for...") — skip it.
+    const lastToolIdx = blocks.reduce((acc, b, i) => (b.type === 'text' ? acc : i), -1);
+    const answer = blocks.slice(lastToolIdx + 1)
+      .filter((b) => b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text!)
+      .join('')
+      .trim();
+    return answer || null;
   } catch (err) {
     console.error('Claude web-search request failed:', err);
     return null;
