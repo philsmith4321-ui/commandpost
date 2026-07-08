@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import type { OutreachLead } from '@/lib/queries/outreach-lead-queries';
 import type { Transport } from '@/lib/email/outreach-sender';
 import { generateDraft, MAILING_ADDRESS } from '@/lib/outreach/draft';
+import { ensureFreshResearch } from '@/lib/outreach/research';
 import { getSetting, setSetting } from '@/lib/queries/settings-queries';
 import {
   eligibleLetterLeads, saveLetterDraft, markLetterBatchSent, type LetterLead,
@@ -89,6 +90,8 @@ export interface LetterTickOpts {
   // Test seam; production uses generateDraft. LetterLead carries every field
   // generateDraft actually reads, so the cast below is safe at runtime.
   draftFn?: (db: Database.Database, lead: LetterLead, channel: 'letter') => Promise<string | null>;
+  // Test seam; production uses ensureFreshResearch (fail-open, freshness-aware).
+  researchFn?: (db: Database.Database, lead: LetterLead) => Promise<string | null>;
 }
 
 export interface LetterTickResult {
@@ -122,6 +125,8 @@ export async function runLetterBatchTick(
   const draft = opts.draftFn
     ?? ((d: Database.Database, l: LetterLead, channel: 'letter') =>
       generateDraft(d, l as unknown as OutreachLead, channel));
+  const research = opts.researchFn
+    ?? ((d: Database.Database, l: LetterLead) => ensureFreshResearch(d, l));
 
   // Draft any missing letters; a failed draft defers that lead to a later
   // batch (letter_status stays NULL) rather than wedging today's email.
@@ -129,8 +134,13 @@ export async function runLetterBatchTick(
   let skippedDrafts = 0;
   for (const candidate of candidates) {
     if (candidate.draft_letter?.trim()) { ready.push(candidate); continue; }
+    let toDraft = candidate;
+    try {
+      const notes = await research(db, candidate);
+      if (notes) toDraft = { ...candidate, research_notes: notes };
+    } catch { /* fail-open: draft without research */ }
     let text: string | null = null;
-    try { text = await draft(db, candidate, 'letter'); } catch { text = null; }
+    try { text = await draft(db, toDraft, 'letter'); } catch { text = null; }
     if (text?.trim()) {
       saveLetterDraft(db, candidate.id, text.trim());
       ready.push({ ...candidate, draft_letter: text.trim() });

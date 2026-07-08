@@ -8,10 +8,12 @@ export interface LetterLead {
   draft_letter: string | null; email_queued_at: string | null;
   lane: string | null; segment: string | null; category: string | null;
   employee_min: number | null; employee_max: number | null; website: string | null;
+  research_notes: string | null; researched_at: string | null;
 }
 
 const SELECT = `SELECT id, business_name, contact_person, street, city, state, postal_code,
-  draft_letter, email_queued_at, lane, segment, category, employee_min, employee_max, website FROM leads`;
+  draft_letter, email_queued_at, lane, segment, category, employee_min, employee_max, website,
+  research_notes, researched_at FROM leads`;
 
 // A lead earns a handwritten letter once it has entered the email pipeline —
 // the single-draft queue (queued now OR already auto-emailed; leads keep their

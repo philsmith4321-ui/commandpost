@@ -15,7 +15,8 @@ function freshDb() {
       email_status TEXT, email_queued_at TEXT, sequence_enrolled_at TEXT,
       do_not_email INTEGER NOT NULL DEFAULT 0,
       draft_letter TEXT, letter_status TEXT, letter_sent_at_q TEXT,
-      letter_batch_date TEXT, updated_at TEXT
+      letter_batch_date TEXT, updated_at TEXT,
+      research_notes TEXT, researched_at TEXT
     );
     CREATE TABLE outreach_touches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

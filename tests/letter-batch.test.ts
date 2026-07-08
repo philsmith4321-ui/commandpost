@@ -13,6 +13,7 @@ function lead(over: Partial<LetterLead> = {}): LetterLead {
     street: '12 Main St', city: 'Hendersonville', state: 'TN', postal_code: '37075',
     draft_letter: 'Hi Brett, short letter body.', email_queued_at: '2026-06-01 10:00:00',
     lane: null, segment: null, category: null, employee_min: null, employee_max: null, website: null,
+    research_notes: null, researched_at: null,
     ...over,
   };
 }
@@ -72,7 +73,8 @@ function tickDb() {
       email_status TEXT, email_queued_at TEXT, sequence_enrolled_at TEXT,
       do_not_email INTEGER NOT NULL DEFAULT 0,
       draft_letter TEXT, letter_status TEXT, letter_sent_at_q TEXT,
-      letter_batch_date TEXT, updated_at TEXT
+      letter_batch_date TEXT, updated_at TEXT,
+      research_notes TEXT, researched_at TEXT
     );
     CREATE TABLE outreach_touches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -185,5 +187,31 @@ describe('runLetterBatchTick', () => {
     expect(r.error).toContain('gmail-api 500');
     expect(db.prepare("SELECT COUNT(*) n FROM leads WHERE letter_status='sent'").get()).toEqual({ n: 0 });
     expect(getSetting(db, LETTER_LAST_BATCH_DATE_KEY)).toBeNull();
+  });
+
+  it('researches a lead before drafting its letter and passes notes to the draft', async () => {
+    // Only the undrafted lead (Beta Roofing, id=2) needs research; Acme HVAC
+    // already has draft_letter set and short-circuits before drafting/research.
+    const db = tickDb();
+    setSetting(db, LETTER_BATCH_ENABLED_KEY, '1');
+    const transport = okTransport();
+    const researched: number[] = [];
+    const seenNotes: (string | null)[] = [];
+    const r = await runLetterBatchTick(db, {
+      transport, now: NOW, from: FROM,
+      researchFn: async (_d, l) => {
+        researched.push(l.id);
+        return '- researched fact (https://x.example)';
+      },
+      draftFn: async (_d, l) => {
+        seenNotes.push((l as unknown as { research_notes?: string | null }).research_notes ?? null);
+        return 'letter text';
+      },
+    });
+    expect(r.sent).toBe(2);
+    expect(researched).toHaveLength(1);
+    expect(researched[0]).toBe(2);
+    expect(seenNotes).toHaveLength(1);
+    expect(seenNotes[0]).toContain('researched fact');
   });
 });
