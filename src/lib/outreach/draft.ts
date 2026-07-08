@@ -14,7 +14,7 @@ export const MAILING_ADDRESS = '1004 Thistle Court, Hendersonville, TN 37075';
 const CHANNEL_INSTRUCTIONS: Record<Exclude<OutreachChannel, 'phone'>, { instruction: string; maxTokens: number }> = {
   letter: {
     instruction:
-      'Channel: HANDWRITTEN LETTER. Write a warm, human note that reads like it was written by hand. Keep it TIGHT and brief, roughly 120-150 words (about a third shorter than a typical one-pager), every sentence earning its place, no filler. Never mention automation, "AI tools," or anything that breaks the handwritten illusion. Operator voice, plain and direct. Sign off exactly with these three lines: "Phil Smith" on the first line, "rekindleleads.com" on the second line, "615-969-7941" on the third line.',
+      'Channel: HANDWRITTEN LETTER. Write a warm, human note that reads like it was written by hand. HARD LENGTH LIMIT: the whole letter must fit handwritten on a 5x7 card, so keep the body 100-125 words, never more than 130 (signature lines not counted). Any personalized or researched detail you weave in counts against that budget; make room by cutting elsewhere, never by running long. Every sentence earning its place, no filler. Never mention automation, "AI tools," or anything that breaks the handwritten illusion. Operator voice, plain and direct. Sign off exactly with these three lines: "Phil Smith" on the first line, "rekindleleads.com" on the second line, "615-969-7941" on the third line.',
     maxTokens: 700,
   },
   email: {
