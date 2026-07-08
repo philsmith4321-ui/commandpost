@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { isLaneId } from '@/lib/outreach/lanes';
+import { isClaudeConfigured } from '@/lib/claude';
 import {
   listLeadsByLane,
   laneLeadCounts,
@@ -133,6 +134,9 @@ export async function POST(request: NextRequest) {
       if (!lead) {
         return NextResponse.json({ error: 'lead not found' }, { status: 404 });
       }
+      if (!isClaudeConfigured()) {
+        return NextResponse.json({ error: 'claude not configured' }, { status: 502 });
+      }
       const notes = await researchLead(db, lead); // manual button: always re-runs
       if (notes == null) {
         return NextResponse.json({ error: 'research failed' }, { status: 502 });
@@ -144,7 +148,13 @@ export async function POST(request: NextRequest) {
       if (typeof body.notes !== 'string') {
         return NextResponse.json({ error: 'invalid notes' }, { status: 400 });
       }
-      db.prepare('UPDATE leads SET research_notes = ? WHERE id = ?').run(body.notes.trim() || null, leadId);
+      const trimmed = body.notes.trim();
+      if (trimmed) {
+        db.prepare('UPDATE leads SET research_notes = ? WHERE id = ?').run(trimmed, leadId);
+      } else {
+        // Emptying the box invalidates the research entirely so the next draft re-researches.
+        db.prepare('UPDATE leads SET research_notes = NULL, researched_at = NULL WHERE id = ?').run(leadId);
+      }
       break;
     }
     default:
