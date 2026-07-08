@@ -4,6 +4,7 @@ import type { OutreachLead } from '@/lib/queries/outreach-lead-queries';
 import { askClaude } from '@/lib/claude';
 import { LANES, isLaneId } from '@/lib/outreach/lanes';
 import { getOutreachPitch } from './pitch';
+import { usableResearch } from '@/lib/outreach/research';
 
 // Per-channel shaping: the instruction handed to the model + a token budget.
 // Phil's physical mailing address, required in the cold-email footer for CAN-SPAM.
@@ -67,6 +68,8 @@ export async function generateDraft(
     ? `Active outreach lane: ${lane.name} (${lane.archetype}). ${lane.blurb} Let this shade the tone, not the offer.`
     : '';
 
+  const research = usableResearch(lead.research_notes);
+
   const systemPrompt = [
     'You are drafting cold outreach AS Phil Smith of RekindleLeads, an AI agency operator in Middle Tennessee.',
     'Voice: anti-hype, operator-first, honest. Phil ran businesses for 38 years before building AI systems, so he sounds like an operator who has made payroll, not a marketer.',
@@ -82,6 +85,9 @@ export async function generateDraft(
     '- Do NOT leave any placeholder brackets unfilled. Use the lead\'s real first name from contact_person ONLY if one is given. If no contact first name is provided, you MUST open with the neutral greeting "Hi there," and you must NOT invent, guess, or infer a personal first name (never "Chris," "Scott," etc.) and must NOT use the business or company name as the salutation (never "Acme Co," or "McCarroll,"). No "[First Name]" placeholder either.',
     '- Personalize concretely: weave in at least one specific, TRUE detail about this lead from the data given (their industry/category, their company size, or their city/state) so the message reads as written for them, not a mass blast. Keep it natural, one light touch, not a list.',
     '- Never invent specifics you were not given. Do NOT guess what they make or sell beyond the stated category, do not invent revenue, headcount precision, named people, or any claim about their website. If you only have a website URL, you may note you came across it, but make no claims about its contents.',
+    research
+      ? '- A RESEARCHED FACTS section lists verified facts about this lead found via web search. Weave in ONE, at most two, of these facts naturally, so the message reads like you did your homework, never like you were watching them. Do not list facts. NEVER include or quote the source URLs in the message.'
+      : '',
     shape.instruction,
   ]
     .filter(Boolean)
@@ -105,6 +111,9 @@ export async function generateDraft(
     details.push(`Company size: ${lead.employee_min}+ employees`);
   }
   if (lead.website) details.push(`Website (reference only, do not invent claims about it): ${lead.website}`);
+  if (research) {
+    details.push('', 'RESEARCHED FACTS (verified via web search, with sources; you may reference these):', research);
+  }
 
   const userMessage = [
     `Draft the ${channel} outreach message for this lead:`,

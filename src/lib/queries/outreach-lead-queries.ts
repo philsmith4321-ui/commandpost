@@ -18,6 +18,8 @@ export interface OutreachLead extends Lead {
   do_not_email: number | null;
   sequence_enrolled_at: string | null;
   sequence_steps_sent: number;
+  research_notes: string | null;
+  researched_at: string | null;
 }
 
 export interface LeadFilters {
