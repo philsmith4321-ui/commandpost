@@ -70,6 +70,20 @@ describe('researchLead', () => {
     expect(row.researched_at).toBeNull();
     db.close();
   });
+
+  it('does not collapse short real notes that mention the phrase', async () => {
+    const { db, lead } = makeDb();
+    const notes = await researchLead(db, lead, async () => '- "nothing found beats us" (https://x.example)');
+    expect(notes).toContain('beats us');
+    db.close();
+  });
+
+  it('normalizes "Nothing found." to the exact sentinel', async () => {
+    const { db, lead } = makeDb();
+    const notes = await researchLead(db, lead, async () => 'Nothing found.');
+    expect(notes).toBe(NOTHING_FOUND);
+    db.close();
+  });
 });
 
 describe('ensureFreshResearch', () => {

@@ -77,7 +77,7 @@ export async function researchLead(
   }
   const notes = (raw ?? '').trim();
   if (!notes) return null;
-  const stored = notes.toUpperCase().includes(NOTHING_FOUND) && notes.length < 40 ? NOTHING_FOUND : notes;
+  const stored = /^nothing found[.!]?$/i.test(notes) ? NOTHING_FOUND : notes;
   db.prepare("UPDATE leads SET research_notes = ?, researched_at = datetime('now') WHERE id = ?")
     .run(stored, lead.id);
   return stored;
