@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const askClaude = vi.fn(async () => 'draft text');
+const askClaude = vi.fn(async (..._args: unknown[]) => 'draft text');
 vi.mock('@/lib/claude', () => ({
   askClaude: (...args: unknown[]) => askClaude(...args),
   askClaudeWithWebSearch: vi.fn(),
