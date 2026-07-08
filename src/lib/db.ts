@@ -963,6 +963,16 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     }
   }
 
+  // Prospect research enrichment: web-searched facts used to personalize drafts.
+  {
+    const have = new Set(
+      (db.prepare("PRAGMA table_info(leads)").all() as { name: string }[]).map((c) => c.name)
+    );
+    for (const name of ['research_notes', 'researched_at']) {
+      if (!have.has(name)) db.exec(`ALTER TABLE leads ADD COLUMN ${name} TEXT`);
+    }
+  }
+
   return db;
 }
 
