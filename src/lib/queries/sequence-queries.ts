@@ -10,6 +10,7 @@ export interface SequenceLead {
   do_not_email: number | null;
   sequence_enrolled_at: string | null;
   steps_sent: number;        // ok sends so far
+  first_sent_at: string | null;
   last_sent_at: string | null;
   pending_error: string | null; // error on the next step's failed attempt, if any
 }
@@ -17,6 +18,7 @@ export interface SequenceLead {
 const BASE = `SELECT l.id, l.business_name, l.contact_person, l.email, l.replied_at,
   l.do_not_email, l.sequence_enrolled_at,
   (SELECT COUNT(*) FROM sequence_sends s WHERE s.lead_id = l.id AND s.ok = 1) AS steps_sent,
+  (SELECT MIN(s.sent_at) FROM sequence_sends s WHERE s.lead_id = l.id AND s.ok = 1) AS first_sent_at,
   (SELECT MAX(s.sent_at) FROM sequence_sends s WHERE s.lead_id = l.id AND s.ok = 1) AS last_sent_at,
   (SELECT s.error FROM sequence_sends s WHERE s.lead_id = l.id AND s.ok = 0 LIMIT 1) AS pending_error
   FROM leads l`;
@@ -75,11 +77,15 @@ export function pendingStep(l: SequenceLead, steps: SequenceStep[]): SequenceSte
   return steps[l.steps_sent] ?? null;
 }
 
-// True when the lead's pending step has reached its dayOffset since enrollment.
+// True when the lead's pending step has reached its dayOffset. Step 1 is anchored
+// to enrollment; follow-ups are anchored to when step 1 ACTUALLY sent — a lead can
+// wait days in the daily-cap backlog before its first send, and anchoring to
+// enrollment would fire all the overdue steps back-to-back on first touch.
 function isDue(l: SequenceLead, step: SequenceStep, db: Database.Database): boolean {
+  const anchor = l.first_sent_at ?? l.sequence_enrolled_at;
   const row = db.prepare(
     `SELECT datetime('now') >= datetime(?, '+' || ? || ' days') AS due`
-  ).get(l.sequence_enrolled_at, step.dayOffset) as { due: number };
+  ).get(anchor, step.dayOffset) as { due: number };
   return !!row.due;
 }
 

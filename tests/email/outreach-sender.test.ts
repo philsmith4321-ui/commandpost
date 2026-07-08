@@ -95,6 +95,25 @@ describe('sendOneTick sequence leg', () => {
     expect(r2.sent).toBe(false); expect(r2.reason).toBe('empty');
   });
 
+  it('backlogged lead: follow-up steps anchor to the first SEND, not enrollment', async () => {
+    // Enrolled 5 days ago, but never reached the front of the cap backlog.
+    db.prepare(`UPDATE leads SET sequence_enrolled_at = datetime('now', '-5 days')
+      WHERE email='brett@acme.com'`).run();
+    // Step 1 goes out today (its dayOffset-0 has long passed).
+    const r1 = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r1.sent).toBe(true);
+    // Step 2's dayOffset (3 days) is past relative to ENROLLMENT, but not
+    // relative to the step-1 send — it must NOT fire back-to-back today.
+    const r2 = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r2.sent).toBe(false); expect(r2.reason).toBe('empty');
+    // Once the first send is 3+ days old, step 2 becomes due.
+    db.prepare(`UPDATE sequence_sends SET sent_at = datetime('now', '-3 days')
+      WHERE lead_id = (SELECT id FROM leads WHERE email='brett@acme.com')`).run();
+    const r3 = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
+    expect(r3.sent).toBe(true);
+    expect(sent[1].to).toBe('brett@acme.com');
+  });
+
   it('queued single drafts always go before sequence sends', async () => {
     db.prepare("UPDATE leads SET email_status='queued', email_queued_at=datetime('now') WHERE id=1").run();
     const r = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });

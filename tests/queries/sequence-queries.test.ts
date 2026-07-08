@@ -82,8 +82,12 @@ describe('due logic', () => {
     recordSequenceSend(db, 1, 1);
     // step 2 (offset 3 days) not due yet
     expect(nextDueSequenceSend(db, STEPS)).toBeNull();
-    // backdate enrollment 4 days: step 2 due
+    // backdating ENROLLMENT alone must NOT make step 2 due — follow-ups
+    // anchor to the first send, not enrollment (backlog pileup fix).
     db.prepare("UPDATE leads SET sequence_enrolled_at=datetime('now','-4 days') WHERE id=1").run();
+    expect(nextDueSequenceSend(db, STEPS)).toBeNull();
+    // backdate the step-1 send 4 days: step 2 due
+    db.prepare("UPDATE sequence_sends SET sent_at=datetime('now','-4 days') WHERE lead_id=1").run();
     expect(nextDueSequenceSend(db, STEPS)?.step.step).toBe(2);
   });
 

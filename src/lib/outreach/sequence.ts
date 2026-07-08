@@ -6,7 +6,7 @@ export const EMAIL_SEQUENCE_KEY = 'email_sequence';
 
 export interface SequenceStep {
   step: number;      // 1-based position in the sequence
-  dayOffset: number; // days after enrollment this step becomes due
+  dayOffset: number; // days after the FIRST send this step becomes due (step 1: after enrollment)
   subject: string;
   body: string;      // [First Name] / [Company] merge fields; footer included
 }
