@@ -397,6 +397,7 @@ export function OutreachLeads({ lane }: { lane: LaneId }) {
                   onToggle={() => setExpanded(expanded === l.id ? null : l.id)}
                   onAct={act}
                   onSeq={seqAct}
+                  onChanged={load}
                 />
               ))}
             </tbody>
@@ -679,18 +680,98 @@ function DraftPanel({
   );
 }
 
+// Per-lead research workspace: shows the AI-researched notes (editable), a
+// "researched {date}" stamp, and Research/Re-research + Save controls. Mirrors
+// DraftPanel's edit/persist conventions but has its own dedicated API actions.
+function ResearchBox({
+  lead,
+  onChanged,
+}: {
+  lead: OutreachLead;
+  onChanged: () => void;
+}) {
+  const [notes, setNotes] = useState(lead.research_notes ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const researchedAt = fmtDate(lead.researched_at);
+
+  async function run() {
+    setBusy(true);
+    setError(false);
+    try {
+      const res = await fetch('/api/outreach/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id, action: 'research' }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && typeof data.notes === 'string') {
+        setNotes(data.notes);
+        onChanged();
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    await fetch('/api/outreach/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, action: 'save-research', notes }),
+    });
+    onChanged();
+  }
+
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Research</p>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder={busy ? 'Researching…' : 'No research yet'}
+        rows={6}
+        className="w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+      />
+      <div className="mt-1 flex items-center gap-2">
+        <button
+          onClick={run}
+          disabled={busy}
+          className="px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-white disabled:opacity-50"
+        >
+          {busy ? 'Researching…' : notes.trim() ? 'Re-research' : 'Research'}
+        </button>
+        <button
+          onClick={save}
+          className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs text-white"
+        >
+          Save
+        </button>
+        {researchedAt && <span className="text-xs text-gray-500">researched {researchedAt}</span>}
+        {error && <span className="text-xs text-red-400">Research failed — try again.</span>}
+      </div>
+    </div>
+  );
+}
+
 function LeadRow({
   lead,
   expanded,
   onToggle,
   onAct,
   onSeq,
+  onChanged,
 }: {
   lead: OutreachLead;
   expanded: boolean;
   onToggle: () => void;
   onAct: (leadId: number, body: Record<string, unknown>) => void;
   onSeq: (body: Record<string, unknown>) => void;
+  onChanged: () => void;
 }) {
   const [note, setNote] = useState('');
   // Optional backdate for "mark sent": empty = log today, a YYYY-MM-DD = log that day.
@@ -887,6 +968,7 @@ function LeadRow({
                     Save note
                   </button>
                 </div>
+                <ResearchBox lead={lead} onChanged={onChanged} />
                 <DraftPanel lead={lead} onAct={onAct} />
               </div>
             </div>

@@ -140,6 +140,13 @@ export async function POST(request: NextRequest) {
       const row = db.prepare('SELECT researched_at FROM leads WHERE id = ?').get(leadId) as { researched_at: string };
       return NextResponse.json({ ok: true, notes, researchedAt: row.researched_at });
     }
+    case 'save-research': {
+      if (typeof body.notes !== 'string') {
+        return NextResponse.json({ error: 'invalid notes' }, { status: 400 });
+      }
+      db.prepare('UPDATE leads SET research_notes = ? WHERE id = ?').run(body.notes.trim() || null, leadId);
+      break;
+    }
     default:
       return NextResponse.json({ error: 'unknown action' }, { status: 400 });
   }
