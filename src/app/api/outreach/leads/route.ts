@@ -17,6 +17,7 @@ import {
 } from '@/lib/queries/outreach-lead-queries';
 import { isBucketKey, type BucketKey } from '@/lib/outreach/employee-size';
 import { generateDraft } from '@/lib/outreach/draft';
+import { ensureFreshResearch, researchLead } from '@/lib/outreach/research';
 import type { OutreachChannel } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
@@ -108,7 +109,9 @@ export async function POST(request: NextRequest) {
       if (!lead) {
         return NextResponse.json({ error: 'lead not found' }, { status: 404 });
       }
-      const draft = await generateDraft(db, lead, body.channel);
+      await ensureFreshResearch(db, lead); // fail-open; never blocks drafting
+      const fresh = db.prepare('SELECT * FROM leads WHERE id = ?').get(leadId) as OutreachLead;
+      const draft = await generateDraft(db, fresh, body.channel);
       if (draft == null) {
         return NextResponse.json({ error: 'generation failed' }, { status: 502 });
       }
@@ -124,6 +127,18 @@ export async function POST(request: NextRequest) {
       }
       saveDraft(db, leadId, body.channel, body.body);
       return NextResponse.json({ ok: true });
+    }
+    case 'research': {
+      const lead = db.prepare('SELECT * FROM leads WHERE id = ?').get(leadId) as OutreachLead | undefined;
+      if (!lead) {
+        return NextResponse.json({ error: 'lead not found' }, { status: 404 });
+      }
+      const notes = await researchLead(db, lead); // manual button: always re-runs
+      if (notes == null) {
+        return NextResponse.json({ error: 'research failed' }, { status: 502 });
+      }
+      const row = db.prepare('SELECT researched_at FROM leads WHERE id = ?').get(leadId) as { researched_at: string };
+      return NextResponse.json({ ok: true, notes, researchedAt: row.researched_at });
     }
     default:
       return NextResponse.json({ error: 'unknown action' }, { status: 400 });
