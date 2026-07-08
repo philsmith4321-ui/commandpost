@@ -15,12 +15,12 @@ describe('parseEmail', () => {
 });
 
 describe('dailyTarget', () => {
-  it('is deterministic per date and within 10..15', () => {
+  it('is deterministic per date and within 22..28', () => {
     const a = dailyTarget('2026-06-29');
     const b = dailyTarget('2026-06-29');
     expect(a).toBe(b);
-    expect(a).toBeGreaterThanOrEqual(10);
-    expect(a).toBeLessThanOrEqual(15);
+    expect(a).toBeGreaterThanOrEqual(22);
+    expect(a).toBeLessThanOrEqual(28);
   });
   it('varies across dates', () => {
     const vals = ['2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02'].map(dailyTarget);

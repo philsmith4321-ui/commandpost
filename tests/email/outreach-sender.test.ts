@@ -54,7 +54,7 @@ describe('sendOneTick', () => {
   });
 
   it('stops once the daily target is reached', async () => {
-    for (let i = 0; i < 15; i++) { db.prepare("INSERT INTO leads (email,email_status,email_sent_at_q) VALUES ('z@x.com','sent',datetime('now','localtime'))").run(); }
+    for (let i = 0; i < 28; i++) { db.prepare("INSERT INTO leads (email,email_status,email_sent_at_q) VALUES ('z@x.com','sent',datetime('now','localtime'))").run(); }
     const r = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
     expect(r.sent).toBe(false); expect(r.reason).toBe('daily-cap'); expect(sent.length).toBe(0);
   });
@@ -103,7 +103,7 @@ describe('sendOneTick sequence leg', () => {
   });
 
   it('sequence sends count toward the shared daily cap', async () => {
-    for (let i = 0; i < 15; i++) db.prepare("INSERT INTO sequence_sends (lead_id, step) VALUES (99, ?)").run(i + 1);
+    for (let i = 0; i < 28; i++) db.prepare("INSERT INTO sequence_sends (lead_id, step) VALUES (99, ?)").run(i + 1);
     const r = await sendOneTick(db, { transport, now: fakeNow, from: 'p@r.com' });
     expect(r.sent).toBe(false); expect(r.reason).toBe('daily-cap');
   });

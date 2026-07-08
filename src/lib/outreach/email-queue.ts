@@ -20,12 +20,13 @@ export function parseEmail(draft: string): { subject: string; body: string } {
   return { subject: DEFAULT_SUBJECT, body: text };
 }
 
-// Deterministic per-day send target in [10,15]. Seeded by the YYYY-MM-DD string so
-// every tick that day agrees on the cap (no DB state needed).
+// Deterministic per-day send target in [22,28] (~25/day — ramped 2026-07-08 after
+// the week-1 deliverability review: 56 sends, 0 failures). Seeded by the YYYY-MM-DD
+// string so every tick that day agrees on the cap (no DB state needed).
 export function dailyTarget(isoDate: string): number {
   let h = 0;
   for (let i = 0; i < isoDate.length; i++) h = (h * 31 + isoDate.charCodeAt(i)) >>> 0;
-  return 10 + (h % 6); // 10..15
+  return 22 + (h % 7); // 22..28
 }
 
 export interface SendableLead {
