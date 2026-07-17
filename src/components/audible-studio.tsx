@@ -11,9 +11,11 @@ import type { Generation, GenContentType, LengthPreference } from '@/lib/types';
 
 export function AudibleStudio({
   categories,
+  books = [],
   initialHistory,
 }: {
   categories: string[];
+  books?: string[];
   initialHistory: Generation[];
 }) {
   const [history, setHistory] = useState<Generation[]>(initialHistory);
@@ -22,13 +24,18 @@ export function AudibleStudio({
   const [topic, setTopic] = useState('');
   const [length, setLength] = useState<LengthPreference>('medium');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bookFilter, setBookFilter] = useState('');
 
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ id: number; text: string; mode: string; used: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const hasCategories = categories.length > 0;
+  const hasCategories = categories.length > 0 || books.length > 0;
+  const visibleBooks = bookFilter.trim()
+    ? books.filter((b) => b.toLowerCase().includes(bookFilter.trim().toLowerCase()))
+    : books;
+  const selectedBookCount = books.reduce((n, b) => n + (selected.has(b) ? 1 : 0), 0);
 
   function toggle(name: string) {
     setSelected((prev) => {
@@ -47,7 +54,7 @@ export function AudibleStudio({
 
   async function generate() {
     if (!topic.trim()) { setError('Enter a topic.'); return; }
-    if (selected.size === 0) { setError('Select at least one category.'); return; }
+    if (selected.size === 0) { setError('Select at least one theme or book.'); return; }
     setBusy(true); setError(null); setResult(null); setCopied(false);
     try {
       const res = await fetch('/api/audible/generate', {
@@ -90,7 +97,7 @@ export function AudibleStudio({
       {/* Categories */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-300">Book categories</h3>
+          <h3 className="text-sm font-semibold text-gray-300">Themes</h3>
           {hasCategories && (
             <div className="flex gap-2 text-xs">
               <button onClick={selectAll} className="text-indigo-400 hover:underline">All</button>
@@ -117,6 +124,50 @@ export function AudibleStudio({
           </div>
         )}
       </div>
+
+      {/* Books (deep notes) */}
+      {books.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold text-gray-300">
+              Books
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                {selectedBookCount > 0 ? `${selectedBookCount} selected · ` : ''}{books.length} deep notes
+              </span>
+            </h3>
+            <div className="flex items-center gap-2">
+              <input
+                value={bookFilter}
+                onChange={(e) => setBookFilter(e.target.value)}
+                placeholder="Filter books…"
+                className="w-44 rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1 text-xs text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none"
+              />
+              {selectedBookCount > 0 && (
+                <button
+                  onClick={() => setSelected((prev) => new Set([...prev].filter((n) => !books.includes(n))))}
+                  className="text-xs text-gray-500 hover:underline shrink-0">
+                  None
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto pr-1">
+            {visibleBooks.map((name) => (
+              <button key={name} onClick={() => toggle(name)}
+                className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
+                  selected.has(name)
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-gray-950 border-gray-700 text-gray-300 hover:border-gray-600'
+                }`}>
+                {name}
+              </button>
+            ))}
+            {visibleBooks.length === 0 && (
+              <p className="text-xs text-gray-500">No books match “{bookFilter}”.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Content type */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
@@ -153,7 +204,7 @@ export function AudibleStudio({
             ))}
           </div>
           <span className="text-xs text-gray-500">
-            {selected.size} categor{selected.size === 1 ? 'y' : 'ies'} selected
+            {selected.size} source{selected.size === 1 ? '' : 's'} selected
           </span>
         </div>
         <button onClick={generate} disabled={busy || !hasCategories}

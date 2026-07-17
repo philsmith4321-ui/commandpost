@@ -5,7 +5,7 @@ import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
 import { isContentType, LENGTHS } from '@/lib/generation/content-types';
 import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
-import { AUDIBLE_TITLE_PREFIX } from '@/lib/audible';
+import { audibleDocLabel } from '@/lib/audible';
 import type { LengthPreference, RetrievalMode } from '@/lib/types';
 
 export const maxDuration = 120;
@@ -26,18 +26,16 @@ export async function POST(request: NextRequest) {
 
   const db = getDb();
 
-  // Resolve categories server-side by LABEL (the same prefix-stripped label the
-  // page displays), so re-sync id churn can't produce silently-ungrounded output
-  // from stale client-supplied ids, and any doc the page lists is resolvable even
-  // if its synced title drifted from the prefix convention. The list is
+  // Resolve categories server-side by LABEL (the same label the page displays,
+  // via the shared audibleDocLabel helper — themes and book deep-notes alike),
+  // so re-sync id churn can't produce silently-ungrounded output from stale
+  // client-supplied ids, and any doc the page lists is resolvable. The list is
   // newest-first, so keeping the FIRST doc per label means an orphaned older
   // duplicate (failed sync DELETE) never wins.
   const docs = listAudibleKbDocuments(db);
   const byLabel = new Map<string, (typeof docs)[number]>();
   for (const d of docs) {
-    const label = d.title.startsWith(AUDIBLE_TITLE_PREFIX)
-      ? d.title.slice(AUDIBLE_TITLE_PREFIX.length)
-      : d.title;
+    const { label } = audibleDocLabel(d.title);
     if (!byLabel.has(label)) byLabel.set(label, d);
   }
   const sourceIds: number[] = [];

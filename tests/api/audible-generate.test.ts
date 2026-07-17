@@ -176,6 +176,19 @@ describe('POST /api/audible/generate', () => {
     expect(createGeneration).not.toHaveBeenCalled();
   });
 
+  it("resolves a book deep-note by its label ('Audible Book — ' prefix stripped)", async () => {
+    vi.mocked(listAudibleKbDocuments).mockReturnValue([
+      { id: 11, title: 'Audible — Influence' },
+      { id: 88, title: 'Audible Book — The Laws of Human Nature' },
+    ] as never);
+    const res = await POST(req({
+      contentType: 'blog_article', topic: 'reciprocity',
+      categories: ['The Laws of Human Nature', 'Influence'],
+    }));
+    expect(res.status).toBe(200);
+    expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ source_ids: [88, 11] }));
+  });
+
   it('resolves a doc whose synced title lacks the display prefix (label contract holds)', async () => {
     vi.mocked(listAudibleKbDocuments).mockReturnValue([
       { id: 77, title: 'Oddball Title Without Prefix' },

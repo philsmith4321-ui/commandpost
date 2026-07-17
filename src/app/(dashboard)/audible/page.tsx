@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/db';
 import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
 import { listGenerations } from '@/lib/queries/generation-queries';
-import { AUDIBLE_TITLE_PREFIX } from '@/lib/audible';
+import { audibleDocLabel } from '@/lib/audible';
 import { AudibleStudio } from '@/components/audible-studio';
 
 export const dynamic = 'force-dynamic';
@@ -9,16 +9,15 @@ export const dynamic = 'force-dynamic';
 export default async function AudiblePage() {
   const db = getDb();
   const docs = listAudibleKbDocuments(db);
-  // Category labels: titles minus the display prefix ('Audible — Business' → 'Business').
-  // Deduped — an orphaned duplicate doc (failed sync DELETE) must not render twice;
-  // the generate route resolves labels the same way, keeping the newest doc per label.
-  const categories = Array.from(
-    new Set(
-      docs.map((d) =>
-        d.title.startsWith(AUDIBLE_TITLE_PREFIX) ? d.title.slice(AUDIBLE_TITLE_PREFIX.length) : d.title
-      )
-    )
-  );
+  // Section + label per doc via the shared helper (the generate route resolves
+  // with the same logic, keeping the newest doc per label). Deduped — an
+  // orphaned duplicate doc (failed sync DELETE) must not render twice.
+  const categories = new Set<string>();
+  const books = new Set<string>();
+  for (const d of docs) {
+    const { label, isBook } = audibleDocLabel(d.title);
+    (isBook ? books : categories).add(label);
+  }
   const history = listGenerations(db, 'audible');
 
   return (
@@ -31,7 +30,7 @@ export default async function AudiblePage() {
         </div>
       </div>
 
-      <AudibleStudio categories={categories} initialHistory={history} />
+      <AudibleStudio categories={Array.from(categories)} books={Array.from(books).sort()} initialHistory={history} />
     </div>
   );
 }
