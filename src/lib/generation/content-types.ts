@@ -61,8 +61,10 @@ export const PROMPT_TYPE: ContentTypeDef = {
   maxTokens: 4000,
 };
 
+export const ALL_CONTENT_TYPES: ContentTypeDef[] = [...CONTENT_TYPES, PROMPT_TYPE];
+
 export const CONTENT_TYPE_MAP: Record<GenContentType, ContentTypeDef> = Object.fromEntries(
-  [...CONTENT_TYPES, PROMPT_TYPE].map((t) => [t.value, t])
+  ALL_CONTENT_TYPES.map((t) => [t.value, t])
 ) as Record<GenContentType, ContentTypeDef>;
 
 export function isContentType(v: unknown): v is GenContentType {

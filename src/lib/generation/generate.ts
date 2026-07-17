@@ -35,7 +35,8 @@ export async function generateContent(opts: {
 
   // Prompt mode is a grounded assistant, not a marketing writer with a fixed
   // output format — the user's prompt decides what comes back.
-  const role = opts.contentType === 'prompt'
+  const isPrompt = opts.contentType === 'prompt';
+  const role = isPrompt
     ? 'You are a knowledgeable assistant working from a curated reference library.'
     : 'You are a skilled marketing content writer.';
 
@@ -50,11 +51,11 @@ ${reference
 
 CRITICAL punctuation rule: never use a long dash. No em dash (—), no en dash (–), and no "--" or "---". They make writing look AI-generated. Use commas, periods, or parentheses instead. Number ranges use a plain hyphen, e.g. "30-60 minutes". This rule is absolute.
 
-${opts.contentType === 'prompt'
+${isPrompt
   ? 'Output only the response to the prompt — no preamble and no meta commentary.'
   : 'Output only the finished content — no preamble, no explanation, no meta commentary.'}`;
 
-  const inputLabel = opts.contentType === 'prompt' ? 'Prompt' : 'Topic / brief';
+  const inputLabel = isPrompt ? 'Prompt' : 'Topic / brief';
   const userMessage = reference
     ? `${inputLabel}:\n${opts.topic}\n\n----- REFERENCE MATERIAL -----\n${reference}`
     : `${inputLabel}:\n${opts.topic}`;

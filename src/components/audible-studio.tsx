@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import {
-  CONTENT_TYPES,
-  PROMPT_TYPE,
+  ALL_CONTENT_TYPES,
   LENGTH_OPTIONS as LENGTHS,
   MODE_BADGE,
   contentTypeLabel as typeLabel,
@@ -176,7 +175,7 @@ export function AudibleStudio({
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
         <label className="block text-sm font-semibold text-gray-300 mb-3">Content type</label>
         <div className="flex flex-wrap gap-2">
-          {[...CONTENT_TYPES, PROMPT_TYPE].map((t) => (
+          {ALL_CONTENT_TYPES.map((t) => (
             <button key={t.value} onClick={() => setContentType(t.value)}
               className={`px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
                 contentType === t.value
