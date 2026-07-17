@@ -4,8 +4,8 @@ import { retrieveContext, type RetrievedChunk } from '@/lib/rag/retrieve';
 import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
 import { isContentType, LENGTHS } from '@/lib/generation/content-types';
-import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
-import { audibleDocLabel } from '@/lib/audible';
+import { listAudibleKbDocuments, storyDocIdsByTheme } from '@/lib/queries/kb-queries';
+import { audibleDocLabel, isStoryTheme } from '@/lib/audible';
 import type { LengthPreference, RetrievalMode } from '@/lib/types';
 
 export const maxDuration = 120;
@@ -18,11 +18,22 @@ export async function POST(request: NextRequest) {
   const categories: string[] = Array.isArray(body?.categories)
     ? body.categories.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0)
     : [];
+  // Story themes are a second kind of source: each expands to every story doc
+  // carrying that theme, so a draft can pull from books/themes AND stories together.
+  const storyThemes: string[] = Array.isArray(body?.storyThemes)
+    ? body.storyThemes.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0)
+    : [];
 
   if (!isContentType(contentType)) return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
   if (!topic) return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
-  // This page never produces ungrounded output: at least one category is required.
-  if (categories.length === 0) return NextResponse.json({ error: 'Select at least one category' }, { status: 400 });
+  // This page never produces ungrounded output: at least one source is required.
+  if (categories.length + storyThemes.length === 0) {
+    return NextResponse.json({ error: 'Select at least one theme, book, or story theme' }, { status: 400 });
+  }
+  const unknownThemes = storyThemes.filter((t) => !isStoryTheme(t));
+  if (unknownThemes.length > 0) {
+    return NextResponse.json({ error: `Unknown story themes: ${unknownThemes.join(', ')}` }, { status: 400 });
+  }
 
   const db = getDb();
 
@@ -35,30 +46,42 @@ export async function POST(request: NextRequest) {
   const docs = listAudibleKbDocuments(db);
   const byLabel = new Map<string, (typeof docs)[number]>();
   for (const d of docs) {
-    const { label } = audibleDocLabel(d.title);
+    const { label, isStory } = audibleDocLabel(d.title);
+    // Story docs are selected by theme (below), never as a category label.
+    if (isStory) continue;
     if (!byLabel.has(label)) byLabel.set(label, d);
   }
-  const sourceIds: number[] = [];
+  const catDocIds: number[] = [];
   const unknown: string[] = [];
   for (const name of categories) {
     const doc = byLabel.get(name);
-    if (doc) sourceIds.push(doc.id);
+    if (doc) catDocIds.push(doc.id);
     else unknown.push(name);
   }
   if (unknown.length > 0) {
     return NextResponse.json({ error: `Unknown categories: ${unknown.join(', ')}` }, { status: 400 });
   }
 
-  // Per-category retrieval: one call per doc guarantees every selected category
-  // contributes grounding — a single shared-k call would let the fallback
-  // concentrate all chunks on one doc.
-  const k = Math.max(3, Math.ceil(12 / sourceIds.length));
+  // Retrieval groups: each category = one doc; each story theme = all its story
+  // docs retrieved together (so the topic surfaces the most relevant stories in
+  // that theme). One group per selected source keeps grounding balanced.
+  const groups: number[][] = catDocIds.map((id) => [id]);
+  const storyIds: number[] = [];
+  for (const theme of storyThemes) {
+    const ids = storyDocIdsByTheme(db, theme);
+    if (ids.length) { groups.push(ids); storyIds.push(...ids); }
+  }
+  const sourceIds = [...catDocIds, ...storyIds];
+
+  // Per-group retrieval guarantees every selected source contributes grounding —
+  // a single shared-k call would let the fallback concentrate all chunks on one.
+  const k = Math.max(3, Math.ceil(12 / Math.max(1, groups.length)));
   const perCategory: RetrievedChunk[][] = [];
   const modes: RetrievalMode[] = [];
   // Shared across iterations so the topic is embedded at most once (Voyage call).
   const queryVectorCache = {};
-  for (const docId of sourceIds) {
-    const r = await retrieveContext(db, { topic, sourceIds: [docId], k, queryVectorCache });
+  for (const groupIds of groups) {
+    const r = await retrieveContext(db, { topic, sourceIds: groupIds, k, queryVectorCache });
     perCategory.push(r.chunks);
     modes.push(r.mode);
   }

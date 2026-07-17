@@ -115,6 +115,24 @@ export function getAudibleStory(db: Database.Database, id: number): KbDocument |
     .get({ id, storyLike: STORY_LIKE }) as KbDocument | undefined;
 }
 
+/** Full story docs (id/title/theme/content) for in-route keyword search. */
+export function storyDocsForSearch(
+  db: Database.Database,
+  theme?: string | null
+): { id: number; title: string; theme: string | null; content: string }[] {
+  const themeClause = theme ? ' AND theme = @theme' : '';
+  return db
+    .prepare(
+      `SELECT id, title, theme, content FROM kb_documents WHERE ${IS_STORY}${themeClause}`
+    )
+    .all({ storyLike: STORY_LIKE, theme }) as {
+    id: number;
+    title: string;
+    theme: string | null;
+    content: string;
+  }[];
+}
+
 /** Random story (optionally within a theme) — for "Pull a story" with no query. */
 export function randomStory(db: Database.Database, theme?: string | null): KbDocument | undefined {
   const themeClause = theme ? ' AND theme = @theme' : '';

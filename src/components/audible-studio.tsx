@@ -12,10 +12,12 @@ import type { Generation, GenContentType, LengthPreference } from '@/lib/types';
 export function AudibleStudio({
   categories,
   books = [],
+  storyThemes = [],
   initialHistory,
 }: {
   categories: string[];
   books?: string[];
+  storyThemes?: string[];
   initialHistory: Generation[];
 }) {
   const [history, setHistory] = useState<Generation[]>(initialHistory);
@@ -24,6 +26,9 @@ export function AudibleStudio({
   const [topic, setTopic] = useState('');
   const [length, setLength] = useState<LengthPreference>('medium');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Story themes select into their own set — they post as `storyThemes`, a
+  // different source kind the generate route expands to that theme's stories.
+  const [selectedStories, setSelectedStories] = useState<Set<string>>(new Set());
   const [bookFilter, setBookFilter] = useState('');
 
   const [busy, setBusy] = useState(false);
@@ -31,14 +36,22 @@ export function AudibleStudio({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const hasCategories = categories.length > 0 || books.length > 0;
+  const hasSources = categories.length > 0 || books.length > 0 || storyThemes.length > 0;
   const visibleBooks = bookFilter.trim()
     ? books.filter((b) => b.toLowerCase().includes(bookFilter.trim().toLowerCase()))
     : books;
   const selectedBookCount = books.reduce((n, b) => n + (selected.has(b) ? 1 : 0), 0);
+  const totalSelected = selected.size + selectedStories.size;
 
   function toggle(name: string) {
     setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(name)) n.delete(name); else n.add(name);
+      return n;
+    });
+  }
+  function toggleStory(name: string) {
+    setSelectedStories((prev) => {
       const n = new Set(prev);
       if (n.has(name)) n.delete(name); else n.add(name);
       return n;
@@ -56,12 +69,12 @@ export function AudibleStudio({
 
   async function generate() {
     if (!topic.trim()) { setError(isPrompt ? 'Enter a prompt.' : 'Enter a topic.'); return; }
-    if (selected.size === 0) { setError('Select at least one theme or book.'); return; }
+    if (totalSelected === 0) { setError('Select at least one theme, book, or story theme.'); return; }
     setBusy(true); setError(null); setResult(null); setCopied(false);
     try {
       const res = await fetch('/api/audible/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentType, topic, length, categories: [...selected] }),
+        body: JSON.stringify({ contentType, topic, length, categories: [...selected], storyThemes: [...selectedStories] }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Generation failed'); return; }
@@ -100,14 +113,14 @@ export function AudibleStudio({
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-300">Themes</h3>
-          {hasCategories && (
+          {categories.length > 0 && (
             <div className="flex gap-2 text-xs">
               <button onClick={selectAll} className="text-indigo-400 hover:underline">All</button>
               <button onClick={clearAll} className="text-gray-500 hover:underline">None</button>
             </div>
           )}
         </div>
-        {!hasCategories ? (
+        {categories.length === 0 ? (
           <p className="text-xs text-gray-500">
             No Audible categories synced yet. Run the audible-kb sync (load audible) to populate them.
           </p>
@@ -171,6 +184,35 @@ export function AudibleStudio({
         </div>
       )}
 
+      {/* Stories (personal story themes) — a second source kind, co-draftable with books */}
+      {storyThemes.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-300">
+              Stories
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                {selectedStories.size > 0 ? `${selectedStories.size} selected · ` : ''}your personal stories, by theme
+              </span>
+            </h3>
+            {selectedStories.size > 0 && (
+              <button onClick={() => setSelectedStories(new Set())} className="text-xs text-gray-500 hover:underline">None</button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {storyThemes.map((name) => (
+              <button key={name} onClick={() => toggleStory(name)}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors border ${
+                  selectedStories.has(name)
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-gray-950 border-gray-700 text-gray-300 hover:border-gray-600'
+                }`}>
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Content type */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
         <label className="block text-sm font-semibold text-gray-300 mb-3">Content type</label>
@@ -208,10 +250,10 @@ export function AudibleStudio({
             ))}
           </div>
           <span className="text-xs text-gray-500">
-            {selected.size} source{selected.size === 1 ? '' : 's'} selected
+            {totalSelected} source{totalSelected === 1 ? '' : 's'} selected
           </span>
         </div>
-        <button onClick={generate} disabled={busy || !hasCategories}
+        <button onClick={generate} disabled={busy || !hasSources}
           className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold transition-colors">
           {busy ? (isPrompt ? 'Thinking…' : 'Generating…') : isPrompt ? '🎧 Ask' : '🎧 Generate'}
         </button>
