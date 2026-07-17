@@ -20,6 +20,7 @@ export function CommandPalette() {
   const commands: Command[] = [
     // Navigation
     { id: 'nav-dashboard', label: 'Go to Dashboard', section: 'Navigation', action: () => router.push('/') },
+    { id: 'nav-audible', label: "Go to Phil's Audible AI", section: 'Navigation', action: () => router.push('/audible') },
     { id: 'nav-clients', label: 'Go to Clients', section: 'Navigation', action: () => router.push('/clients') },
     { id: 'nav-pipeline', label: 'Go to Pipeline', section: 'Navigation', action: () => router.push('/pipeline') },
     { id: 'nav-proposals', label: 'Go to Proposals', section: 'Navigation', action: () => router.push('/proposals') },

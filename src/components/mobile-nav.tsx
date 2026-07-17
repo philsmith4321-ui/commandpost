@@ -11,7 +11,10 @@ const primaryItems = [
   { href: '/finances', label: 'Finances', icon: '◇' },
 ];
 
-const moreItems = [
+// `prefetch: false` for routes that are nginx-gated in prod (prefetches from
+// ungated pages would 401).
+const moreItems: { href: string; label: string; icon: string; prefetch?: boolean }[] = [
+  { href: '/audible', label: "Phil's Audible AI", icon: '🎧', prefetch: false },
   { href: '/outreach', label: 'Outreach', icon: '🎯' },
   { href: '/outreach/email-queue', label: 'Email Queue', icon: '✉' },
   { href: '/outreach/linkedin-queue', label: 'LinkedIn Queue', icon: 'in' },
@@ -46,7 +49,7 @@ export function MobileNav() {
               {moreItems.map(item => {
                 const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
                 return (
-                  <Link key={item.href} href={item.href} onClick={() => setShowMore(false)}
+                  <Link key={item.href} href={item.href} prefetch={item.prefetch} onClick={() => setShowMore(false)}
                     className={`flex flex-col items-center gap-1 p-3 rounded-lg text-xs ${isActive ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:bg-gray-800'}`}>
                     <span className="text-lg">{item.icon}</span>
                     {item.label}

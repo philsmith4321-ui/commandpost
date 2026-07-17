@@ -4,9 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/lib/actions/auth-actions';
 
-const navItems = [
+// `prefetch: false` for routes that are nginx-gated in prod (prefetches from
+// ungated pages would 401).
+const navItems: { href: string; label: string; icon: string; prefetch?: boolean }[] = [
   { href: '/', label: 'Dashboard', icon: '▣' },
   { href: '/generate', label: 'Generate', icon: '✦' },
+  { href: '/audible', label: "Phil's Audible AI", icon: '🎧', prefetch: false },
   { href: '/content', label: 'Radio/Video', icon: '✂' },
   { href: '/social', label: 'Social', icon: '◮' },
   { href: '/ingestion', label: 'Ingestion', icon: '⬇' },
@@ -47,6 +50,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={item.prefetch}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-blue-600/20 text-blue-400'
