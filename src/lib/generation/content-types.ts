@@ -51,8 +51,18 @@ export const CONTENT_TYPES: ContentTypeDef[] = [
   },
 ];
 
+// Free-form prompt mode: valid everywhere in the pipeline (map, validation,
+// history labels) but deliberately NOT in CONTENT_TYPES — only the Audible
+// studio renders it, so the /generate page's type grid is unchanged.
+export const PROMPT_TYPE: ContentTypeDef = {
+  value: 'prompt', group: 'Long-form', label: 'Prompt', desc: 'Ask anything',
+  instruction:
+    "Follow the user's PROMPT exactly: answer questions, summarize, compare, extract, outline, brainstorm, or produce whatever the prompt asks for, in whatever form fits it best.",
+  maxTokens: 4000,
+};
+
 export const CONTENT_TYPE_MAP: Record<GenContentType, ContentTypeDef> = Object.fromEntries(
-  CONTENT_TYPES.map((t) => [t.value, t])
+  [...CONTENT_TYPES, PROMPT_TYPE].map((t) => [t.value, t])
 ) as Record<GenContentType, ContentTypeDef>;
 
 export function isContentType(v: unknown): v is GenContentType {

@@ -352,6 +352,7 @@ export interface KbChunk {
 }
 
 export type GenContentType =
+  | 'prompt'
   | 'blog_article'
   | 'email'
   | 'email_sequence'

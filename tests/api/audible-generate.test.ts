@@ -81,6 +81,17 @@ describe('POST /api/audible/generate', () => {
     expect(createGeneration).not.toHaveBeenCalled();
   });
 
+  it("free-form 'prompt' contentType → 200, persisted like any other type", async () => {
+    const res = await POST(req({
+      contentType: 'prompt', topic: 'What does this book say about trust?', categories: ['Influence'],
+    }));
+    expect(res.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ contentType: 'prompt' }));
+    expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      content_type: 'prompt', kind: 'audible',
+    }));
+  });
+
   it('invalid contentType → 400', async () => {
     const res = await POST(req({ contentType: 'nope', topic: 'reciprocity', categories: ['Influence'] }));
     expect(res.status).toBe(400);

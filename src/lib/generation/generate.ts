@@ -33,7 +33,13 @@ export async function generateContent(opts: {
   const reference = buildReference(opts.chunks);
   const audience = opts.audience?.trim();
 
-  const system = `You are a skilled marketing content writer.
+  // Prompt mode is a grounded assistant, not a marketing writer with a fixed
+  // output format — the user's prompt decides what comes back.
+  const role = opts.contentType === 'prompt'
+    ? 'You are a knowledgeable assistant working from a curated reference library.'
+    : 'You are a skilled marketing content writer.';
+
+  const system = `${role}
 ${def.instruction}
 ${LENGTH_HINT[opts.length] ?? ''}
 
@@ -44,11 +50,14 @@ ${reference
 
 CRITICAL punctuation rule: never use a long dash. No em dash (—), no en dash (–), and no "--" or "---". They make writing look AI-generated. Use commas, periods, or parentheses instead. Number ranges use a plain hyphen, e.g. "30-60 minutes". This rule is absolute.
 
-Output only the finished content — no preamble, no explanation, no meta commentary.`;
+${opts.contentType === 'prompt'
+  ? 'Output only the response to the prompt — no preamble and no meta commentary.'
+  : 'Output only the finished content — no preamble, no explanation, no meta commentary.'}`;
 
+  const inputLabel = opts.contentType === 'prompt' ? 'Prompt' : 'Topic / brief';
   const userMessage = reference
-    ? `Topic / brief:\n${opts.topic}\n\n----- REFERENCE MATERIAL -----\n${reference}`
-    : `Topic / brief:\n${opts.topic}`;
+    ? `${inputLabel}:\n${opts.topic}\n\n----- REFERENCE MATERIAL -----\n${reference}`
+    : `${inputLabel}:\n${opts.topic}`;
 
   const text = await askClaude(system, userMessage, def.maxTokens, 'claude-sonnet-4-6');
   if (!text) return { ok: false, error: 'Generation failed. Please try again.' };

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import {
   CONTENT_TYPES,
+  PROMPT_TYPE,
   LENGTH_OPTIONS as LENGTHS,
   MODE_BADGE,
   contentTypeLabel as typeLabel,
@@ -52,8 +53,10 @@ export function AudibleStudio({
     if (res.ok) setHistory((await res.json()).generations);
   }
 
+  const isPrompt = contentType === 'prompt';
+
   async function generate() {
-    if (!topic.trim()) { setError('Enter a topic.'); return; }
+    if (!topic.trim()) { setError(isPrompt ? 'Enter a prompt.' : 'Enter a topic.'); return; }
     if (selected.size === 0) { setError('Select at least one theme or book.'); return; }
     setBusy(true); setError(null); setResult(null); setCopied(false);
     try {
@@ -173,7 +176,7 @@ export function AudibleStudio({
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
         <label className="block text-sm font-semibold text-gray-300 mb-3">Content type</label>
         <div className="flex flex-wrap gap-2">
-          {CONTENT_TYPES.map((t) => (
+          {[...CONTENT_TYPES, PROMPT_TYPE].map((t) => (
             <button key={t.value} onClick={() => setContentType(t.value)}
               className={`px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
                 contentType === t.value
@@ -189,9 +192,11 @@ export function AudibleStudio({
 
       {/* Topic + length */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
-        <label className="block text-sm font-semibold text-gray-300">Topic / brief</label>
+        <label className="block text-sm font-semibold text-gray-300">{isPrompt ? 'Prompt' : 'Topic / brief'}</label>
         <textarea value={topic} onChange={(e) => setTopic(e.target.value)} rows={4}
-          placeholder="What should this be about? Add any angle, audience, or key points…"
+          placeholder={isPrompt
+            ? 'Ask anything of the selected content — questions, summaries, comparisons, how to apply it…'
+            : 'What should this be about? Add any angle, audience, or key points…'}
           className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none" />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
@@ -209,7 +214,7 @@ export function AudibleStudio({
         </div>
         <button onClick={generate} disabled={busy || !hasCategories}
           className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold transition-colors">
-          {busy ? 'Generating…' : '🎧 Generate'}
+          {busy ? (isPrompt ? 'Thinking…' : 'Generating…') : isPrompt ? '🎧 Ask' : '🎧 Generate'}
         </button>
         {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
