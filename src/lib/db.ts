@@ -838,6 +838,16 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec('ALTER TABLE kb_documents ADD COLUMN doc_set TEXT');
   }
 
+  // Migration: add theme to kb_documents — used to group Audible story docs
+  // (doc_set='audible', 'Audible Story — ' prefix) into the 15 story themes.
+  // NULL for every non-story doc; it is a grouping tag, never a fence.
+  const hasKbTheme = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('kb_documents') WHERE name = 'theme'")
+    .get() as { count: number };
+  if (hasKbTheme.count === 0) {
+    db.exec('ALTER TABLE kb_documents ADD COLUMN theme TEXT');
+  }
+
   // Migration: Outreach (Four Lanes) — door attribution on leads + per-week tracker log
   const hasLeadLane = db
     .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = 'lane'")

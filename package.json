@@ -12,6 +12,7 @@
     "cron:recurring": "npx tsx scripts/recurring-invoices.ts",
     "cron:health": "npx tsx scripts/health-check.ts",
     "seed:endpoints": "npx tsx scripts/seed-endpoints.ts",
+    "ingest:stories": "npx tsx scripts/ingest-audible-stories.ts",
     "cron:alerts": "npx tsx scripts/sms-alerts.ts --morning"
   },
   "dependencies": {

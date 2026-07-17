@@ -339,6 +339,8 @@ export interface KbDocument {
   char_count: number;
   /** NULL = general KB; 'audible' = Audible set (fenced off from ReKindleLeads surfaces). */
   doc_set: string | null;
+  /** Grouping tag for Audible story docs (one of STORY_THEMES); NULL otherwise. Never a fence. */
+  theme: string | null;
   created_at: string;
 }
 

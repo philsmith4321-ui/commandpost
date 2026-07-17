@@ -16,18 +16,53 @@ export const AUDIBLE_TITLE_PREFIX = 'Audible — ';
 /** Display prefix for Audible book deep-note titles (naming convention only — not a fence). */
 export const AUDIBLE_BOOK_TITLE_PREFIX = 'Audible Book — ';
 
+/** Display prefix for Audible personal-story titles (naming convention only — not a fence). */
+export const AUDIBLE_STORY_TITLE_PREFIX = 'Audible Story — ';
+
 /**
- * Derive the display label and section (theme vs book) for an audible-set doc.
- * The page and the generate route both use this, so any doc the page lists is
- * guaranteed resolvable by the route. Prefixes are non-overlapping; a title
- * matching neither falls through as a theme-section label of the full title.
+ * The 15 story themes, in display order. Story docs carry one of these in
+ * `kb_documents.theme`; the Stories tab groups by it and the generate route
+ * resolves a selected story theme to every story doc that carries it.
  */
-export function audibleDocLabel(title: string): { label: string; isBook: boolean } {
+export const STORY_THEMES = [
+  'Family history & upbringing',
+  'Calling into ministry',
+  'Marriage & Amy',
+  'Kids & parenting',
+  'Cars, trucks & driving',
+  'The outdoors, sports & hobbies',
+  'Friends & pastoral care',
+  'Health, mental health & hard seasons',
+  'Faith, conversion & testimonies',
+  'Teaching illustrations & notable lives',
+  'Scripture & Bible stories',
+  'Work, business & building',
+  'Kindness, community & everyday grace',
+  'Humor & lighter moments',
+  'Funerals & Celebrations of Life',
+] as const;
+
+export type StoryTheme = (typeof STORY_THEMES)[number];
+
+export function isStoryTheme(value: unknown): value is StoryTheme {
+  return typeof value === 'string' && (STORY_THEMES as readonly string[]).includes(value);
+}
+
+/**
+ * Derive the display label and section (theme / book / story) for an audible-set
+ * doc. The page and the generate route both use this, so any doc the page lists
+ * is guaranteed resolvable by the route. Prefixes are non-overlapping; a title
+ * matching none falls through as a theme-section label of the full title.
+ */
+export function audibleDocLabel(title: string): { label: string; isBook: boolean; isStory: boolean } {
+  if (title.startsWith(AUDIBLE_STORY_TITLE_PREFIX)) {
+    return { label: title.slice(AUDIBLE_STORY_TITLE_PREFIX.length), isBook: false, isStory: true };
+  }
   if (title.startsWith(AUDIBLE_BOOK_TITLE_PREFIX)) {
-    return { label: title.slice(AUDIBLE_BOOK_TITLE_PREFIX.length), isBook: true };
+    return { label: title.slice(AUDIBLE_BOOK_TITLE_PREFIX.length), isBook: true, isStory: false };
   }
   if (title.startsWith(AUDIBLE_TITLE_PREFIX)) {
-    return { label: title.slice(AUDIBLE_TITLE_PREFIX.length), isBook: false };
+    return { label: title.slice(AUDIBLE_TITLE_PREFIX.length), isBook: false, isStory: false };
   }
-  return { label: title, isBook: false };
+  return { label: title, isBook: false, isStory: false };
 }

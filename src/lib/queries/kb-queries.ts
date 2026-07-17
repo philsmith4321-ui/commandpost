@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { KbDocument, KbSourceType, KbChunk } from '@/lib/types';
-import { AUDIBLE_DOC_SET } from '@/lib/audible';
+import { AUDIBLE_DOC_SET, AUDIBLE_STORY_TITLE_PREFIX } from '@/lib/audible';
 
 export interface CreateKbInput {
   title: string;
@@ -9,14 +9,16 @@ export interface CreateKbInput {
   content: string;
   /** NULL (default) = general KB; 'audible' = Audible set. This column is the fence. */
   doc_set?: string | null;
+  /** Grouping tag for Audible story docs (one of STORY_THEMES); NULL otherwise. */
+  theme?: string | null;
 }
 
 export function createKbDocument(db: Database.Database, input: CreateKbInput): number {
   const content = input.content ?? '';
   const result = db
     .prepare(
-      `INSERT INTO kb_documents (title, source_type, source_url, content, char_count, doc_set)
-       VALUES (@title, @source_type, @source_url, @content, @char_count, @doc_set)`
+      `INSERT INTO kb_documents (title, source_type, source_url, content, char_count, doc_set, theme)
+       VALUES (@title, @source_type, @source_url, @content, @char_count, @doc_set, @theme)`
     )
     .run({
       title: input.title,
@@ -25,11 +27,12 @@ export function createKbDocument(db: Database.Database, input: CreateKbInput): n
       content,
       char_count: content.length,
       doc_set: input.doc_set ?? null,
+      theme: input.theme ?? null,
     });
   return Number(result.lastInsertRowid);
 }
 
-const KB_META_COLS = 'id, title, source_type, source_url, char_count, doc_set, created_at';
+const KB_META_COLS = 'id, title, source_type, source_url, char_count, doc_set, theme, created_at';
 /** SQL fence: general (non-Audible) docs only. Keys on doc_set, never titles. */
 const notAudible = (alias = '') => `(${alias}doc_set IS NULL OR ${alias}doc_set != '${AUDIBLE_DOC_SET}')`;
 const NOT_AUDIBLE = notAudible();
@@ -68,6 +71,62 @@ export function listAudibleKbDocuments(db: Database.Database): Omit<KbDocument, 
        FROM kb_documents WHERE doc_set = ? ORDER BY created_at DESC, id DESC`
     )
     .all(AUDIBLE_DOC_SET) as Omit<KbDocument, 'content'>[];
+}
+
+/* ---------------- Audible personal stories ---------------- */
+
+// A story doc is an Audible-set doc carrying the story title prefix. The prefix
+// (not the theme column) is the identity so a mis-tagged story can't hide.
+const STORY_LIKE = `${AUDIBLE_STORY_TITLE_PREFIX}%`;
+const IS_STORY = `doc_set = '${AUDIBLE_DOC_SET}' AND title LIKE @storyLike`;
+
+/** List Audible story docs (metadata only), for the Stories browse tab. */
+export function listAudibleStories(db: Database.Database): Omit<KbDocument, 'content'>[] {
+  return db
+    .prepare(
+      `SELECT ${KB_META_COLS} FROM kb_documents
+       WHERE ${IS_STORY} ORDER BY theme, title COLLATE NOCASE`
+    )
+    .all({ storyLike: STORY_LIKE }) as Omit<KbDocument, 'content'>[];
+}
+
+/** Per-theme story counts, for the theme cards. */
+export function storyThemeCounts(db: Database.Database): { theme: string; count: number }[] {
+  return db
+    .prepare(
+      `SELECT theme, COUNT(*) as count FROM kb_documents
+       WHERE ${IS_STORY} AND theme IS NOT NULL GROUP BY theme`
+    )
+    .all({ storyLike: STORY_LIKE }) as { theme: string; count: number }[];
+}
+
+/** kb_document ids for every story in a theme (for drafting-source resolution). */
+export function storyDocIdsByTheme(db: Database.Database, theme: string): number[] {
+  return db
+    .prepare(`SELECT id FROM kb_documents WHERE ${IS_STORY} AND theme = @theme ORDER BY id`)
+    .all({ storyLike: STORY_LIKE, theme })
+    .map((r) => (r as { id: number }).id);
+}
+
+/** Fetch one full story doc by id (only if it is actually a story doc). */
+export function getAudibleStory(db: Database.Database, id: number): KbDocument | undefined {
+  return db
+    .prepare(`SELECT * FROM kb_documents WHERE id = @id AND ${IS_STORY}`)
+    .get({ id, storyLike: STORY_LIKE }) as KbDocument | undefined;
+}
+
+/** Random story (optionally within a theme) — for "Pull a story" with no query. */
+export function randomStory(db: Database.Database, theme?: string | null): KbDocument | undefined {
+  const themeClause = theme ? ' AND theme = @theme' : '';
+  return db
+    .prepare(`SELECT * FROM kb_documents WHERE ${IS_STORY}${themeClause} ORDER BY RANDOM() LIMIT 1`)
+    .get({ storyLike: STORY_LIKE, theme }) as KbDocument | undefined;
+}
+
+/** Delete all Audible story docs (chunks cascade) — for idempotent re-ingest. */
+export function deleteAudibleStories(db: Database.Database): number {
+  const r = db.prepare(`DELETE FROM kb_documents WHERE ${IS_STORY}`).run({ storyLike: STORY_LIKE });
+  return r.changes;
 }
 
 export function getKbDocument(db: Database.Database, id: number): KbDocument | undefined {
