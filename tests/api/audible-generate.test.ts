@@ -139,17 +139,75 @@ describe('POST /api/audible/generate', () => {
   });
 
   it('reports vector mode only when all per-category calls are vector', async () => {
+    const chunk = { text: 'c', doc_title: 'd', source_type: 'text', score: 1 };
     vi.mocked(retrieveContext)
-      .mockResolvedValueOnce({ chunks: [], mode: 'vector' })
-      .mockResolvedValueOnce({ chunks: [], mode: 'vector' });
+      .mockResolvedValueOnce({ chunks: [chunk], mode: 'vector' })
+      .mockResolvedValueOnce({ chunks: [chunk], mode: 'vector' });
     let res = await POST(req({ contentType: 'blog_article', topic: 't', categories: ['Influence', 'Negotiation'] }));
     expect((await res.json()).retrieval_mode).toBe('vector');
 
     vi.mocked(retrieveContext)
-      .mockResolvedValueOnce({ chunks: [], mode: 'vector' })
-      .mockResolvedValueOnce({ chunks: [], mode: 'keyword' });
+      .mockResolvedValueOnce({ chunks: [chunk], mode: 'vector' })
+      .mockResolvedValueOnce({ chunks: [chunk], mode: 'keyword' });
     res = await POST(req({ contentType: 'blog_article', topic: 't', categories: ['Influence', 'Negotiation'] }));
     expect((await res.json()).retrieval_mode).toBe('keyword');
+  });
+
+  it("mode ranking never reports 'none' while chunks exist (none + keyword → keyword)", async () => {
+    const chunk = { text: 'c', doc_title: 'd', source_type: 'text', score: 1 };
+    vi.mocked(retrieveContext)
+      .mockResolvedValueOnce({ chunks: [], mode: 'none' })
+      .mockResolvedValueOnce({ chunks: [chunk], mode: 'keyword' });
+    const res = await POST(req({ contentType: 'blog_article', topic: 't', categories: ['Influence', 'Negotiation'] }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.retrieval_mode).toBe('keyword');
+  });
+
+  it('zero chunks across all resolved categories → 400 backstop, nothing generated (R5)', async () => {
+    vi.mocked(retrieveContext)
+      .mockResolvedValueOnce({ chunks: [], mode: 'none' })
+      .mockResolvedValueOnce({ chunks: [], mode: 'none' });
+    const res = await POST(req({ contentType: 'blog_article', topic: 't', categories: ['Influence', 'Negotiation'] }));
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toContain('no indexed content');
+    expect(generateContent).not.toHaveBeenCalled();
+    expect(createGeneration).not.toHaveBeenCalled();
+  });
+
+  it('resolves a doc whose synced title lacks the display prefix (label contract holds)', async () => {
+    vi.mocked(listAudibleKbDocuments).mockReturnValue([
+      { id: 77, title: 'Oddball Title Without Prefix' },
+    ] as never);
+    const res = await POST(req({
+      contentType: 'blog_article', topic: 'reciprocity', categories: ['Oddball Title Without Prefix'],
+    }));
+    expect(res.status).toBe(200);
+    expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ source_ids: [77] }));
+  });
+
+  it('duplicate titles (orphaned older doc): the newest doc wins resolution', async () => {
+    // listAudibleKbDocuments returns newest-first; first occurrence per label must win.
+    vi.mocked(listAudibleKbDocuments).mockReturnValue([
+      { id: 200, title: 'Audible — Influence' },
+      { id: 100, title: 'Audible — Influence' },
+    ] as never);
+    const res = await POST(req({
+      contentType: 'blog_article', topic: 'reciprocity', categories: ['Influence'],
+    }));
+    expect(res.status).toBe(200);
+    expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ source_ids: [200] }));
+  });
+
+  it('round-robin interleaves per-category chunks so budget truncation degrades evenly', async () => {
+    const c = (t: string) => ({ text: t, doc_title: 'd', source_type: 'text', score: 1 });
+    vi.mocked(retrieveContext)
+      .mockResolvedValueOnce({ chunks: [c('a1'), c('a2'), c('a3')], mode: 'keyword' })
+      .mockResolvedValueOnce({ chunks: [c('b1'), c('b2')], mode: 'keyword' });
+    await POST(req({ contentType: 'blog_article', topic: 't', categories: ['Influence', 'Negotiation'] }));
+    const passed = vi.mocked(generateContent).mock.calls[0][0].chunks.map((x: { text: string }) => x.text);
+    expect(passed).toEqual(['a1', 'b1', 'a2', 'b2', 'a3']);
   });
 
   it('never touches Buffer drafting', async () => {

@@ -80,7 +80,7 @@ export function deleteKbDocument(db: Database.Database, id: number): void {
 
 export function kbStats(db: Database.Database): { count: number; chars: number } {
   const row = db
-    .prepare('SELECT COUNT(*) as count, COALESCE(SUM(char_count),0) as chars FROM kb_documents')
+    .prepare(`SELECT COUNT(*) as count, COALESCE(SUM(char_count),0) as chars FROM kb_documents WHERE ${NOT_AUDIBLE}`)
     .get() as { count: number; chars: number };
   return row;
 }

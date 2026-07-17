@@ -30,6 +30,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/generate/history # e
 
 Also click the sidebar "Phil's Audible AI" link from an ungated page and confirm the browser auth prompt appears on navigation (not just on direct URL entry).
 
+**Script/agent access through the gate:** any curl, cron, or Claude-session call to a gated path needs the basic-auth credentials: `curl -u <user>:<pass> https://<host>/api/audible/history`. The credentials are the htpasswd pair on the droplet at `/etc/nginx/.htpasswd` (same pair as the `/ingestion` gate unless you create a separate one) — record where you keep the password (password manager entry or `~/.zshrc` var) so future automation doesn't dead-end on a 401.
+
 ## Step 3 — Sync the audible set (Mac)
 
 ```bash
@@ -48,4 +50,13 @@ Expect 19 docs loaded (18 themes + worldview profile) and a clean `--check` for 
 
 ## Rollback
 
-Remove the three nginx location blocks and reload nginx (restores the pre-rollout surface). To pull the content itself, delete the 19 docs via the `/ingestion` UI or `DELETE /api/ingestion/kb/{id}` for each id in `~/audible-kb/kb/commandpost-audible-manifest.md`, then clear that manifest's rows. Audible generations can be deleted from the `/audible` history panel.
+Keep the nginx gate up until the content is gone — removing the gate first re-exposes everything.
+
+**The `/ingestion` UI cannot be used for this: the app deliberately hides `doc_set='audible'` docs from that page (the same fence that keeps them out of Generate), so the docs will not appear there even though they exist.** Do not interpret their absence from `/ingestion` as "already deleted." Remove content via the API, driving from the manifest:
+
+```bash
+# for each kb_id in ~/audible-kb/kb/commandpost-audible-manifest.md:
+curl -u <user>:<pass> -X DELETE https://<host>/api/ingestion/kb/<kb_id>
+```
+
+`kb_documents` deletion cascades to `kb_chunks` (FK ON DELETE CASCADE). Then clear the manifest's rows. Audible generations (which also carry personal-register text) are deleted from the `/audible` history panel, or wholesale on the droplet: `DELETE FROM generations WHERE kind='audible';`. Note `/api/backup` keeps up to 10 DB snapshots under `data/backups/` on the droplet — purge those too if the goal is complete removal. Only after all content is gone, remove the nginx location blocks and reload.

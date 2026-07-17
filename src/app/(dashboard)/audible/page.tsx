@@ -10,8 +10,14 @@ export default async function AudiblePage() {
   const db = getDb();
   const docs = listAudibleKbDocuments(db);
   // Category labels: titles minus the display prefix ('Audible — Business' → 'Business').
-  const categories = docs.map((d) =>
-    d.title.startsWith(AUDIBLE_TITLE_PREFIX) ? d.title.slice(AUDIBLE_TITLE_PREFIX.length) : d.title
+  // Deduped — an orphaned duplicate doc (failed sync DELETE) must not render twice;
+  // the generate route resolves labels the same way, keeping the newest doc per label.
+  const categories = Array.from(
+    new Set(
+      docs.map((d) =>
+        d.title.startsWith(AUDIBLE_TITLE_PREFIX) ? d.title.slice(AUDIBLE_TITLE_PREFIX.length) : d.title
+      )
+    )
   );
   const history = listGenerations(db, 'audible');
 
