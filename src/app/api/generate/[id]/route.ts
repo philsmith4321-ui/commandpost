@@ -13,6 +13,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
-  deleteGeneration(db, Number(id));
+  // Kind fence: getGeneration defaults to kind='generate', so Audible rows
+  // 404 here instead of being deletable through the Generate surface.
+  const gen = getGeneration(db, Number(id));
+  if (!gen) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  deleteGeneration(db, gen.id);
   return NextResponse.json({ ok: true });
 }

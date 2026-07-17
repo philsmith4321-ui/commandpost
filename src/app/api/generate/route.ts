@@ -5,6 +5,7 @@ import { generateContent } from '@/lib/generation/generate';
 import { createGeneration, setGenerationBufferPostId } from '@/lib/queries/generation-queries';
 import { draftGenerationToBuffer } from '@/lib/buffer/draft';
 import { isContentType } from '@/lib/generation/content-types';
+import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
 import { getAvatar, listAvatars } from '@/lib/queries/avatar-queries';
 import { composeAudience } from '@/lib/generation/audience';
 import { getMasterProfile } from '@/lib/queries/master-queries';
@@ -27,6 +28,16 @@ export async function POST(request: NextRequest) {
   if (!topic) return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
 
   const db = getDb();
+
+  // Fence: this route must never ground output in Audible-set docs, even via
+  // crafted sourceIds (KB ids are guessable sequential ints). Reject before
+  // any retrieval, generation, persistence, or Buffer auto-draft.
+  if (sourceIds.length) {
+    const audibleIds = new Set(listAudibleKbDocuments(db).map((d) => d.id));
+    if (sourceIds.some((id) => audibleIds.has(id))) {
+      return NextResponse.json({ error: 'Invalid source ids' }, { status: 400 });
+    }
+  }
 
   // Resolve audience: master is ALWAYS applied; pick one vertical, 'all' (generic), or none (master only).
   const master = getMasterProfile(db);

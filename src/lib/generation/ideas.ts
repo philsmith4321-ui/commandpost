@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { askClaude, isClaudeConfigured } from '@/lib/claude';
 import { stripLongDashes } from '@/lib/outreach/draft';
-import { chunksForDocuments } from '@/lib/queries/kb-queries';
+import { chunksForDocumentsExcludingAudible } from '@/lib/queries/kb-queries';
 import { isContentType } from '@/lib/generation/content-types';
 import { getSetting, setSetting } from '@/lib/queries/settings-queries';
 import type { GenContentType } from '@/lib/types';
@@ -20,9 +20,10 @@ export interface IdeasBatch {
 }
 
 // Evenly sample the whole knowledge base so ideas draw on all of it, not just
-// the first document, while staying inside a prompt budget.
+// the first document, while staying inside a prompt budget. Audible-set docs
+// are fenced out — ideas are a ReKindleLeads surface.
 function sampleKbContext(db: Database.Database, budget = 10000): string {
-  const chunks = chunksForDocuments(db);
+  const chunks = chunksForDocumentsExcludingAudible(db);
   if (!chunks.length) return '';
   const target = Math.max(1, Math.floor(budget / 700));
   const step = Math.max(1, Math.floor(chunks.length / target));
