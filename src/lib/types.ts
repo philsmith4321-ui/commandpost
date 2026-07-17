@@ -337,6 +337,8 @@ export interface KbDocument {
   source_url: string | null;
   content: string;
   char_count: number;
+  /** NULL = general KB; 'audible' = Audible set (fenced off from ReKindleLeads surfaces). */
+  doc_set: string | null;
   created_at: string;
 }
 
@@ -361,6 +363,9 @@ export type GenContentType =
 export type LengthPreference = 'short' | 'medium' | 'long';
 export type RetrievalMode = 'none' | 'keyword' | 'vector';
 
+/** Origin of a generation: Generate page ('generate') vs Phil's Audible AI ('audible'). */
+export type GenerationKind = 'generate' | 'audible';
+
 export interface Generation {
   id: number;
   content_type: GenContentType;
@@ -372,6 +377,7 @@ export interface Generation {
   avatar_id: number | null;
   result: string;
   buffer_post_id: string | null;
+  kind: GenerationKind;
   created_at: string;
 }
 

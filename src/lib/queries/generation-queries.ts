@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Generation, GenContentType, LengthPreference, RetrievalMode } from '@/lib/types';
+import type { Generation, GenerationKind, GenContentType, LengthPreference, RetrievalMode } from '@/lib/types';
 
 export interface CreateGenerationInput {
   content_type: GenContentType;
@@ -9,13 +9,15 @@ export interface CreateGenerationInput {
   retrieval_mode: RetrievalMode;
   avatar_id?: number | null;
   result: string;
+  /** Origin fence: defaults to 'generate' (Generate page). */
+  kind?: GenerationKind;
 }
 
 export function createGeneration(db: Database.Database, input: CreateGenerationInput): number {
   const result = db
     .prepare(
-      `INSERT INTO generations (content_type, topic, length, source_ids, source_count, retrieval_mode, avatar_id, result)
-       VALUES (@content_type, @topic, @length, @source_ids, @source_count, @retrieval_mode, @avatar_id, @result)`
+      `INSERT INTO generations (content_type, topic, length, source_ids, source_count, retrieval_mode, avatar_id, result, kind)
+       VALUES (@content_type, @topic, @length, @source_ids, @source_count, @retrieval_mode, @avatar_id, @result, @kind)`
     )
     .run({
       content_type: input.content_type,
@@ -26,18 +28,25 @@ export function createGeneration(db: Database.Database, input: CreateGenerationI
       retrieval_mode: input.retrieval_mode,
       avatar_id: input.avatar_id ?? null,
       result: input.result,
+      kind: input.kind ?? 'generate',
     });
   return Number(result.lastInsertRowid);
 }
 
-export function listGenerations(db: Database.Database): Generation[] {
+export function listGenerations(db: Database.Database, kind: GenerationKind = 'generate'): Generation[] {
   return db
-    .prepare('SELECT * FROM generations ORDER BY created_at DESC, id DESC LIMIT 100')
-    .all() as Generation[];
+    .prepare('SELECT * FROM generations WHERE kind = ? ORDER BY created_at DESC, id DESC LIMIT 100')
+    .all(kind) as Generation[];
 }
 
-export function getGeneration(db: Database.Database, id: number): Generation | undefined {
-  return db.prepare('SELECT * FROM generations WHERE id = ?').get(id) as Generation | undefined;
+export function getGeneration(
+  db: Database.Database,
+  id: number,
+  kind: GenerationKind = 'generate'
+): Generation | undefined {
+  return db
+    .prepare('SELECT * FROM generations WHERE id = ? AND kind = ?')
+    .get(id, kind) as Generation | undefined;
 }
 
 export function deleteGeneration(db: Database.Database, id: number): void {
@@ -53,6 +62,7 @@ export function listUnpushedSocialGenerations(db: Database.Database): Generation
     .prepare(
       `SELECT * FROM generations
        WHERE buffer_post_id IS NULL
+         AND kind = 'generate'
          AND content_type IN ('social_linkedin', 'social_twitter', 'social_facebook')
        ORDER BY created_at DESC, id DESC LIMIT 100`
     )

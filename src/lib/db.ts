@@ -819,6 +819,25 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec('ALTER TABLE generations ADD COLUMN buffer_post_id TEXT');
   }
 
+  // Migration: add kind to generations — segregates Audible generations
+  // ('audible') from Generate-page ones ('generate'). Queries fence on this.
+  const hasGenKind = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('generations') WHERE name = 'kind'")
+    .get() as { count: number };
+  if (hasGenKind.count === 0) {
+    db.exec("ALTER TABLE generations ADD COLUMN kind TEXT NOT NULL DEFAULT 'generate'");
+  }
+
+  // Migration: add doc_set to kb_documents — NULL = general KB, 'audible' =
+  // Audible set. This column (not titles) is the fence keeping Audible docs
+  // out of ReKindleLeads-facing surfaces.
+  const hasKbDocSet = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('kb_documents') WHERE name = 'doc_set'")
+    .get() as { count: number };
+  if (hasKbDocSet.count === 0) {
+    db.exec('ALTER TABLE kb_documents ADD COLUMN doc_set TEXT');
+  }
+
   // Migration: Outreach (Four Lanes) — door attribution on leads + per-week tracker log
   const hasLeadLane = db
     .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = 'lane'")

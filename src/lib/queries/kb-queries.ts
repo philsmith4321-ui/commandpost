@@ -1,19 +1,22 @@
 import type Database from 'better-sqlite3';
 import type { KbDocument, KbSourceType, KbChunk } from '@/lib/types';
+import { AUDIBLE_DOC_SET } from '@/lib/audible';
 
 export interface CreateKbInput {
   title: string;
   source_type: KbSourceType;
   source_url?: string | null;
   content: string;
+  /** NULL (default) = general KB; 'audible' = Audible set. This column is the fence. */
+  doc_set?: string | null;
 }
 
 export function createKbDocument(db: Database.Database, input: CreateKbInput): number {
   const content = input.content ?? '';
   const result = db
     .prepare(
-      `INSERT INTO kb_documents (title, source_type, source_url, content, char_count)
-       VALUES (@title, @source_type, @source_url, @content, @char_count)`
+      `INSERT INTO kb_documents (title, source_type, source_url, content, char_count, doc_set)
+       VALUES (@title, @source_type, @source_url, @content, @char_count, @doc_set)`
     )
     .run({
       title: input.title,
@@ -21,30 +24,49 @@ export function createKbDocument(db: Database.Database, input: CreateKbInput): n
       source_url: input.source_url ?? null,
       content,
       char_count: content.length,
+      doc_set: input.doc_set ?? null,
     });
   return Number(result.lastInsertRowid);
 }
 
-/** List KB documents (metadata only — content excluded for list views). */
+const KB_META_COLS = 'id, title, source_type, source_url, char_count, doc_set, created_at';
+/** SQL fence: general (non-Audible) docs only. Keys on doc_set, never titles. */
+const NOT_AUDIBLE = `(doc_set IS NULL OR doc_set != '${AUDIBLE_DOC_SET}')`;
+
+/**
+ * List general (non-Audible) KB documents (metadata only — content excluded
+ * for list views). Audible docs are fenced out so ReKindleLeads-facing
+ * surfaces (Generate picker, Ingestion KB list) never see them.
+ */
 export function listKbDocuments(db: Database.Database, search?: string): Omit<KbDocument, 'content'>[] {
   const q = (search ?? '').trim();
   if (q) {
     const like = `%${q}%`;
     return db
       .prepare(
-        `SELECT id, title, source_type, source_url, char_count, created_at
+        `SELECT ${KB_META_COLS}
          FROM kb_documents
-         WHERE title LIKE ? OR content LIKE ?
+         WHERE ${NOT_AUDIBLE} AND (title LIKE ? OR content LIKE ?)
          ORDER BY created_at DESC, id DESC`
       )
       .all(like, like) as Omit<KbDocument, 'content'>[];
   }
   return db
     .prepare(
-      `SELECT id, title, source_type, source_url, char_count, created_at
-       FROM kb_documents ORDER BY created_at DESC, id DESC`
+      `SELECT ${KB_META_COLS}
+       FROM kb_documents WHERE ${NOT_AUDIBLE} ORDER BY created_at DESC, id DESC`
     )
     .all() as Omit<KbDocument, 'content'>[];
+}
+
+/** List Audible-set KB documents (metadata only) — for the Audible AI page. */
+export function listAudibleKbDocuments(db: Database.Database): Omit<KbDocument, 'content'>[] {
+  return db
+    .prepare(
+      `SELECT ${KB_META_COLS}
+       FROM kb_documents WHERE doc_set = ? ORDER BY created_at DESC, id DESC`
+    )
+    .all(AUDIBLE_DOC_SET) as Omit<KbDocument, 'content'>[];
 }
 
 export function getKbDocument(db: Database.Database, id: number): KbDocument | undefined {
@@ -80,18 +102,38 @@ export interface ChunkWithSource extends KbChunk {
   source_type: KbSourceType;
 }
 
-/** Chunks for the given KB document ids (or all if undefined). */
-export function chunksForDocuments(db: Database.Database, docIds?: number[]): ChunkWithSource[] {
+function chunksQuery(db: Database.Database, docIds?: number[], excludeAudible = false): ChunkWithSource[] {
   if (docIds && docIds.length === 0) return [];
   let sql = `SELECT c.*, d.title as doc_title, d.source_type as source_type
              FROM kb_chunks c JOIN kb_documents d ON d.id = c.kb_document_id`;
+  const where: string[] = [];
   const params: unknown[] = [];
+  if (excludeAudible) {
+    where.push(`(d.doc_set IS NULL OR d.doc_set != '${AUDIBLE_DOC_SET}')`);
+  }
   if (docIds && docIds.length) {
-    sql += ` WHERE c.kb_document_id IN (${docIds.map(() => '?').join(',')})`;
+    where.push(`c.kb_document_id IN (${docIds.map(() => '?').join(',')})`);
     params.push(...docIds);
   }
+  if (where.length) sql += ` WHERE ${where.join(' AND ')}`;
   sql += ' ORDER BY c.kb_document_id, c.chunk_index';
   return db.prepare(sql).all(...params) as ChunkWithSource[];
+}
+
+/** Chunks for the given KB document ids (or all if undefined). No doc_set fence. */
+export function chunksForDocuments(db: Database.Database, docIds?: number[]): ChunkWithSource[] {
+  return chunksQuery(db, docIds);
+}
+
+/**
+ * Same as chunksForDocuments but fenced to general (non-Audible) docs —
+ * for surfaces that must never touch the Audible set (e.g. content ideas).
+ */
+export function chunksForDocumentsExcludingAudible(
+  db: Database.Database,
+  docIds?: number[]
+): ChunkWithSource[] {
+  return chunksQuery(db, docIds, true);
 }
 
 export function chunksNeedingEmbedding(db: Database.Database, limit = 256): KbChunk[] {
