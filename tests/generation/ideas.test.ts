@@ -63,4 +63,9 @@ describe('parseIdeas', () => {
     const ideas = parseIdeas(text);
     expect(ideas).toEqual([{ title: 'A', hook: 'h', contentType: 'email' }]);
   });
+
+  it("coerces the Audible-only 'prompt' content type to blog_article", () => {
+    const text = '[{"title": "A", "hook": "h", "contentType": "prompt"}]';
+    expect(parseIdeas(text)).toEqual([{ title: 'A', hook: 'h', contentType: 'blog_article' }]);
+  });
 });

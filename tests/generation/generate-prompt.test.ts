@@ -25,6 +25,11 @@ describe("free-form 'prompt' content type", () => {
     expect(CONTENT_TYPES.some((t) => t.value === 'prompt')).toBe(false);
   });
 
+  it('rejects Object.prototype keys as content types', () => {
+    expect(isContentType('toString')).toBe(false);
+    expect(isContentType('constructor')).toBe(false);
+  });
+
   it('prompt mode drops the marketing-writer format framing and follows the prompt', async () => {
     const res = await generateContent({
       contentType: 'prompt', topic: 'What does Cialdini say about reciprocity?',

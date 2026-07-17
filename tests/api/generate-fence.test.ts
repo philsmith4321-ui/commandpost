@@ -73,6 +73,13 @@ function generationsCount() {
 }
 
 describe('POST /api/generate sourceIds fence', () => {
+  it("400s on the Audible-only 'prompt' content type; nothing generated or persisted", async () => {
+    const res = await generatePost(req({ contentType: 'prompt', topic: 'what does this say about trust?' }));
+    expect(res.status).toBe(400);
+    expect(generateContent).not.toHaveBeenCalled();
+    expect(generationsCount()).toBe(0);
+  });
+
   it('400s when any sourceId is an Audible doc; nothing generated, persisted, or drafted', async () => {
     const general = seedDoc('General doc', 'general text');
     const audible = seedDoc('Audible — Influence', 'secret notes', AUDIBLE_DOC_SET);

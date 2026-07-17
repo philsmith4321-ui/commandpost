@@ -22,7 +22,12 @@ export async function POST(request: NextRequest) {
     ? body.sourceIds.map((n: unknown) => Number(n)).filter((n: number) => Number.isFinite(n))
     : [];
 
-  if (!isContentType(contentType)) return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
+  // 'prompt' is Audible-studio-only; isContentType accepts it pipeline-wide,
+  // so this route must fence it explicitly (same spirit as the Audible-doc
+  // sourceIds fence below).
+  if (!isContentType(contentType) || contentType === 'prompt') {
+    return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
+  }
   if (!topic) return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
 
   const db = getDb();

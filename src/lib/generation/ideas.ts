@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3';
 import { askClaude, isClaudeConfigured } from '@/lib/claude';
 import { stripLongDashes } from '@/lib/outreach/draft';
 import { chunksForDocumentsExcludingAudible } from '@/lib/queries/kb-queries';
-import { isContentType } from '@/lib/generation/content-types';
+import { CONTENT_TYPES } from '@/lib/generation/content-types';
 import { getSetting, setSetting } from '@/lib/queries/settings-queries';
 import type { GenContentType } from '@/lib/types';
 
@@ -50,7 +50,11 @@ export function parseIdeas(text: string): ContentIdea[] {
     out.push({
       title: stripLongDashes(o.title.trim()),
       hook: typeof o.hook === 'string' ? stripLongDashes(o.hook.trim()) : '',
-      contentType: isContentType(o.contentType) ? o.contentType : 'blog_article',
+      // Membership in CONTENT_TYPES (not isContentType): ideas feed the
+      // /generate page, which must never surface the Audible-only 'prompt'.
+      contentType: CONTENT_TYPES.some((t) => t.value === o.contentType)
+        ? (o.contentType as GenContentType)
+        : 'blog_article',
     });
     if (out.length >= 15) break;
   }

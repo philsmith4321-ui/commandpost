@@ -68,7 +68,9 @@ export const CONTENT_TYPE_MAP: Record<GenContentType, ContentTypeDef> = Object.f
 ) as Record<GenContentType, ContentTypeDef>;
 
 export function isContentType(v: unknown): v is GenContentType {
-  return typeof v === 'string' && v in CONTENT_TYPE_MAP;
+  // Object.hasOwn, not `in`: a plain object's prototype makes
+  // `'toString' in CONTENT_TYPE_MAP` true.
+  return typeof v === 'string' && Object.hasOwn(CONTENT_TYPE_MAP, v);
 }
 
 export function contentTypeLabel(c: GenContentType): string {
