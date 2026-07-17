@@ -121,8 +121,16 @@ describe('POST /api/audible/generate', () => {
     expect(res.status).toBe(200);
     expect(retrieveContext).toHaveBeenCalledTimes(2);
     // k = Math.max(3, Math.ceil(12 / 2)) = 6
-    expect(retrieveContext).toHaveBeenNthCalledWith(1, expect.anything(), { topic: 'reciprocity', sourceIds: [11], k: 6 });
-    expect(retrieveContext).toHaveBeenNthCalledWith(2, expect.anything(), { topic: 'reciprocity', sourceIds: [22], k: 6 });
+    expect(retrieveContext).toHaveBeenNthCalledWith(
+      1, expect.anything(), expect.objectContaining({ topic: 'reciprocity', sourceIds: [11], k: 6 })
+    );
+    expect(retrieveContext).toHaveBeenNthCalledWith(
+      2, expect.anything(), expect.objectContaining({ topic: 'reciprocity', sourceIds: [22], k: 6 })
+    );
+    // The same cache object is threaded through every call so the topic is embedded at most once.
+    const calls = vi.mocked(retrieveContext).mock.calls;
+    expect(calls[0][1].queryVectorCache).toBeDefined();
+    expect(calls[1][1].queryVectorCache).toBe(calls[0][1].queryVectorCache);
     expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       chunks: [chunkA, chunkB],
       audience: undefined,

@@ -1,4 +1,4 @@
-import type { GenContentType } from '@/lib/types';
+import type { GenContentType, LengthPreference } from '@/lib/types';
 
 export interface ContentTypeDef {
   value: GenContentType;
@@ -58,6 +58,24 @@ export const CONTENT_TYPE_MAP: Record<GenContentType, ContentTypeDef> = Object.f
 export function isContentType(v: unknown): v is GenContentType {
   return typeof v === 'string' && v in CONTENT_TYPE_MAP;
 }
+
+export function contentTypeLabel(c: GenContentType): string {
+  return CONTENT_TYPE_MAP[c]?.label ?? c;
+}
+
+export const LENGTHS: LengthPreference[] = ['short', 'medium', 'long'];
+
+export const LENGTH_OPTIONS: { value: LengthPreference; label: string }[] = [
+  { value: 'short', label: 'Short' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'long', label: 'Long' },
+];
+
+export const MODE_BADGE: Record<string, string> = {
+  vector: 'bg-green-600/20 text-green-400',
+  keyword: 'bg-amber-600/20 text-amber-400',
+  none: 'bg-gray-700 text-gray-300',
+};
 
 export const LENGTH_HINT: Record<string, string> = {
   short: 'Keep it on the shorter end of the range — tight and punchy.',

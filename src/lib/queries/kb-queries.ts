@@ -31,7 +31,8 @@ export function createKbDocument(db: Database.Database, input: CreateKbInput): n
 
 const KB_META_COLS = 'id, title, source_type, source_url, char_count, doc_set, created_at';
 /** SQL fence: general (non-Audible) docs only. Keys on doc_set, never titles. */
-const NOT_AUDIBLE = `(doc_set IS NULL OR doc_set != '${AUDIBLE_DOC_SET}')`;
+const notAudible = (alias = '') => `(${alias}doc_set IS NULL OR ${alias}doc_set != '${AUDIBLE_DOC_SET}')`;
+const NOT_AUDIBLE = notAudible();
 
 /**
  * List general (non-Audible) KB documents (metadata only — content excluded
@@ -109,7 +110,7 @@ function chunksQuery(db: Database.Database, docIds?: number[], excludeAudible = 
   const where: string[] = [];
   const params: unknown[] = [];
   if (excludeAudible) {
-    where.push(`(d.doc_set IS NULL OR d.doc_set != '${AUDIBLE_DOC_SET}')`);
+    where.push(notAudible('d.'));
   }
   if (docIds && docIds.length) {
     where.push(`c.kb_document_id IN (${docIds.map(() => '?').join(',')})`);

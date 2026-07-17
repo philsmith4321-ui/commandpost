@@ -4,7 +4,7 @@ import { retrieveContext } from '@/lib/rag/retrieve';
 import { generateContent } from '@/lib/generation/generate';
 import { createGeneration, setGenerationBufferPostId } from '@/lib/queries/generation-queries';
 import { draftGenerationToBuffer } from '@/lib/buffer/draft';
-import { isContentType } from '@/lib/generation/content-types';
+import { isContentType, LENGTHS } from '@/lib/generation/content-types';
 import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
 import { getAvatar, listAvatars } from '@/lib/queries/avatar-queries';
 import { composeAudience } from '@/lib/generation/audience';
@@ -12,8 +12,6 @@ import { getMasterProfile } from '@/lib/queries/master-queries';
 import type { LengthPreference } from '@/lib/types';
 
 export const maxDuration = 120;
-
-const LENGTHS: LengthPreference[] = ['short', 'medium', 'long'];
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);

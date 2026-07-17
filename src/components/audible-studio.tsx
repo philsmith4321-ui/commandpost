@@ -1,24 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { CONTENT_TYPES } from '@/lib/generation/content-types';
+import {
+  CONTENT_TYPES,
+  LENGTH_OPTIONS as LENGTHS,
+  MODE_BADGE,
+  contentTypeLabel as typeLabel,
+} from '@/lib/generation/content-types';
 import type { Generation, GenContentType, LengthPreference } from '@/lib/types';
-
-const LENGTHS: { value: LengthPreference; label: string }[] = [
-  { value: 'short', label: 'Short' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'long', label: 'Long' },
-];
-
-const MODE_BADGE: Record<string, string> = {
-  vector: 'bg-green-600/20 text-green-400',
-  keyword: 'bg-amber-600/20 text-amber-400',
-  none: 'bg-gray-700 text-gray-300',
-};
-
-function typeLabel(c: GenContentType): string {
-  return CONTENT_TYPES.find((t) => t.value === c)?.label ?? c;
-}
 
 export function AudibleStudio({
   categories,

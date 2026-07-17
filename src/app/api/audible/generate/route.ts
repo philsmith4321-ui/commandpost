@@ -3,14 +3,12 @@ import { getDb } from '@/lib/db';
 import { retrieveContext, type RetrievedChunk } from '@/lib/rag/retrieve';
 import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
-import { isContentType } from '@/lib/generation/content-types';
+import { isContentType, LENGTHS } from '@/lib/generation/content-types';
 import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
 import { AUDIBLE_TITLE_PREFIX } from '@/lib/audible';
 import type { LengthPreference, RetrievalMode } from '@/lib/types';
 
 export const maxDuration = 120;
-
-const LENGTHS: LengthPreference[] = ['short', 'medium', 'long'];
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -44,14 +42,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Unknown categories: ${unknown.join(', ')}` }, { status: 400 });
   }
 
-  // Per-category retrieval, merged (KTD9): one call per doc guarantees every
+  // Per-category retrieval, merged: one call per doc guarantees every
   // selected category contributes grounding — a single shared-k call would let
   // the fallback concentrate all chunks on one doc.
   const k = Math.max(3, Math.ceil(12 / sourceIds.length));
   const chunks: RetrievedChunk[] = [];
   const modes: RetrievalMode[] = [];
+  // Shared across iterations so the topic is embedded at most once (Voyage call).
+  const queryVectorCache = {};
   for (const docId of sourceIds) {
-    const r = await retrieveContext(db, { topic, sourceIds: [docId], k });
+    const r = await retrieveContext(db, { topic, sourceIds: [docId], k, queryVectorCache });
     chunks.push(...r.chunks);
     modes.push(r.mode);
   }

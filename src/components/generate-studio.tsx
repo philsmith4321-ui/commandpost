@@ -1,28 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CONTENT_TYPES } from '@/lib/generation/content-types';
+import {
+  CONTENT_TYPES,
+  LENGTH_OPTIONS as LENGTHS,
+  MODE_BADGE,
+  contentTypeLabel as typeLabel,
+} from '@/lib/generation/content-types';
 import { AvatarManager } from '@/components/avatar-manager';
 import type { KbDocument, KbSourceType, Generation, GenContentType, LengthPreference, Avatar } from '@/lib/types';
 
 type SourceItem = Omit<KbDocument, 'content'>;
 
-const LENGTHS: { value: LengthPreference; label: string }[] = [
-  { value: 'short', label: 'Short' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'long', label: 'Long' },
-];
 const TYPE_FILTERS: ('all' | KbSourceType)[] = ['all', 'website', 'pdf', 'html', 'text', 'book'];
-
-const MODE_BADGE: Record<string, string> = {
-  vector: 'bg-green-600/20 text-green-400',
-  keyword: 'bg-amber-600/20 text-amber-400',
-  none: 'bg-gray-700 text-gray-300',
-};
-
-function typeLabel(c: GenContentType): string {
-  return CONTENT_TYPES.find((t) => t.value === c)?.label ?? c;
-}
 
 export function GenerateStudio({
   initialSources,

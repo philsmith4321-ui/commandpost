@@ -49,7 +49,13 @@ function keywordScore(text: string, terms: string[]): number {
  */
 export async function retrieveContext(
   db: Database.Database,
-  opts: { topic: string; sourceIds: number[]; k?: number }
+  opts: {
+    topic: string;
+    sourceIds: number[];
+    k?: number;
+    /** Share across calls with the same topic to embed the query at most once. */
+    queryVectorCache?: { v?: number[] | null };
+  }
 ): Promise<RetrievalResult> {
   const k = opts.k ?? 8;
   if (!opts.sourceIds || opts.sourceIds.length === 0) return { chunks: [], mode: 'none' };
@@ -61,7 +67,9 @@ export async function retrieveContext(
   if (isVoyageConfigured()) {
     const embedded = all.filter((c) => c.embedding);
     if (embedded.length > 0) {
-      const qvec = await embedQuery(opts.topic);
+      const cache = opts.queryVectorCache;
+      const qvec = cache && cache.v !== undefined ? cache.v : await embedQuery(opts.topic);
+      if (cache && cache.v === undefined) cache.v = qvec;
       if (qvec) {
         const scored = embedded
           .map((c) => ({ c, score: cosine(qvec, JSON.parse(c.embedding as string) as number[]) }))
