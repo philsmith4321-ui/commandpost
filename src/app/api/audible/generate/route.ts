@@ -15,13 +15,15 @@ export async function POST(request: NextRequest) {
   const contentType = body?.contentType;
   const topic = typeof body?.topic === 'string' ? body.topic.trim() : '';
   const length = (LENGTHS.includes(body?.length) ? body.length : 'medium') as LengthPreference;
+  // Dedupe: a repeated label/theme would otherwise drive duplicate retrieval
+  // passes and a bloated persisted source_ids.
   const categories: string[] = Array.isArray(body?.categories)
-    ? body.categories.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0)
+    ? [...new Set<string>(body.categories.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0))]
     : [];
   // Story themes are a second kind of source: each expands to every story doc
   // carrying that theme, so a draft can pull from books/themes AND stories together.
   const storyThemes: string[] = Array.isArray(body?.storyThemes)
-    ? body.storyThemes.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0)
+    ? [...new Set<string>(body.storyThemes.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0))]
     : [];
 
   if (!isContentType(contentType)) return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
   // indexing, mid-sync churn) must not produce ungrounded output on this page.
   if (chunks.length === 0) {
     return NextResponse.json(
-      { error: 'Selected categories have no indexed content — re-run the audible sync' },
+      { error: 'Selected sources have no indexed content — re-run the audible sync or `npm run ingest:stories`' },
       { status: 400 }
     );
   }

@@ -51,24 +51,31 @@ function main() {
   }
 
   const db = getDb();
-  const removed = deleteAudibleStories(db);
-  if (removed > 0) console.log(`Removed ${removed} existing story doc(s) for a clean re-ingest.`);
 
   let ingested = 0;
+  let removed = 0;
   const byTheme: Record<string, number> = {};
-  for (const r of records) {
-    const id = createKbDocument(db, {
-      title: `${AUDIBLE_STORY_TITLE_PREFIX}${r.label}`,
-      source_type: 'text',
-      source_url: r.source_ref ? `story:${r.source ?? 'unknown'}:${r.source_ref}` : null,
-      content: r.text,
-      doc_set: AUDIBLE_DOC_SET,
-      theme: r.theme,
-    });
-    indexDocument(db, id, r.text);
-    ingested += 1;
-    byTheme[r.theme] = (byTheme[r.theme] ?? 0) + 1;
-  }
+  // Delete + re-insert as one transaction: under WAL, concurrent /audible readers
+  // see the old set until commit (never a partial/empty set), and an interrupt
+  // mid-run rolls back to the pre-run state instead of stranding a half-ingest.
+  const run = db.transaction(() => {
+    removed = deleteAudibleStories(db);
+    for (const r of records) {
+      const id = createKbDocument(db, {
+        title: `${AUDIBLE_STORY_TITLE_PREFIX}${r.label}`,
+        source_type: 'text',
+        source_url: r.source_ref ? `story:${r.source ?? 'unknown'}:${r.source_ref}` : null,
+        content: r.text,
+        doc_set: AUDIBLE_DOC_SET,
+        theme: r.theme,
+      });
+      indexDocument(db, id, r.text);
+      ingested += 1;
+      byTheme[r.theme] = (byTheme[r.theme] ?? 0) + 1;
+    }
+  });
+  run();
+  if (removed > 0) console.log(`Removed ${removed} existing story doc(s) for a clean re-ingest.`);
 
   console.log(`\nIngested ${ingested} stories into the Audible KB:`);
   for (const [theme, n] of Object.entries(byTheme)) console.log(`  ${String(n).padStart(3)}  ${theme}`);
