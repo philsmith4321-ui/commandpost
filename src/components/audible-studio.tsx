@@ -7,6 +7,8 @@ import {
   MODE_BADGE,
   contentTypeLabel as typeLabel,
 } from '@/lib/generation/content-types';
+import { matchesBookFilter } from '@/lib/audible';
+import { AUDIBLE_BOOK_AUTHORS } from '@/lib/audible-book-authors';
 import type { Generation, GenContentType, LengthPreference } from '@/lib/types';
 
 export function AudibleStudio({
@@ -38,7 +40,7 @@ export function AudibleStudio({
 
   const hasSources = categories.length > 0 || books.length > 0 || storyThemes.length > 0;
   const visibleBooks = bookFilter.trim()
-    ? books.filter((b) => b.toLowerCase().includes(bookFilter.trim().toLowerCase()))
+    ? books.filter((b) => matchesBookFilter(b, bookFilter, AUDIBLE_BOOK_AUTHORS))
     : books;
   const selectedBookCount = books.reduce((n, b) => n + (selected.has(b) ? 1 : 0), 0);
   const totalSelected = selected.size + selectedStories.size;
@@ -157,7 +159,7 @@ export function AudibleStudio({
               <input
                 value={bookFilter}
                 onChange={(e) => setBookFilter(e.target.value)}
-                placeholder="Filter books…"
+                placeholder="Filter by title or author…"
                 className="w-44 rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1 text-xs text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none"
               />
               {selectedBookCount > 0 && (
