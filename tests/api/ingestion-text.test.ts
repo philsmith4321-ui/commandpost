@@ -73,6 +73,8 @@ describe('/api/ingestion/text author', () => {
       const res = await POST(req({ content: 'note body', title: `t-${String(author)}`, author }));
       expect(res.status).toBe(200);
       const body = await res.json();
+      // Echo contract: the sync's self-verifying author write depends on it.
+      expect(body.author).toBeNull();
       expect(authorOf(body.id)).toBeNull();
     }
   });
