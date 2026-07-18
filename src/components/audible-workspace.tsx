@@ -39,16 +39,20 @@ export function AudibleWorkspace({
         {tabBtn('stories', `📖 Stories${stories.length ? ` (${stories.length})` : ''}`)}
       </div>
 
-      {tab === 'create' ? (
+      {/* Both panels stay mounted; tabs toggle visibility only. Unmounting on
+          tab switch would wipe the studio's draft (topic, selections, result,
+          client-refreshed history) and any open story every round-trip. */}
+      <div className={tab === 'create' ? '' : 'hidden'}>
         <AudibleStudio
           categories={categories}
           books={books}
           storyThemes={storyThemeNames}
           initialHistory={initialHistory}
         />
-      ) : (
+      </div>
+      <div className={tab === 'stories' ? '' : 'hidden'}>
         <StoriesBrowser storyThemes={storyThemes} stories={stories} />
-      )}
+      </div>
     </div>
   );
 }

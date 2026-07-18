@@ -66,3 +66,23 @@ export function audibleDocLabel(title: string): { label: string; isBook: boolean
   }
   return { label: title, isBook: false, isStory: false };
 }
+
+/**
+ * Group non-story audible docs by display label, keeping the FIRST doc per
+ * label. Callers pass listAudibleKbDocuments' newest-first order, so an
+ * orphaned older duplicate (failed sync DELETE) never wins. The page derives
+ * its theme/book pickers from this and the generate route resolves selections
+ * through it — one shared grouping is what guarantees any label the page
+ * shows is resolvable by the route (AE1).
+ */
+export function groupAudibleDocsByLabel<T extends { title: string }>(
+  docs: T[]
+): Map<string, { doc: T; isBook: boolean }> {
+  const byLabel = new Map<string, { doc: T; isBook: boolean }>();
+  for (const d of docs) {
+    const { label, isBook, isStory } = audibleDocLabel(d.title);
+    if (isStory) continue;
+    if (!byLabel.has(label)) byLabel.set(label, { doc: d, isBook });
+  }
+  return byLabel;
+}

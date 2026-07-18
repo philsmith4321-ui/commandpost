@@ -1,7 +1,7 @@
 import { getDb } from '@/lib/db';
 import { listAudibleKbDocuments, listAudibleStories, storyThemeCounts } from '@/lib/queries/kb-queries';
 import { listGenerations } from '@/lib/queries/generation-queries';
-import { audibleDocLabel, STORY_THEMES } from '@/lib/audible';
+import { audibleDocLabel, groupAudibleDocsByLabel, STORY_THEMES } from '@/lib/audible';
 import { AudibleWorkspace } from '@/components/audible-workspace';
 
 export const dynamic = 'force-dynamic';
@@ -9,15 +9,13 @@ export const dynamic = 'force-dynamic';
 export default async function AudiblePage() {
   const db = getDb();
   const docs = listAudibleKbDocuments(db);
-  // Section + label per doc via the shared helper (the generate route resolves
-  // with the same logic, keeping the newest doc per label). Deduped — an
-  // orphaned duplicate doc (failed sync DELETE) must not render twice. Story
-  // docs are handled separately (grouped by theme), never as a theme/book.
+  // One shared grouping (groupAudibleDocsByLabel) feeds both this page and the
+  // generate route's resolution, so any label rendered here is resolvable
+  // there. Deduped — an orphaned duplicate doc (failed sync DELETE) must not
+  // render twice. Story docs are handled separately (grouped by theme).
   const categories = new Set<string>();
   const books = new Set<string>();
-  for (const d of docs) {
-    const { label, isBook, isStory } = audibleDocLabel(d.title);
-    if (isStory) continue;
+  for (const [label, { isBook }] of groupAudibleDocsByLabel(docs)) {
     (isBook ? books : categories).add(label);
   }
 

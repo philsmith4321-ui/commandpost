@@ -57,8 +57,11 @@ export function AudibleStudio({
       return n;
     });
   }
-  function selectAll() { setSelected(new Set(categories)); }
-  function clearAll() { setSelected(new Set()); }
+  // Themes All/None only touch theme names — `selected` is shared with the
+  // Books picker, so replacing the whole Set would silently drop chosen books
+  // (mirrors the Books card's own None, which filters out only book names).
+  function selectAll() { setSelected((prev) => new Set([...prev, ...categories])); }
+  function clearAll() { setSelected((prev) => new Set([...prev].filter((n) => !categories.includes(n)))); }
 
   async function refreshHistory() {
     const res = await fetch('/api/audible/history', { cache: 'no-store' });
@@ -286,7 +289,11 @@ export function AudibleStudio({
           <div className="space-y-1.5">
             {history.map((g) => (
               <div key={g.id} className="flex items-center justify-between gap-3 rounded-lg hover:bg-gray-800/60 px-2 py-1.5">
-                <button onClick={() => openHistory(g.id)} className="min-w-0 text-left flex-1">
+                {/* disabled while a generation is in flight: openHistory overwrites
+                    contentType/topic, so a mid-generate load-back would render the
+                    fresh result under the history item's badge and topic. */}
+                <button onClick={() => openHistory(g.id)} disabled={busy}
+                  className="min-w-0 text-left flex-1 disabled:opacity-50">
                   <p className="text-sm text-white truncate">{g.topic}</p>
                   <p className="text-xs text-gray-500">
                     {typeLabel(g.content_type)} · {g.created_at} · {g.source_count} source{g.source_count === 1 ? '' : 's'}

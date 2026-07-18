@@ -249,3 +249,14 @@ The prose requirements are authoritative; the diagram shows where the two doc se
 ## Operational Notes
 
 Rollout order is the one hard operational constraint: **deploy app → apply nginx gate → sync Audible set → verify fences** (U6 runbook). Deploying the app first is safe — the page renders an empty state until docs exist. The Voyage embed-backfill, if ever run after the key lands, will embed Audible chunks too; that is expected and requires no action.
+
+---
+
+## Post-Plan Addendum (2026-07-17, after U1-U6 shipped)
+
+Scope grew beyond this plan in later commits on the same branch (`896819f..ae6acbb`), so two statements above no longer hold as written:
+
+- **KTD5's "no changes" claim is stale.** `src/lib/rag/retrieve.ts` gained an optional `queryVectorCache` parameter (one query embedding per request), `src/lib/generation/generate.ts` gained the free-form `'prompt'` branch (assistant role framing instead of marketing writer), and `src/lib/generation/content-types.ts` gained `PROMPT_TYPE`, `ALL_CONTENT_TYPES`, and shared UI constants (`LENGTHS`, `LENGTH_OPTIONS`, `MODE_BADGE`, `contentTypeLabel`).
+- **Shipped beyond the v1 scope boundaries:** book deep-note selection (Scope Boundaries deferred it), the Audible-only `'prompt'` content type (fenced off `/generate` server-side), and the personal-Stories subsystem — `scripts/ingest-audible-stories.ts`, the `kb_documents.theme` column, the Stories browse tab, `POST /api/audible/stories/pull`, and `GET /api/audible/story/[id]`.
+
+These extensions carried their own reviews; this addendum records the drift so the plan is not read as a false invariant about which files are untouched or which capabilities are absent.

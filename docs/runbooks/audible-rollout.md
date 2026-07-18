@@ -17,16 +17,19 @@ Safe to do first: with zero audible docs synced, `/audible` renders its empty st
 
 On the droplet (`ssh root@<droplet>`), edit the live nginx site config (the repo's `deploy/nginx.conf` carries reference blocks — copy the three `location` blocks for `/audible`, `/api/audible/`, and `/api/backup`, using the same `auth_basic` / htpasswd setup the `/ingestion` gate already uses). Then `nginx -t && systemctl reload nginx`.
 
-**Verify — all four checks, no exceptions:**
+**Verify — all five checks, no exceptions:**
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' https://<host>/audible              # expect 401
 curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/audible/history  # expect 401
 curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/backup           # expect 401
 curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/generate/history # expect 200 (NOT gated)
+curl --max-time 5 -s -o /dev/null -w '%{http_code}\n' http://<host>:3004/api/audible/history  # expect 000 (connection MUST fail)
 ```
 
 `/api/backup` streams the raw SQLite DB file — if it returns anything but 401, stop here.
+
+The fifth check proves nginx is the ONLY path to the app. The four https checks all go through nginx and would pass even if the raw app port sat open to the internet — CommandPost has no in-app auth, so a reachable `:3004` serves every gated surface with zero credentials. The repo's `ecosystem.config.js` now starts Next with `-H 127.0.0.1` (loopback-only bind); after the deploy in step 1, run `pm2 startOrReload ecosystem.config.js` on the droplet — a plain `pm2 restart` keeps the old cached args and the bind change silently won't apply. If the fifth check returns anything but a connection failure, stop here.
 
 Also click the sidebar "Phil's Audible AI" link from an ungated page and confirm the browser auth prompt appears on navigation (not just on direct URL entry).
 
@@ -59,4 +62,14 @@ Keep the nginx gate up until the content is gone — removing the gate first re-
 curl -u <user>:<pass> -X DELETE https://<host>/api/ingestion/kb/<kb_id>
 ```
 
-`kb_documents` deletion cascades to `kb_chunks` (FK ON DELETE CASCADE). Then clear the manifest's rows. Audible generations (which also carry personal-register text) are deleted from the `/audible` history panel, or wholesale on the droplet: `DELETE FROM generations WHERE kind='audible';`. Note `/api/backup` keeps up to 10 DB snapshots under `data/backups/` on the droplet — purge those too if the goal is complete removal. Only after all content is gone, remove the nginx location blocks and reload.
+`kb_documents` deletion cascades to `kb_chunks` (FK ON DELETE CASCADE). Then clear the manifest's rows. Audible generations (which also carry personal-register text) are deleted from the `/audible` history panel, or wholesale on the droplet: `DELETE FROM generations WHERE kind='audible';`. Note `/api/backup` keeps up to 10 DB snapshots under `data/backups/` on the droplet — purge those too if the goal is complete removal.
+
+**Deleting rows does not scrub bytes.** SQLite runs here with `secure_delete` off, so deleted stories/generations remain readable in the DB file's free pages and WAL until the file is rewritten — and `/api/backup` streams that raw file. Before removing any nginx blocks, compact the database on the droplet:
+
+```bash
+sqlite3 /var/www/commandpost/data/commandpost.db "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
+```
+
+Verify by downloading a fresh `/api/backup` (with credentials) and grepping it for a phrase from a deleted story — it must not appear.
+
+Only after all content is gone AND the VACUUM has run, remove the `/audible` and `/api/audible/` location blocks and reload. **Keep the `/api/backup` block permanently** — it serves the entire raw database regardless of what this feature's rollback removed, and there is no reason it should ever be public.

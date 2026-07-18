@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 export interface StoryMeta {
   id: number;
@@ -34,6 +34,10 @@ export function StoriesBrowser({
   const [query, setQuery] = useState('');
   const [pulling, setPulling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // openStory and pull both write `story`; the sequence guard makes the LAST
+  // user action win, not the last response to arrive, so overlapping fetches
+  // can't display (and let Copy grab) a story the user didn't just pick.
+  const reqSeq = useRef(0);
 
   const storiesByTheme = useMemo(() => {
     const m = new Map<string, StoryMeta[]>();
@@ -46,20 +50,24 @@ export function StoriesBrowser({
   }, [stories]);
 
   async function openStory(id: number) {
+    const seq = ++reqSeq.current;
     setLoadingId(id);
     setError(null);
     try {
       const res = await fetch(`/api/audible/story/${id}`, { cache: 'no-store' });
+      if (seq !== reqSeq.current) return; // a newer open/pull superseded this one
       if (!res.ok) { setError('Could not load that story.'); return; }
       setStory(await res.json());
     } catch {
-      setError('Could not load that story.');
+      if (seq === reqSeq.current) setError('Could not load that story.');
     } finally {
-      setLoadingId(null);
+      if (seq === reqSeq.current) setLoadingId(null);
     }
   }
 
   async function pull() {
+    if (pulling) return; // Enter key can fire while a pull is already in flight
+    const seq = ++reqSeq.current;
     setPulling(true);
     setError(null);
     try {
@@ -69,10 +77,11 @@ export function StoriesBrowser({
         body: JSON.stringify({ theme: activeTheme ?? undefined, query: query.trim() || undefined }),
       });
       const data = await res.json();
+      if (seq !== reqSeq.current) return; // a newer open/pull superseded this one
       if (!res.ok) { setError(data.error || 'No story found.'); return; }
       setStory(data);
     } catch {
-      setError('Could not pull a story.');
+      if (seq === reqSeq.current) setError('Could not pull a story.');
     } finally {
       setPulling(false);
     }

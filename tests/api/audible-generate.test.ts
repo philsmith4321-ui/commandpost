@@ -5,14 +5,17 @@ vi.mock('@/lib/db', () => ({ getDb: () => ({}) }));
 vi.mock('@/lib/rag/retrieve', () => ({ retrieveContext: vi.fn() }));
 vi.mock('@/lib/generation/generate', () => ({ generateContent: vi.fn() }));
 vi.mock('@/lib/queries/generation-queries', () => ({ createGeneration: vi.fn().mockReturnValue(42) }));
-vi.mock('@/lib/queries/kb-queries', () => ({ listAudibleKbDocuments: vi.fn() }));
+vi.mock('@/lib/queries/kb-queries', () => ({
+  listAudibleKbDocuments: vi.fn(),
+  storyDocIdsByTheme: vi.fn(),
+}));
 // Defensive Buffer isolation: the audible route must never touch Buffer drafting.
 vi.mock('@/lib/buffer/draft', () => ({ draftGenerationToBuffer: vi.fn() }));
 
 import { retrieveContext } from '@/lib/rag/retrieve';
 import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
-import { listAudibleKbDocuments } from '@/lib/queries/kb-queries';
+import { listAudibleKbDocuments, storyDocIdsByTheme } from '@/lib/queries/kb-queries';
 import { draftGenerationToBuffer } from '@/lib/buffer/draft';
 import { POST } from '@/app/api/audible/generate/route';
 
@@ -246,5 +249,73 @@ describe('POST /api/audible/generate', () => {
     expect(res.status).toBe(502);
     expect(body.error).toBe('AI down');
     expect(createGeneration).not.toHaveBeenCalled();
+  });
+
+  describe('storyThemes source kind', () => {
+    it('unknown story theme → 400 naming it, nothing retrieved or persisted', async () => {
+      const res = await POST(req({
+        contentType: 'blog_article', topic: 'reciprocity',
+        categories: [], storyThemes: ['Not A Real Theme'],
+      }));
+      const body = await res.json();
+      expect(res.status).toBe(400);
+      expect(body.error).toContain('Not A Real Theme');
+      expect(retrieveContext).not.toHaveBeenCalled();
+      expect(createGeneration).not.toHaveBeenCalled();
+    });
+
+    it('storyThemes-only request: theme expands to all its story docs as ONE retrieval group', async () => {
+      vi.mocked(storyDocIdsByTheme).mockReturnValue([31, 32]);
+      const res = await POST(req({
+        contentType: 'blog_article', topic: 'our wedding', storyThemes: ['Marriage & Amy'],
+      }));
+      expect(res.status).toBe(200);
+      expect(storyDocIdsByTheme).toHaveBeenCalledWith(expect.anything(), 'Marriage & Amy');
+      // one group → k = max(3, ceil(12/1)) = 12, single retrieval over both story docs
+      expect(retrieveContext).toHaveBeenCalledTimes(1);
+      expect(retrieveContext).toHaveBeenCalledWith(
+        expect.anything(), expect.objectContaining({ sourceIds: [31, 32], k: 12 })
+      );
+      expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        kind: 'audible', source_ids: [31, 32],
+      }));
+    });
+
+    it('mixed categories + storyThemes: both contribute groups and merge into source_ids', async () => {
+      vi.mocked(storyDocIdsByTheme).mockReturnValue([31, 32]);
+      const res = await POST(req({
+        contentType: 'blog_article', topic: 'reciprocity',
+        categories: ['Influence'], storyThemes: ['Marriage & Amy'],
+      }));
+      expect(res.status).toBe(200);
+      // two groups → k = max(3, ceil(12/2)) = 6; category group then theme group
+      expect(retrieveContext).toHaveBeenCalledTimes(2);
+      expect(retrieveContext).toHaveBeenNthCalledWith(
+        1, expect.anything(), expect.objectContaining({ sourceIds: [11], k: 6 })
+      );
+      expect(retrieveContext).toHaveBeenNthCalledWith(
+        2, expect.anything(), expect.objectContaining({ sourceIds: [31, 32], k: 6 })
+      );
+      expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        source_ids: [11, 31, 32],
+      }));
+    });
+
+    it('a theme with zero story docs is dropped without failing the request', async () => {
+      vi.mocked(storyDocIdsByTheme).mockReturnValue([]);
+      const res = await POST(req({
+        contentType: 'blog_article', topic: 'reciprocity',
+        categories: ['Influence'], storyThemes: ['Marriage & Amy'],
+      }));
+      expect(res.status).toBe(200);
+      // only the category group retrieves; the empty theme contributes nothing
+      expect(retrieveContext).toHaveBeenCalledTimes(1);
+      expect(retrieveContext).toHaveBeenCalledWith(
+        expect.anything(), expect.objectContaining({ sourceIds: [11] })
+      );
+      expect(createGeneration).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        source_ids: [11],
+      }));
+    });
   });
 });

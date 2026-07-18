@@ -5,7 +5,7 @@ import { generateContent } from '@/lib/generation/generate';
 import { createGeneration } from '@/lib/queries/generation-queries';
 import { isContentType, LENGTHS } from '@/lib/generation/content-types';
 import { listAudibleKbDocuments, storyDocIdsByTheme } from '@/lib/queries/kb-queries';
-import { audibleDocLabel, isStoryTheme } from '@/lib/audible';
+import { groupAudibleDocsByLabel, isStoryTheme } from '@/lib/audible';
 import type { LengthPreference, RetrievalMode } from '@/lib/types';
 
 export const maxDuration = 120;
@@ -46,18 +46,14 @@ export async function POST(request: NextRequest) {
   // newest-first, so keeping the FIRST doc per label means an orphaned older
   // duplicate (failed sync DELETE) never wins.
   const docs = listAudibleKbDocuments(db);
-  const byLabel = new Map<string, (typeof docs)[number]>();
-  for (const d of docs) {
-    const { label, isStory } = audibleDocLabel(d.title);
-    // Story docs are selected by theme (below), never as a category label.
-    if (isStory) continue;
-    if (!byLabel.has(label)) byLabel.set(label, d);
-  }
+  // Story docs are selected by theme (below), never as a category label —
+  // groupAudibleDocsByLabel skips them and keeps the newest doc per label.
+  const byLabel = groupAudibleDocsByLabel(docs);
   const catDocIds: number[] = [];
   const unknown: string[] = [];
   for (const name of categories) {
-    const doc = byLabel.get(name);
-    if (doc) catDocIds.push(doc.id);
+    const entry = byLabel.get(name);
+    if (entry) catDocIds.push(entry.doc.id);
     else unknown.push(name);
   }
   if (unknown.length > 0) {
