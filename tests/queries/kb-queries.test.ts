@@ -166,3 +166,25 @@ describe('Audible story queries', () => {
     expect(chunkOwners.map((r) => r.kb_document_id)).toEqual([themeDoc, general]);
   });
 });
+
+describe('kb_documents author column', () => {
+  it('createKbDocument round-trips author; NULL when omitted', () => {
+    const withAuthor = createKbDocument(db, {
+      title: 'Audible Book — Deep Work',
+      source_type: 'system',
+      content: 'note body',
+      doc_set: AUDIBLE_DOC_SET,
+      author: 'Cal Newport',
+    });
+    const without = createKbDocument(db, {
+      title: 'Audible Book — Anon',
+      source_type: 'system',
+      content: 'note body',
+      doc_set: AUDIBLE_DOC_SET,
+    });
+    const docs = listAudibleKbDocuments(db);
+    expect(docs.find((d) => d.id === withAuthor)?.author).toBe('Cal Newport');
+    expect(docs.find((d) => d.id === without)?.author).toBeNull();
+    expect(getKbDocument(db, withAuthor)?.author).toBe('Cal Newport');
+  });
+});

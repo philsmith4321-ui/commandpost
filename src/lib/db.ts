@@ -848,6 +848,17 @@ export function initDb(dbPath: string = DB_PATH): Database.Database {
     db.exec('ALTER TABLE kb_documents ADD COLUMN theme TEXT');
   }
 
+  // Migration: add author to kb_documents — book author(s) for Audible book
+  // docs (from audible-kb frontmatter author_assumed), so the /audible Books
+  // picker can filter by author. NULL for non-book docs; display/search only,
+  // never a fence.
+  const hasKbAuthor = db
+    .prepare("SELECT COUNT(*) as count FROM pragma_table_info('kb_documents') WHERE name = 'author'")
+    .get() as { count: number };
+  if (hasKbAuthor.count === 0) {
+    db.exec('ALTER TABLE kb_documents ADD COLUMN author TEXT');
+  }
+
   // Migration: Outreach (Four Lanes) — door attribution on leads + per-week tracker log
   const hasLeadLane = db
     .prepare("SELECT COUNT(*) as count FROM pragma_table_info('leads') WHERE name = 'lane'")

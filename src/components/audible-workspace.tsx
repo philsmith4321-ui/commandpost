@@ -8,12 +8,14 @@ import type { Generation } from '@/lib/types';
 export function AudibleWorkspace({
   categories,
   books,
+  bookAuthors,
   storyThemes,
   stories,
   initialHistory,
 }: {
   categories: string[];
   books: string[];
+  bookAuthors: Record<string, string>;
   storyThemes: StoryThemeCount[];
   stories: StoryMeta[];
   initialHistory: Generation[];
@@ -46,6 +48,7 @@ export function AudibleWorkspace({
         <AudibleStudio
           categories={categories}
           books={books}
+          bookAuthors={bookAuthors}
           storyThemes={storyThemeNames}
           initialHistory={initialHistory}
         />

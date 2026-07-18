@@ -15,8 +15,12 @@ export default async function AudiblePage() {
   // render twice. Story docs are handled separately (grouped by theme).
   const categories = new Set<string>();
   const books = new Set<string>();
-  for (const [label, { isBook }] of groupAudibleDocsByLabel(docs)) {
+  // label -> author(s), from the kb_documents.author column (synced from
+  // audible-kb frontmatter) — lets the Books filter match author names.
+  const bookAuthors: Record<string, string> = {};
+  for (const [label, { doc, isBook }] of groupAudibleDocsByLabel(docs)) {
     (isBook ? books : categories).add(label);
+    if (isBook && doc.author) bookAuthors[label] = doc.author;
   }
 
   // Stories, grouped by theme for the browse tab and offered as drafting sources.
@@ -47,6 +51,7 @@ export default async function AudiblePage() {
       <AudibleWorkspace
         categories={Array.from(categories)}
         books={Array.from(books).sort()}
+        bookAuthors={bookAuthors}
         storyThemes={storyThemes}
         stories={stories}
         initialHistory={history}
