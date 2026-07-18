@@ -8,17 +8,18 @@ import {
   contentTypeLabel as typeLabel,
 } from '@/lib/generation/content-types';
 import { matchesBookFilter } from '@/lib/audible';
-import { AUDIBLE_BOOK_AUTHORS } from '@/lib/audible-book-authors';
 import type { Generation, GenContentType, LengthPreference } from '@/lib/types';
 
 export function AudibleStudio({
   categories,
   books = [],
+  bookAuthors = {},
   storyThemes = [],
   initialHistory,
 }: {
   categories: string[];
   books?: string[];
+  bookAuthors?: Record<string, string>;
   storyThemes?: string[];
   initialHistory: Generation[];
 }) {
@@ -40,7 +41,7 @@ export function AudibleStudio({
 
   const hasSources = categories.length > 0 || books.length > 0 || storyThemes.length > 0;
   const visibleBooks = bookFilter.trim()
-    ? books.filter((b) => matchesBookFilter(b, bookFilter, AUDIBLE_BOOK_AUTHORS))
+    ? books.filter((b) => matchesBookFilter(b, bookFilter, bookAuthors))
     : books;
   const selectedBookCount = books.reduce((n, b) => n + (selected.has(b) ? 1 : 0), 0);
   const totalSelected = selected.size + selectedStories.size;

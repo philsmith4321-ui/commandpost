@@ -11,14 +11,16 @@ export interface CreateKbInput {
   doc_set?: string | null;
   /** Grouping tag for Audible story docs (one of STORY_THEMES); NULL otherwise. */
   theme?: string | null;
+  /** Book author(s) for Audible book docs; NULL otherwise. Never a fence. */
+  author?: string | null;
 }
 
 export function createKbDocument(db: Database.Database, input: CreateKbInput): number {
   const content = input.content ?? '';
   const result = db
     .prepare(
-      `INSERT INTO kb_documents (title, source_type, source_url, content, char_count, doc_set, theme)
-       VALUES (@title, @source_type, @source_url, @content, @char_count, @doc_set, @theme)`
+      `INSERT INTO kb_documents (title, source_type, source_url, content, char_count, doc_set, theme, author)
+       VALUES (@title, @source_type, @source_url, @content, @char_count, @doc_set, @theme, @author)`
     )
     .run({
       title: input.title,
@@ -28,11 +30,12 @@ export function createKbDocument(db: Database.Database, input: CreateKbInput): n
       char_count: content.length,
       doc_set: input.doc_set ?? null,
       theme: input.theme ?? null,
+      author: input.author ?? null,
     });
   return Number(result.lastInsertRowid);
 }
 
-const KB_META_COLS = 'id, title, source_type, source_url, char_count, doc_set, theme, created_at';
+const KB_META_COLS = 'id, title, source_type, source_url, char_count, doc_set, theme, author, created_at';
 /** SQL fence: general (non-Audible) docs only. Keys on doc_set, never titles. */
 const notAudible = (alias = '') => `(${alias}doc_set IS NULL OR ${alias}doc_set != '${AUDIBLE_DOC_SET}')`;
 const NOT_AUDIBLE = notAudible();

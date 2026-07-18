@@ -341,6 +341,8 @@ export interface KbDocument {
   doc_set: string | null;
   /** Grouping tag for Audible story docs (one of STORY_THEMES); NULL otherwise. Never a fence. */
   theme: string | null;
+  /** Book author(s) for Audible book docs; NULL otherwise. Display/search only, never a fence. */
+  author: string | null;
   created_at: string;
 }
 

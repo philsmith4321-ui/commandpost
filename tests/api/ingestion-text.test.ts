@@ -50,3 +50,30 @@ describe('/api/ingestion/text doc_set', () => {
     expect(docSetOf(body.id)).toBeNull();
   });
 });
+
+describe('/api/ingestion/text author', () => {
+  beforeEach(() => { testDb = initDb(':memory:'); });
+
+  function authorOf(id: number): string | null {
+    return (db().prepare('SELECT author FROM kb_documents WHERE id = ?').get(id) as { author: string | null }).author;
+  }
+
+  it('persists a trimmed author and echoes it', async () => {
+    const res = await POST(req({
+      content: 'note body', title: 'Audible Book — Deep Work', doc_set: 'audible', author: '  Cal Newport  ',
+    }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.author).toBe('Cal Newport');
+    expect(authorOf(body.id)).toBe('Cal Newport');
+  });
+
+  it('stores NULL when author is omitted, empty, or not a string', async () => {
+    for (const author of [undefined, '', '   ', 42]) {
+      const res = await POST(req({ content: 'note body', title: `t-${String(author)}`, author }));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(authorOf(body.id)).toBeNull();
+    }
+  });
+});

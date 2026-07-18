@@ -20,9 +20,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `doc_set must be '${AUDIBLE_DOC_SET}' or omitted` }, { status: 400 });
   }
   if (!content) return NextResponse.json({ error: 'Text is empty' }, { status: 400 });
+  // author: display/search metadata for Audible book docs (never a fence).
+  const author: string | null =
+    typeof body?.author === 'string' && body.author.trim() ? body.author.trim() : null;
 
   const db = getDb();
-  const id = createKbDocument(db, { title, source_type, content, doc_set });
+  const id = createKbDocument(db, { title, source_type, content, doc_set, author });
   indexDocument(db, id, content);
-  return NextResponse.json({ id, title, source_type, doc_set, char_count: content.length });
+  return NextResponse.json({ id, title, source_type, doc_set, author, char_count: content.length });
 }
