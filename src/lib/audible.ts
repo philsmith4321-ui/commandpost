@@ -67,21 +67,26 @@ export function audibleDocLabel(title: string): { label: string; isBook: boolean
   return { label: title, isBook: false, isStory: false };
 }
 
+/** Case-insensitive + diacritic-insensitive ("brene" hits "Brené"). */
+function foldForFilter(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 /**
  * Books-picker filter predicate: a book chip matches when the query appears
- * in its title OR its author(s) (case-insensitive substring, so first or
- * last names both hit). Books absent from the author map fall back to
- * title-only matching; a blank query matches everything.
+ * in its title OR its author(s) (case- and accent-insensitive substring, so
+ * first or last names both hit). Books absent from the author map fall back
+ * to title-only matching; a blank query matches everything.
  */
 export function matchesBookFilter(
   label: string,
   query: string,
   authors: Record<string, string>
 ): boolean {
-  const q = query.trim().toLowerCase();
+  const q = foldForFilter(query.trim());
   if (!q) return true;
-  if (label.toLowerCase().includes(q)) return true;
-  return (authors[label] ?? '').toLowerCase().includes(q);
+  if (foldForFilter(label).includes(q)) return true;
+  return foldForFilter(authors[label] ?? '').includes(q);
 }
 
 /**

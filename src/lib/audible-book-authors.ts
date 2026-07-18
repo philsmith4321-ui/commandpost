@@ -6,8 +6,8 @@
  * frontmatter title the sync script posts, so keys match the labels the
  * Books picker renders. Books absent from this map (unknown-author
  * catalog artifacts, or titles added after generation) fall back to
- * title-only filtering. Regenerate by re-running the frontmatter
- * export from the audible-kb repo (see that repo's scripts/).
+ * title-only filtering. Regenerate with:
+ *   python3 scripts/export_book_authors.py   (from the audible-kb repo)
  */
 export const AUDIBLE_BOOK_AUTHORS: Record<string, string> = {
   "$100M Offers: How to Make Offers So Good People Feel Stupid Saying No": "Alex Hormozi",

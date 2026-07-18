@@ -5,6 +5,7 @@ const AUTHORS: Record<string, string> = {
   '$100M Offers: How to Make Offers So Good People Feel Stupid Saying No': 'Alex Hormozi',
   'Think and Grow Rich': 'Napoleon Hill',
   'The Power of Positive Thinking': 'Norman Vincent Peale',
+  'Daring Greatly': 'Brené Brown',
 };
 
 describe('matchesBookFilter', () => {
@@ -31,6 +32,14 @@ describe('matchesBookFilter', () => {
 
   it('ignores surrounding whitespace in the query', () => {
     expect(matchesBookFilter('Think and Grow Rich', '  hill  ', AUTHORS)).toBe(true);
+  });
+
+  it('matches an accented author from a plain-ASCII query', () => {
+    expect(matchesBookFilter('Daring Greatly', 'brene', AUTHORS)).toBe(true);
+  });
+
+  it('matches an accented title from a plain-ASCII query', () => {
+    expect(matchesBookFilter('Café Culture', 'cafe', AUTHORS)).toBe(true);
   });
 
   it('matches everything on a blank query', () => {
