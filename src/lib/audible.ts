@@ -68,6 +68,23 @@ export function audibleDocLabel(title: string): { label: string; isBook: boolean
 }
 
 /**
+ * Books-picker filter predicate: a book chip matches when the query appears
+ * in its title OR its author(s) (case-insensitive substring, so first or
+ * last names both hit). Books absent from the author map fall back to
+ * title-only matching; a blank query matches everything.
+ */
+export function matchesBookFilter(
+  label: string,
+  query: string,
+  authors: Record<string, string>
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (label.toLowerCase().includes(q)) return true;
+  return (authors[label] ?? '').toLowerCase().includes(q);
+}
+
+/**
  * Group non-story audible docs by display label, keeping the FIRST doc per
  * label. Callers pass listAudibleKbDocuments' newest-first order, so an
  * orphaned older duplicate (failed sync DELETE) never wins. The page derives
